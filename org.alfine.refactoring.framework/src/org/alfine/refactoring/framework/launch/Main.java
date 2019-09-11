@@ -1,0 +1,107 @@
+package org.alfine.refactoring.framework.launch;
+
+import org.alfine.refactoring.framework.Project;
+import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
+import org.alfine.refactoring.processors.RefactoringProcessor;
+import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
+import org.alfine.refactoring.suppliers.RandomRenameSupplier;
+import org.alfine.refactoring.suppliers.RefactoringSupplier;
+import org.alfine.refactoring.utils.Generator;
+import org.eclipse.equinox.app.IApplication;
+import org.eclipse.equinox.app.IApplicationContext;
+
+/**
+ * This class controls all aspects of the application's execution
+ */
+public class Main implements IApplication {
+
+	@Override
+	public Object start(IApplicationContext context) throws Exception {
+
+		// Note: The 'workspace' argument is passed to the eclipse
+		//       starter as '-data' argument.
+		//
+		// Specified source and binary archives are imported into a new project.
+		// A series of refactorings of the specified type is then attempted until
+		// one succeeds, after which all source archives are exported to the
+		// output folder.
+		//
+		// Note: Binary archives are not transformed and therefore not written to
+		//       the output folder. The user can reuse the same source folders for
+		//       binary and source archives multiple times.
+		//
+		// Note: Accumulative refactorings are available by specifying an output
+		//       folder as source folder in a successive framework invokation.
+		//       This allows the user to test artifacts after each transformation.
+
+		String[]             args      = null;
+		CommandLineArguments arguments = null;
+
+		args      = (String [])context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
+		arguments = new CommandLineArguments(args);
+
+		String  projectName     = "JavaProject";               // Default project name in workspace.
+		String  srcFolder       = arguments.getSrcFolder();    // Location of source archives to be imported.
+		String  libFolder       = arguments.getLibFolder();    // Location of binary archives to be imported.
+		String  outputFolder    = arguments.getOutputFolder(); // Output folder for source archives on success.
+		boolean verbose         = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
+		int     drop            = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
+		int     limit           = arguments.getLimit();        // Number of refactoring attempts before we give up.
+		int     shuffleSeed       = arguments.getShuffleSeed();    // Seed used for Random instance used for shuffling opportunities.
+
+		RefactoringType type    = arguments.getRefactoring(); // Refactoring type.
+		long            seed    = arguments.getSeed();        // Number generator seed.
+		int             offset   = arguments.getOffset();       // Number generator initial offset.
+		int             length  = arguments.getLength();      // Rename symbol max length. (In case of a rename refactoring.)
+		boolean         fixed    = arguments.getFixed();     // Whether length of generated symbols is fixed or random.
+
+		Project.setVerbose(verbose);
+
+		// Open a new project and import resources (Assume refactorings do not modify sources unless successful!)
+
+		Project.open(projectName, srcFolder, libFolder, outputFolder);		
+
+		Generator           generator = new Generator(seed, offset);
+		RefactoringSupplier supplier  = null;
+
+		switch (type) {
+		case NONE:
+			break;
+		case EXTRACT:
+			break;
+		case INLINE:
+			supplier = new RandomInlineMethodSupplier(Project.getJavaProject(), generator);
+			break;
+		case RENAME:
+
+			if (!arguments.hasOption("length")) {
+				System.out.println("Missing command-line option 'length' (-l) for rename refactorings.");
+			}
+			
+			generator.setMaxLength(length);
+			generator.setLengthFixed(fixed);    // TODO: Add as a command line option.
+
+			supplier = new RandomRenameSupplier(Project.getJavaProject(), generator);
+			break;
+		default:
+			System.out.println("Unknown refactoring type.");
+		}
+
+		boolean success = new RefactoringProcessor(supplier).processSupply(drop, limit);
+
+		Project.close(success); // Note: Output folder will be empty if we fail to transform the project.
+
+		System.out.println("<< Application::start");
+
+		// How do we set an explicit exit status? Do we use System.exit(..) or this:
+		// context.setResult(new Integer((success ? 0 : -1)), this);
+		// return IApplicationContext.EXIT_ASYNC_RESULT;
+
+		return IApplication.EXIT_OK;
+	}
+
+	@Override
+	public void stop() {
+		// nothing to do
+	}
+}

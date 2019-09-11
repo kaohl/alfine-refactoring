@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         id="application"
+         name="%extension.name"
+         point="org.eclipse.core.runtime.applications">
+      <application>
+         <run
+               class="org.alfine.refactoring.framework.launch.Main">
+         </run>
+      </application>
+   </extension>
+   <extension
+         id="Alfine Refactoring Framework Product Extension"
+         name="%extension.name.0"
+         point="org.eclipse.core.runtime.products">
+      <product
+            application="org.alfine.refactoring.framework.application"
+            name="Alfine Refactoring Framework">
+         <property
+               name="appName"
+               value="Alfine Refactoring Framework">
+         </property>
+      </product>
+   </extension>
+
+</plugin>
