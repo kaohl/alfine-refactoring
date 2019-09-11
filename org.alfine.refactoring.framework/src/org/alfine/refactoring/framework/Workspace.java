@@ -7,13 +7,15 @@ import java.util.Vector;
 
 public class Workspace {
 
-	private Path location; /* File representing workspace folder. */
+	private Path location; /* Workspace folder. */
 	private Path srcPath;  /* Folder containing source archives. */
 	private Path libPath;  /* Folder containing binary archives. */
+	private Path outPath;  /* Destination folder for transformed source archives. */
 
-	/* Projects loaded from configuration file. */
+	/* Project configuration from configuration file. */
 	private Map<String, ProjectConfiguration> projectMap;
 	private Vector<ProjectConfiguration>      projectVec;
+	private Map<String, JavaProject>         projects;
 
 	public Workspace(WorkspaceConfiguration config) {
 		this.location   = config.getLocation();
@@ -38,13 +40,18 @@ public class Workspace {
 		return this.libPath;
 	}
 
+	/** Return `Path' to source output folder. */
+	public Path getOutPath() {
+		return this.outPath;
+	}
+
 	/** Return vector with projects in top-down configuration file order (declare before use!). */
 	public Vector<ProjectConfiguration> getProjectVec() {
 		return this.projectVec;
 	}
 
 	/** Return the specified project or null if it does not exist. */
-	public ProjectConfiguration getProject(String name) {
+	public ProjectConfiguration getProjectConfiguration(String name) {
 		return this.projectMap.get(name);
 	}
 
@@ -54,7 +61,7 @@ public class Workspace {
 		boolean validConfig = true;
 
 		for (ProjectConfiguration p : getProjectVec()) {
-			if (!p.isValidate(this)) {
+			if (!p.validate(this)) {
 				validConfig = false;
 			}
 			// Run through all to print errors.
@@ -65,7 +72,7 @@ public class Workspace {
 		}
 
 		for (ProjectConfiguration p : getProjectVec()) {
-			p.open(this);
+			projects.put(p.getName(), new JavaProject(this, p));
 		}
 	}
 
@@ -81,7 +88,7 @@ public class Workspace {
 
 	/** Return true if a file with the specified name exists in the configured source folder. */
 	public boolean isSrcAvailable(String dir, String jar) {
-		// TODO: Check that archive contains path.
+		// TODO: Check that archive contains `dir'.
 		return Files.exists(srcPath.resolve(jar));
 	}
 

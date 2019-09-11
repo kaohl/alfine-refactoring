@@ -66,8 +66,13 @@ public class WorkspaceConfiguration {
 		return this.projectMap;
 	}
 
-	/** Construct project from configuration string. */
-	public static ProjectConfiguration parseProjectConfig(String cnf) {
+	/** Return true if the specified string is a keyword. */
+	private static boolean isKeyword(String s) {
+		return "dep".equals(s) || "src".equals(s) || "lib".equals(s) || "exp".equals(s);
+	}
+
+	/** Create `ProjectConfiguration' from configuration string. */
+	public static ProjectConfiguration parseProjectConfiguration(String cnf) {
 
 		List<String> tokens = Arrays.asList(cnf.trim().split("\\s+"));
 
@@ -79,13 +84,15 @@ public class WorkspaceConfiguration {
 		Vector<Pair<String,String>> exps = new Vector<>(); /* Exported archives. */
 		Vector<Pair<String,String>> vars = new Vector<>(); /* Source entries open for transformation. */
 
+		// We do not configure variable sources here. They specified as part of the refactoring configuration.
+
 		// # single line comment
-		// exp bin (src | ?)
-		// lib bin (src | ?)
+		// exp bin src
+		// lib bin src
 		// src dir jar
-		// dep label
-		// var dir jar
-		// ,where path is "/" or a subfolder of "/".
+		// dep name
+		// , where dir is any valid path to a folder in the specified archive; "/" means top-level,
+		// and src should be "?" when not present in `exp' and `lib' options.
 
 		// Example configuration file:
 		//
@@ -105,7 +112,7 @@ public class WorkspaceConfiguration {
 		//     src /tests/type/wildcard01 extendj-8.1.2-regression-src.jar
 		// }
 
-		String format = "Parse error while parsing configuration for project %s:\n\t%s";
+		String format = "Parse error while parsing configuration for project `%s':\n\t%s";
 
 		boolean hasErrors = false;
 
@@ -119,37 +126,57 @@ public class WorkspaceConfiguration {
 			String src = null;
 			String dep = null;
 
+		Next: /* Go back and resume here if a keyword is found unexpectedly while parsing configuration. */
+
+			/* Note: `token' is always assigned the read keyword before breaking out to `Next'. */
+
 			switch (token) {
 			case "src":
 
-				if (!it.hasNext() || (dir = it.next()) == null) {
+				if (!it.hasNext() || (token = dir = it.next()) == null || isKeyword(dir)) {
+
 					System.err.printf(format, label, "Missing `dir' argument (0) in `src' option.");
-				} else if (!it.hasNext() || (jar  = it.next()) == null) {
+
+					if (isKeyword(dir)) {
+						hasErrors = true;
+						break Next;
+					}
+
+				} else if (!it.hasNext() || (token = jar = it.next()) == null || isKeyword(jar)) {
+
 					System.err.printf(format, label, "Missing `jar' argument (1) in `src' option.");
+
+					if (isKeyword(jar)) {
+						hasErrors = true;
+						break Next;
+					}
+
 				} else {
 					srcs.add(new Pair<String, String>(dir, jar));
 				}
 
 				break;
 
-			case "var":
-
-				if (!it.hasNext() || (dir = it.next()) == null) {
-					System.err.printf(format, label, "Missing `dir' argument (0) in `var' option.");
-				} else if (!it.hasNext() || (jar  = it.next()) == null) {
-					System.err.printf(format, label, "Missing `jar' argument (1) in `var' option.");
-				} else {
-					vars.add(new Pair<String, String>(dir, jar));
-				}
-
-				break;
-
 			case "lib":
 
-				if (!it.hasNext() || (bin = it.next()) == null) {
+				if (!it.hasNext() || (token = bin = it.next()) == null || isKeyword(bin)) {
+
 					System.err.printf(format, label, "Missing `binary archive' argument (0) in `lib' option.");
-				} else if (!it.hasNext() || (src = it.next()) == null) {
+
+					if (isKeyword(bin)) {
+						hasErrors = true;
+						break Next;
+					}
+
+				} else if (!it.hasNext() || (token = src = it.next()) == null || isKeyword(src)) {
+
 					System.err.printf(format, label, "Missing `source archive' argument (1) in `lib' option.");
+
+					if (isKeyword(src)) {
+						hasErrors = true;
+						break Next;
+					}
+
 				} else {
 					libs.add(new Pair<String, String>(bin, src));
 				}
@@ -158,10 +185,24 @@ public class WorkspaceConfiguration {
 
 			case "exp":
 
-				if (!it.hasNext() || (bin = it.next()) == null) {
+				if (!it.hasNext() || (token = bin = it.next()) == null || isKeyword(bin)) {
+
 					System.err.printf(format, label, "Missing `binary archive' argument (0) in `exp' option.");
-				} else if (!it.hasNext() || (src = it.next()) == null) {
+
+					if (isKeyword(bin)) {
+						hasErrors = true;
+						break Next;
+					}
+
+				} else if (!it.hasNext() || (token = src = it.next()) == null || isKeyword(src)) {
+
 					System.err.printf(format, label, "Missing `source archive' argument (1) in `exp' option.");
+
+					if (isKeyword(src)) {
+						hasErrors = true;
+						break Next;
+					}
+
 				} else {
 					exps.add(new Pair<String, String>(bin, src));
 				}
@@ -169,8 +210,16 @@ public class WorkspaceConfiguration {
 				break;
 
 			case "dep":
-				if (!it.hasNext() || (dep = it.next()) == null) {
+
+				if (!it.hasNext() || (token = dep = it.next()) == null || isKeyword(dep)) {
+
 					System.err.printf(format, label, "Missing `project name' argument (0) in `dep' option.");
+
+					if (isKeyword(dep)) {
+						hasErrors = true;
+						break Next;
+					}
+
 				} else {
 					deps.add(dep);
 				}
@@ -183,13 +232,16 @@ public class WorkspaceConfiguration {
 			}
 		}
 
-		return hasErrors ? null : new ProjectConfiguration(label, deps, srcs, libs, exps, vars);
+		if (hasErrors) {
+			System.out.printf("Project configuration for project `%s' contains syntax errors.", label);
+		}
+
+		return new ProjectConfiguration(label, deps, srcs, libs, exps, vars, !hasErrors);
 	}
 
-	/** Parse project configuration file and construct a `Project2' instance per project configuration.
+	/** Parse project configuration file and construct a `ProjectConfiguration' per project configuration.
 	 *  Since it may be time-consuming to load project resources into corresponding project folders
-	 *  we don't do this until the full configuration file has been parsed. This method does not load
-	 *  resources into project folders but merely load configuration into project stubs. */
+	 *  we don't do this until the full configuration file has been parsed and checked. */
 	public static Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> parseConfig(Path config) {
 
 		Vector<ProjectConfiguration>      vec = new Vector<>();
@@ -206,7 +258,7 @@ public class WorkspaceConfiguration {
 			.forEach(token -> {
 				if (token.equals("}")) {
 
-					ProjectConfiguration p = parseProjectConfig(cnf.toString());
+					ProjectConfiguration p = parseProjectConfiguration(cnf.toString());
 
 					vec.add(p);
 					map.put(p.getName(), p);

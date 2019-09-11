@@ -21,13 +21,16 @@ public class ProjectConfiguration {
 	private final Vector<Pair<String,String>> exps; /* Exported classpath entries. */
 	private final Vector<Pair<String,String>> vars; /* Source entries open for transformation. */
 
+	private final boolean isValidConfig;
+
 	public ProjectConfiguration(
 		String                      name,
 		Vector<String>              deps,
 		Vector<Pair<String,String>> srcs,
 		Vector<Pair<String,String>> libs,
 		Vector<Pair<String,String>> exps,
-		Vector<Pair<String,String>> vars) {
+		Vector<Pair<String,String>> vars,
+		boolean isValidConfig) {
 
 		this.name = name;
 		this.deps = deps;
@@ -35,14 +38,25 @@ public class ProjectConfiguration {
 		this.libs = libs;
 		this.exps = exps;
 		this.vars = vars;
+
+		this.isValidConfig = isValidConfig;
+		
 	}
 
 	public String getName() {
 		return this.name;
 	}
 
+	private boolean isConfigValid() {
+		return this.isValidConfig;
+	}
+
 	/** Validate project configuration. */
-	public boolean isValidate(Workspace ws) {
+	public boolean validate(Workspace ws) {
+
+		if (!isConfigValid()) {
+			System.out.printf("Project configuration for project `%s' contains syntax errors.", getName());
+		}
 
 		boolean result = true;
 
@@ -108,16 +122,6 @@ public class ProjectConfiguration {
 		}
 		
 		return result;
-	}
-
-	/** Load resources into project folder. Creates a corresponding Eclipse Java project. */
-	public void open(Workspace ws) {
-		
-	}
-
-	
-	public void close(Workspace ws) {
-		
 	}
 
 	@Override

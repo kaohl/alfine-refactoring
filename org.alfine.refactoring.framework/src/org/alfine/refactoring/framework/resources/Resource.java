@@ -7,7 +7,7 @@ public abstract class Resource {
 
 	public static final Resource NULL = new Resource(null) {};
 
-	private Path location;
+	private Path location; /* Location in input source folder. */
 
 	public Resource(Path location) {
 		this.location = location;
@@ -16,6 +16,7 @@ public abstract class Resource {
 	public Path getLocation() {
 		return this.location;
 	}
+
 	
 	/* 1. Include whole source archive
 	 * 2. Include everything below a subdirectory of an artifact
