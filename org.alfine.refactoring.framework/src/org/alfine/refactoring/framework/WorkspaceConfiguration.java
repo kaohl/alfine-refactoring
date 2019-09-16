@@ -1,18 +1,67 @@
 package org.alfine.refactoring.framework;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
+import java.util.jar.JarFile;
 
 import org.alfine.utils.Pair;
 
 public class WorkspaceConfiguration {
+
+	public static class SrcEntry {
+
+		private String dir;
+		private Path   jar;
+
+		public SrcEntry(String dir, Path jar) {
+			this.dir = dir;
+			this.jar = jar;
+		}
+
+		public String getDir() {
+			return this.dir;
+		}
+
+		public Path getJar() {
+			return this.jar;
+		}
+	}
+
+	public static class LibEntry {
+
+		private Path  lib;
+		private Path  src;
+		private boolean exp;
+
+		public LibEntry(Path lib, Path src, boolean exp) {
+			this.lib = lib;
+			this.src = src;
+			this.exp = exp;
+		}
+
+		public Path getLib() {
+			return this.lib;
+		}
+
+		public Path getSrc() {
+			return this.src;
+		}
+
+		public boolean isExported() {
+			return this.exp;
+		}
+	}
 
 	private Path location; /* Workspace folder. */
 	private Path srcPath;  /* Folder containing source archives. */
@@ -21,16 +70,18 @@ public class WorkspaceConfiguration {
 
 	private Map<String, ProjectConfiguration> projectMap; /* Projects loaded from configuration file. */
 	private Vector<ProjectConfiguration>      projects;   /* Project order as they appear in configuration file. */
+	private Set<String>                      variables;  /* Names of source archives that are to be considered variable. */
 
 	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config) {
-		this.location = location;
-		this.srcPath  = srcPath;
-		this.libPath  = libPath;
-		this.config    = config;
+		this.location  = location;
+		this.srcPath   = srcPath;
+		this.libPath   = libPath;
+		this.config     = config;
+		this.variables = parseVariables();
 
 		Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> p;
 
-		p = parseConfig(config);
+		p = parseConfig(config, srcPath, libPath);
 
 		this.projects   = p.getFirst();
 		this.projectMap = p.getSecond();
@@ -56,6 +107,32 @@ public class WorkspaceConfiguration {
 		return this.config;
 	}
 
+	public Set<String> getVariables() {
+		return this.variables;
+	}
+
+	/** Return names of all source archives that are to be considered variable. */
+	public Set<String> parseVariables() {
+
+		Path configFile = getSrcPath().resolve("variable.config");
+
+		Set<String> variables = new HashSet<>();
+
+		try (BufferedReader br = Files.newBufferedReader(configFile)) {
+
+			br.lines()
+			.map    (line -> line.trim())
+			.filter  (line -> !line.equals(""))
+			.forEach(name -> { variables.add(name); });
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Failed to read configuration file: " + configFile.toAbsolutePath());
+		}
+
+		return variables;
+	}
+
 	/** Return projects loaded from configuration (load order preserved). */
 	public Vector<ProjectConfiguration> getProjects() {
 		return this.projects;
@@ -71,19 +148,57 @@ public class WorkspaceConfiguration {
 		return "dep".equals(s) || "src".equals(s) || "lib".equals(s) || "exp".equals(s);
 	}
 
-	/** Create `ProjectConfiguration' from configuration string. */
-	public static ProjectConfiguration parseProjectConfiguration(String cnf) {
+	public static boolean isValidSrcEntry(String dir, Path jar) {
+
+		if (!Files.exists(jar)) {
+			return false;
+		}
+
+		try (JarFile jf = new JarFile(jar.toString())){
+
+			if (dir.equals("/")) {
+				return true;
+			} else {
+				return !(null == jf.getEntry(dir.endsWith("/") ? dir : dir + "/"));
+			}
+
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	public static boolean isValidLibEntry(Path lib, Path src) {
+		/* Note: Source archive is optional. */
+		return Files.exists(lib) && (src.toString().equals("?") || Files.exists(src));
+	}
+
+	/** Create `ProjectConfiguration' from configuration string. 
+	 * @param libDir 
+	 * @param srcDir */
+	public static ProjectConfiguration parseProjectConfiguration(Set<String> dependencies, String cnf, Path srcDir, Path libDir) {
 
 		List<String> tokens = Arrays.asList(cnf.trim().split("\\s+"));
 
 		String label = tokens.remove(0);
 
-		Vector<String>              deps = new Vector<>(); /* Project dependencies. */
-		Vector<Pair<String,String>> srcs = new Vector<>(); /* Source entries. */
-		Vector<Pair<String,String>> libs = new Vector<>(); /* Library entries. */
-		Vector<Pair<String,String>> exps = new Vector<>(); /* Exported archives. */
-		Vector<Pair<String,String>> vars = new Vector<>(); /* Source entries open for transformation. */
+		if (dependencies.contains(label)) {
+			throw new RuntimeException("Duplicate configurations for project: `" + label + "'");
+		}
 
+		dependencies.add(label);
+
+		Vector<String>   deps = new Vector<>(); /* Project dependencies. */
+		Vector<SrcEntry> srcs = new Vector<>(); /* Source entries. */
+		Vector<LibEntry> libs = new Vector<>(); /* Library entries. */
+
+		// TODO: `libs' and `exps' should be added in order they appear on classpath.
+		//       We must therefore preserve their order.
+		//
+		// Pair<Pair<String, String>, Boolean> : works for both soures and libraries.
+		// ((src, folder), variable?)
+		// ((lib, src),    export?)
+		
+		
 		// We do not configure variable sources here. They specified as part of the refactoring configuration.
 
 		// # single line comment
@@ -152,7 +267,8 @@ public class WorkspaceConfiguration {
 					}
 
 				} else {
-					srcs.add(new Pair<String, String>(dir, jar));
+					hasErrors = !isValidSrcEntry(dir, Paths.get(jar));
+					srcs.add(new SrcEntry(dir, Paths.get(jar)));
 				}
 
 				break;
@@ -178,7 +294,11 @@ public class WorkspaceConfiguration {
 					}
 
 				} else {
-					libs.add(new Pair<String, String>(bin, src));
+					if (!isValidLibEntry(Paths.get(bin), Paths.get(src))) {
+						System.err.printf(format, label, "Invalid lib entry: `lib " + bin + " " + src);
+						hasErrors = true;
+					}
+					libs.add(new LibEntry(Paths.get(bin), Paths.get(src), false));
 				}
 
 				break;
@@ -204,7 +324,11 @@ public class WorkspaceConfiguration {
 					}
 
 				} else {
-					exps.add(new Pair<String, String>(bin, src));
+					if (!isValidLibEntry(Paths.get(bin), Paths.get(src))) {
+						System.err.printf(format, label, "Invalid exp entry: `exp " + bin + " " + src);
+						hasErrors = true;
+					}
+					libs.add(new LibEntry(Paths.get(bin), Paths.get(src), true));
 				}
 
 				break;
@@ -221,6 +345,10 @@ public class WorkspaceConfiguration {
 					}
 
 				} else {
+					if (!dependencies.contains(dep)) {
+						hasErrors = true;
+						System.err.printf(format, label, "Project dependency `" + dep + "' has not yet been declared.");
+					}
 					deps.add(dep);
 				}
 
@@ -233,16 +361,19 @@ public class WorkspaceConfiguration {
 		}
 
 		if (hasErrors) {
-			System.out.printf("Project configuration for project `%s' contains syntax errors.", label);
+			System.err.printf("Bad configuration for project `%s'.", label);
 		}
 
-		return new ProjectConfiguration(label, deps, srcs, libs, exps, vars, !hasErrors);
+		return new ProjectConfiguration(label, deps, srcs, libs, !hasErrors);
 	}
 
 	/** Parse project configuration file and construct a `ProjectConfiguration' per project configuration.
 	 *  Since it may be time-consuming to load project resources into corresponding project folders
 	 *  we don't do this until the full configuration file has been parsed and checked. */
-	public static Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> parseConfig(Path config) {
+	public static Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> parseConfig(Path config, Path srcDir, Path libDir) {
+
+		// The set projects for which configuration has already been loaded.
+		Set<String> dependencies = new HashSet<String>();
 
 		Vector<ProjectConfiguration>      vec = new Vector<>();
 		Map<String, ProjectConfiguration> map = new HashMap<>();
@@ -258,7 +389,7 @@ public class WorkspaceConfiguration {
 			.forEach(token -> {
 				if (token.equals("}")) {
 
-					ProjectConfiguration p = parseProjectConfiguration(cnf.toString());
+					ProjectConfiguration p = parseProjectConfiguration(dependencies, cnf.toString(), srcDir, libDir);
 
 					vec.add(p);
 					map.put(p.getName(), p);

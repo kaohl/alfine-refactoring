@@ -1,8 +1,10 @@
 package org.alfine.refactoring.framework;
 
+import java.nio.file.Path;
 import java.util.Vector;
 
-import org.alfine.utils.Pair;
+import org.alfine.refactoring.framework.WorkspaceConfiguration.LibEntry;
+import org.alfine.refactoring.framework.WorkspaceConfiguration.SrcEntry;
 
 public class ProjectConfiguration {
 
@@ -14,37 +16,42 @@ public class ProjectConfiguration {
 	/* Unique ID identifying the project. */
 	private final long id = idCounter++;
 	
-	private final String                      name; /* The project name (Unique). */
-	private final Vector<String>              deps; /* Project dependencies. */
-	private final Vector<Pair<String,String>> srcs; /* Source entries. */
-	private final Vector<Pair<String,String>> libs; /* Library entries. */
-	private final Vector<Pair<String,String>> exps; /* Exported classpath entries. */
-	private final Vector<Pair<String,String>> vars; /* Source entries open for transformation. */
+	private final String           name; /* The project name (Unique). */
+	private final Vector<String>   deps; /* Project dependencies. */
+	private final Vector<SrcEntry> srcs; /* Source entries. */
+	private final Vector<LibEntry> libs; /* Library entries. */
 
 	private final boolean isValidConfig;
 
 	public ProjectConfiguration(
-		String                      name,
-		Vector<String>              deps,
-		Vector<Pair<String,String>> srcs,
-		Vector<Pair<String,String>> libs,
-		Vector<Pair<String,String>> exps,
-		Vector<Pair<String,String>> vars,
+		String           name,
+		Vector<String>   deps,
+		Vector<SrcEntry> srcs,
+		Vector<LibEntry> libs,
 		boolean isValidConfig) {
 
 		this.name = name;
 		this.deps = deps;
 		this.srcs = srcs;
 		this.libs = libs;
-		this.exps = exps;
-		this.vars = vars;
 
 		this.isValidConfig = isValidConfig;
-		
 	}
 
 	public String getName() {
 		return this.name;
+	}
+
+	public Vector<String> getDeps() {
+		return this.deps;
+	}
+
+	public Vector<SrcEntry> getSrcs() {
+		return this.srcs;
+	}
+
+	public Vector<LibEntry> getLibs() {
+		return this.libs;
 	}
 
 	private boolean isConfigValid() {
@@ -55,9 +62,16 @@ public class ProjectConfiguration {
 	public boolean validate(Workspace ws) {
 
 		if (!isConfigValid()) {
-			System.out.printf("Project configuration for project `%s' contains syntax errors.", getName());
+			System.err.printf("Project configuration for project `%s' contains syntax errors.", getName());
 		}
 
+		return isConfigValid();
+
+		// TODO: Consider validating everything in the parser..
+		//       moving these `exists' checks and check that deps
+		//       are declared (parsed) before use.
+
+		/*
 		boolean result = true;
 
 		for (String dep : deps) {
@@ -67,10 +81,10 @@ public class ProjectConfiguration {
 			}
 		}
 
-		for (Pair<String, String> p : srcs) {
+		for (SrcEntry p : srcs) {
 
-			String dir = p.getFirst();
-			String jar = p.getSecond();
+			String dir = p.getDir();
+			Path   jar = p.getJar();
 
 			if (!ws.isSrcAvailable(dir, jar)) {
 				System.err.printf("Couldn't find src `" + jar + "' for project `" + getName() + "'");
@@ -78,21 +92,10 @@ public class ProjectConfiguration {
 			}
 		}
 
-		for (Pair<String, String> p : vars) {
+		for (LibEntry p : libs) {
 
-			String dir = p.getFirst();
-			String jar = p.getSecond();
-
-			if (!ws.isSrcAvailable(dir, jar)) {
-				System.err.printf("Couldn't find var `" + jar + "' for project `" + getName() + "'");
-				result = false;
-			}
-		}
-
-		for (Pair<String, String> p : libs) {
-
-			String bin = p.getFirst();
-			String src = p.getSecond();
+			Path bin = p.getLib();
+			Path src = p.getSrc();
 
 			if (!ws.isLibAvailable(bin)) {
 				System.err.printf("Couldn't find bin `" + src + "' for project `" + getName() + "'");
@@ -104,24 +107,8 @@ public class ProjectConfiguration {
 				result = false;
 			}
 		}
-
-		for (Pair<String, String> p : exps) {
-
-			String bin = p.getFirst();
-			String src = p.getSecond();
-
-			if (!ws.isLibAvailable(bin)) {
-				System.err.printf("Couldn't find bin `" + src + "' for project `" + getName() + "'");
-				result = false;
-			}
-
-			if (!ws.isSrcAvailable(src)) {
-				System.err.printf("Couldn't find src `" + src + "' for project `" + getName() + "'");
-				result = false;
-			}
-		}
-		
 		return result;
+		*/
 	}
 
 	@Override

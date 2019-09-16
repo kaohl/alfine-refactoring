@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Vector;
 
+import org.alfine.refactoring.framework.resources.Source;
+
 public class Workspace {
 
 	private Path location; /* Workspace folder. */
@@ -72,7 +74,7 @@ public class Workspace {
 		}
 
 		for (ProjectConfiguration p : getProjectVec()) {
-			projects.put(p.getName(), new JavaProject(this, p));
+			projects.put(p.getName(), new JavaProject(this, p, true));
 		}
 	}
 
@@ -95,5 +97,24 @@ public class Workspace {
 	/** Return true if a file with the specified name exists in the configured library folder. */
 	public boolean isLibAvailable(String jar) {
 		return Files.exists(libPath.resolve(jar));
+	}
+
+	public void exportSource() {
+
+		Path output = getOutPath();
+
+		for (String key : projects.keySet()) {
+			projects.get(key).exportSource(output);
+		}
+
+		/* Finalize export of shared source archives. */
+
+		Map<Path, Source> sharedArchives = null;
+
+		sharedArchives = JavaProject.getSharedSourceArchives();
+
+		for (Path p : sharedArchives.keySet()) {
+			sharedArchives.get(p).exportResource(output);
+		}
 	}
 }
