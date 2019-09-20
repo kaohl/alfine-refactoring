@@ -1,14 +1,23 @@
 package org.alfine.refactoring.framework.launch;
 
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.alfine.refactoring.framework.Project;
+import org.alfine.refactoring.framework.Workspace;
+import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
 import org.alfine.refactoring.processors.RefactoringProcessor;
 import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomRenameSupplier;
 import org.alfine.refactoring.suppliers.RefactoringSupplier;
 import org.alfine.refactoring.utils.Generator;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
+import org.eclipse.jdt.core.IPackageFragmentRoot;
 
 /**
  * This class controls all aspects of the application's execution
@@ -17,6 +26,84 @@ public class Main implements IApplication {
 
 	@Override
 	public Object start(IApplicationContext context) throws Exception {
+
+		String[]             args      = null;
+		CommandLineArguments arguments = null;
+
+		args      = (String [])context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
+		arguments = new CommandLineArguments(args);
+
+		// String  projectName     = "JavaProject";               // Default project name in workspace.
+		String  srcFolder       = arguments.getSrcFolder();    // Location of source archives to be imported.
+		String  libFolder       = arguments.getLibFolder();    // Location of binary archives to be imported.
+		String  outputFolder    = arguments.getOutputFolder(); // Output folder for source archives on success.
+		boolean verbose         = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
+		int     drop            = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
+		int     limit           = arguments.getLimit();        // Number of refactoring attempts before we give up.
+		int     shuffleSeed       = arguments.getShuffleSeed();    // Seed used for Random instance used for shuffling opportunities.
+
+		RefactoringType type    = arguments.getRefactoring(); // Refactoring type.
+		long            seed    = arguments.getSeed();        // Number generator seed.
+		int             offset   = arguments.getOffset();       // Number generator initial offset.
+		int             length  = arguments.getLength();      // Rename symbol max length. (In case of a rename refactoring.)
+		boolean         fixed    = arguments.getFixed();     // Whether length of generated symbols is fixed or random.
+
+		String location = Platform.getInstanceLocation().getURL().getFile();
+
+		Workspace workspace = new Workspace(
+			new WorkspaceConfiguration(
+				Paths.get(location),
+				Paths.get(srcFolder),
+				Paths.get(libFolder),
+				Paths.get(srcFolder).resolve("workspace.config"),
+				Paths.get(srcFolder).resolve("variable.config")
+			),
+			Paths.get(srcFolder),
+			Paths.get(libFolder),
+			Paths.get(outputFolder)
+		);
+
+		Set<IPackageFragmentRoot>  variableRoots = workspace.getVariableSourceRoots();
+		List<IPackageFragmentRoot> sortedRoots   = variableRoots.stream().sorted().collect(Collectors.toList());
+
+		// TODO: Pass `sortedRoots' to refactoring supplier constructor
+		//       and build refactoring opportunities as (ID, ARGMAP)-tuples.
+
+		Generator           generator = new Generator(seed, offset);
+		RefactoringSupplier supplier  = null;
+
+		switch (type) {
+		case NONE:
+			break;
+		case EXTRACT:
+			break;
+		case INLINE:
+			supplier = new RandomInlineMethodSupplier(Project.getJavaProject(), generator);
+			break;
+		case RENAME:
+
+			if (!arguments.hasOption("length")) {
+				System.out.println("Missing command-line option 'length' (-l) for rename refactorings.");
+			}
+			
+			generator.setMaxLength(length);
+			generator.setLengthFixed(fixed);    // TODO: Add as a command line option.
+
+			supplier = new RandomRenameSupplier(Project.getJavaProject(), generator);
+			break;
+		default:
+			System.out.println("Unknown refactoring type.");
+		}
+
+		boolean success = new RefactoringProcessor(supplier).processSupply(drop, limit);
+
+		workspace.exportSource();
+		workspace.close(success);
+
+		return IApplication.EXIT_OK;
+	}
+
+	public Object start1(IApplicationContext context) throws Exception {
 
 		// Note: The 'workspace' argument is passed to the eclipse
 		//       starter as '-data' argument.

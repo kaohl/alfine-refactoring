@@ -21,12 +21,14 @@ public class WorkspaceConfiguration {
 
 	public static class SrcEntry {
 
-		private String dir;
-		private Path   jar;
+		private String  dir;
+		private Path    jar;
+		private boolean isVariable;
 
-		public SrcEntry(String dir, Path jar) {
-			this.dir = dir;
-			this.jar = jar;
+		public SrcEntry(String dir, Path jar, boolean isVariable) {
+			this.dir        = dir;
+			this.jar        = jar;
+			this.isVariable = isVariable;
 		}
 
 		public String getDir() {
@@ -35,6 +37,10 @@ public class WorkspaceConfiguration {
 
 		public Path getJar() {
 			return this.jar;
+		}
+
+		public boolean isVariable() {
+			return this.isVariable;
 		}
 	}
 
@@ -70,18 +76,16 @@ public class WorkspaceConfiguration {
 
 	private Map<String, ProjectConfiguration> projectMap; /* Projects loaded from configuration file. */
 	private Vector<ProjectConfiguration>      projects;   /* Project order as they appear in configuration file. */
-	private Set<String>                      variables;  /* Names of source archives that are to be considered variable. */
 
-	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config) {
+	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config, Path variableConfig) {
 		this.location  = location;
 		this.srcPath   = srcPath;
 		this.libPath   = libPath;
 		this.config     = config;
-		this.variables = parseVariables();
 
 		Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> p;
 
-		p = parseConfig(config, srcPath, libPath);
+		p = parseConfig(config, srcPath, libPath, parseVariables(variableConfig));
 
 		this.projects   = p.getFirst();
 		this.projectMap = p.getSecond();
@@ -107,18 +111,12 @@ public class WorkspaceConfiguration {
 		return this.config;
 	}
 
-	public Set<String> getVariables() {
-		return this.variables;
-	}
-
 	/** Return names of all source archives that are to be considered variable. */
-	public Set<String> parseVariables() {
-
-		Path configFile = getSrcPath().resolve("variable.config");
+	public static Set<String> parseVariables(Path variableConfig) {
 
 		Set<String> variables = new HashSet<>();
 
-		try (BufferedReader br = Files.newBufferedReader(configFile)) {
+		try (BufferedReader br = Files.newBufferedReader(variableConfig)) {
 
 			br.lines()
 			.map    (line -> line.trim())
@@ -127,7 +125,7 @@ public class WorkspaceConfiguration {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			throw new RuntimeException("Failed to read configuration file: " + configFile.toAbsolutePath());
+			throw new RuntimeException("Failed to read configuration file: " + variableConfig.toAbsolutePath());
 		}
 
 		return variables;
@@ -175,7 +173,13 @@ public class WorkspaceConfiguration {
 	/** Create `ProjectConfiguration' from configuration string. 
 	 * @param libDir 
 	 * @param srcDir */
-	public static ProjectConfiguration parseProjectConfiguration(Set<String> dependencies, String cnf, Path srcDir, Path libDir) {
+	public static ProjectConfiguration parseProjectConfiguration(
+		Set<String> dependencies,
+		String      cnf,
+		Path        srcDir,
+		Path        libDir,
+		Set<String> variables
+	) {
 
 		List<String> tokens = Arrays.asList(cnf.trim().split("\\s+"));
 
@@ -268,7 +272,7 @@ public class WorkspaceConfiguration {
 
 				} else {
 					hasErrors = !isValidSrcEntry(dir, Paths.get(jar));
-					srcs.add(new SrcEntry(dir, Paths.get(jar)));
+					srcs.add(new SrcEntry(dir, Paths.get(jar), variables.contains(jar)));
 				}
 
 				break;
@@ -370,7 +374,7 @@ public class WorkspaceConfiguration {
 	/** Parse project configuration file and construct a `ProjectConfiguration' per project configuration.
 	 *  Since it may be time-consuming to load project resources into corresponding project folders
 	 *  we don't do this until the full configuration file has been parsed and checked. */
-	public static Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> parseConfig(Path config, Path srcDir, Path libDir) {
+	public static Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> parseConfig(Path config, Path srcDir, Path libDir, Set<String> variables) {
 
 		// The set projects for which configuration has already been loaded.
 		Set<String> dependencies = new HashSet<String>();
@@ -389,7 +393,7 @@ public class WorkspaceConfiguration {
 			.forEach(token -> {
 				if (token.equals("}")) {
 
-					ProjectConfiguration p = parseProjectConfiguration(dependencies, cnf.toString(), srcDir, libDir);
+					ProjectConfiguration p = parseProjectConfiguration(dependencies, cnf.toString(), srcDir, libDir, variables);
 
 					vec.add(p);
 					map.put(p.getName(), p);

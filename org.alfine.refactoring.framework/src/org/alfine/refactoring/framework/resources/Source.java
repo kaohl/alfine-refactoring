@@ -78,9 +78,17 @@ public class Source {
 		} else {
 
 			if (!Files.exists(this.target)) {
-				PUP.treeCopy(getParent().getTarget().resolve(folder), target);
+				try {
+					PUP.treeCopy(
+						getParent().getTarget().resolve(folder),
+						target
+					);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else {
+				new Exception("Resource could not be found.").printStackTrace();
 			}
-
 		}
 	}
 
@@ -102,9 +110,17 @@ public class Source {
 		} else {
 
 			if (Files.exists(getParent().getTarget()) && Files.exists(getTarget())) {
-				PUP.treeCopy(getTarget(), getParent().getTarget().resolve(getFolder()));
+				try {
+					PUP.treeCopy(
+						getTarget(),
+						getParent().getTarget().resolve(getFolder())
+					);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else {
+				new Exception("Resource(s) could not be found.").printStackTrace();
 			}
-
 		}
 	}
 }

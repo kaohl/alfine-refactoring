@@ -2,6 +2,7 @@ package org.alfine.refactoring.framework;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -11,17 +12,14 @@ import org.alfine.refactoring.framework.WorkspaceConfiguration.SrcEntry;
 import org.alfine.refactoring.framework.resources.Library;
 import org.alfine.refactoring.framework.resources.Source;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.IWorkspace;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
 
 public class JavaProject {
 
@@ -37,12 +35,19 @@ public class JavaProject {
 	private ProjectConfiguration config;
 	private Vector<Source>      sources;
 	private Vector<Library>     libraries;
+	private Vector<String>      dependencies;
+
+	private IProject            project;
 	private IJavaProject        javaProject;
 
 	public JavaProject(Workspace workspace, ProjectConfiguration config, boolean fresh) {
-		this.workspace = workspace;
-		this.config     = config;
-		this.sources   = new Vector<>();
+		this.workspace    = workspace;
+		this.config        = config;
+		this.sources      = new Vector<>();
+		this.libraries    = new Vector<>();
+		this.dependencies = new Vector<>();
+
+		this.javaProject  = null;
 
 		initialize(fresh);
 	}
@@ -62,16 +67,19 @@ public class JavaProject {
 		return getWorkspace().getLocation().resolve(getConfig().getName());
 	}
 
-
 	/** Return the associated IJavaProjct instance. */
 	public IJavaProject getIJavaProject() {
 		return this.javaProject;
 	}
 
 	/** Print raw classpath of associated IJavaProject. */
-	public void showClasspath() throws Exception {
-		for (IClasspathEntry e: javaProject.getRawClasspath()) {
-			System.out.println("ClasspathEntry=" + e.getPath());
+	public void showClasspath() {
+		try {
+			for (IClasspathEntry e: javaProject.getRawClasspath()) {
+				System.out.println("ClasspathEntry=" + e.getPath());
+			}
+		} catch (JavaModelException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -79,94 +87,122 @@ public class JavaProject {
 
 		// Create a corresponding java project in workspace.
 
-		this.javaProject = createJavaProject(getConfig().getName(), fresh);
+		String projectName = getConfig().getName();
 
+		this.project     = getWorkspace().newProject(projectName);
+		this.javaProject = getWorkspace().newJavaProject(projectName, fresh);
 
-		// TODO: Load sources and libraries and populate the classpath.
+		// Load sources and libraries and populate classpath.
+
+		try {
+			javaProject.setRawClasspath(new IClasspathEntry[] {}, null);
+		} catch (JavaModelException e1) {
+			e1.printStackTrace();
+		}
+
+		for (String d : getConfig().getDeps()) {
+			addDependency(d);
+		}
 
 		for (SrcEntry p : getConfig().getSrcs()) {
-			importSource(p.getJar(), p.getDir());
+			importSource(p.getJar(), p.getDir(), p.isVariable());
 		}
 
 		for (LibEntry p : getConfig().getLibs()) {
 			importLibrary(p.getLib(), p.getSrc(), p.isExported());
 		}
 
-
-/*
-		Path inputSrcDir = getWorkspace().getSrcPath();
-		Path inputLibDir = getWorkspace().getLibPath();
-
-		Files.list(inputLibDir).forEach((Path file) -> {
-			if (Files.exists(file) && Files.isRegularFile(file)) { // (File file).isFile()
-
-				String resourceName       = file.getFileName().toString();
-				String targetResourceName = resourceName;
-
-				Path      source = file;
-				File      target = new File(projectLibDir, targetResourceName);
-				File      output = null; // Binaries are not transformed and are therefore not be copied around.
-				IResource res    = null;
-
-				res = project.getFile(new Path("/lib/" + targetResourceName));
-
-				resources.add(instance.new BinaryArchive(source, target, output, res, false));
-			}
-		});
-
-		Arrays.stream(srcDir.listFiles())
-		.filter  (file -> !file.getName().equals(configFile.getName()))
-		.forEach((File file) -> {
-			if (file.exists() && file.isFile()) {
-				String resourceName    = file.getName();
-				String resourceNameDir = resourceName + ".dir";
-
-				File      source = new File(srcDir, resourceName);
-				File      target = new File(projectDir, resourceNameDir);
-				File      output = new File(outputDir, resourceName);
-				IResource res    = project.getFolder(resourceNameDir);
-
-				target.mkdir();
-
-				resources.add(instance.new SourceArchive(source, target, output, res, variables.contains(resourceName)));
-			}
-		});
-				
-		// Note: As far as I know, we have to reset the classpath since the
-		//       paths we are trying to add are located below the project
-		//       folder, which is on the classpath by default. I'm guessing
-		//       we are prevented from adding these additional source folders
-		//       or archives (jar, zip) as source roots to prevent the model
-		//       from having nested source roots (IPackageFragmentRoot).
-
-		// Reset classpath.
-
-		javaProject.setRawClasspath(new IClasspathEntry[] {}, null);
-
-		resources.forEach((Resource resource) -> {
-			resource.importResource();
-			resource.addToClasspath();
-		});
-
 		// Refresh project to make resources visible.
 
-		project.refreshLocal(IProject.DEPTH_INFINITE, new NullProgressMonitor());
-		
-		// TODO: Order classpath entries so that binaries are placed first?
-		//       (Use order as specified in a configuration file?)
-
-		if (verbose) {
-			showClasspath();
+		try {
+			project.refreshLocal(IProject.DEPTH_INFINITE, new NullProgressMonitor());
+		} catch (CoreException e) {
+			e.printStackTrace();
 		}
-		*/
+
+		showClasspath();
 	}
 
+	public void close() {
+		try {
+			project.close(new NullProgressMonitor());
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void addClasspathEntry(IClasspathEntry entry) {
+		try {
+
+			IClasspathEntry[] oldEntries = javaProject.getRawClasspath();
+			IClasspathEntry[] newEntries = new IClasspathEntry[oldEntries.length + 1];
+			System.arraycopy(oldEntries, 0, newEntries, 0, oldEntries.length);
+			newEntries[oldEntries.length] = entry;
+
+			javaProject.setRawClasspath(newEntries, null);
+
+		} catch (JavaModelException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/** */
+	private IClasspathEntry addDependency(String dep) {
+		this.dependencies.add(dep);
+
+		Path      path   = getWorkspace().getLocation().resolve(Paths.get(dep));
+		IResource folder = project.getFolder(path.toString());
+
+		return JavaCore.newProjectEntry(folder.getFullPath(), true);
+	}
+
+	private IClasspathEntry asSourceEntry(IResource resource) {
+		if (resource.exists()) {
+			IPackageFragmentRoot root  = javaProject.getPackageFragmentRoot(resource);
+			IClasspathEntry      entry = JavaCore.newSourceEntry(root.getPath());
+			return entry;
+		} else {
+			System.err.println("Error: asSourceClasspathEntry(): Resource `" + resource.getFullPath() + "'does not exist.");
+		}
+		return null;
+	}
+
+	/** Add source entry to project classpath. */
 	private void addSource(Source source) {
 		this.sources.add(source);
+
+		String target = source.getTarget().toString();
+
+		source.importResource();
+
+		addClasspathEntry(asSourceEntry(project.getFolder(target)));
 	}
 
+	/** Return an IClasspath entry representing the specified library with optional source attachment. */
+	private IClasspathEntry asLibEntry(IResource lib, IResource src, boolean doExport) {
+
+		// TODO: Get source paths:
+		// IPackageFragmentRoot root  = javaProject.getPackageFragmentRoot(...);
+		// if (src != null) ...
+
+		return JavaCore.newLibraryEntry(
+			lib.getFullPath(),
+			null, // src.getFullPath(),
+			null, // sourceAttachmentRootPath
+			doExport
+		);
+	}
+
+	/** Add library to project classpath. */
 	private void addLibrary(Library library) {
+
 		this.libraries.add(library);
+
+		addClasspathEntry(asLibEntry(
+			project.getFile(library.getBinaryPath().toString()),
+			project.getFile(library.getSourcePath().toString()),
+			library.isExported())
+		);
 	}
 
 	/** Add the specified library to the project. */
@@ -175,11 +211,13 @@ public class JavaProject {
 	}
 
 	/** Import source archive from `source' using `folder' as its source root, and return
-	 * 	a `Source' instance representing the archive in the specified `project'. */
-	private void importSource(Path source, String folder) {
+	 * 	a `Source' instance representing the archive in the specified `project'. 
+	 * @param b 
+	 * @param isVariable */
+	private void importSource(Path source, String folder, boolean isVariable) {
 
 		String[] ss      = source.toString().split(File.separator);
-		String   filename = ss[ss.length -1];
+		String   filename = ss[ss.length - 1];
 		Path     target  = getLocation().resolve(filename + ".dir");
 
 		Source result = null;
@@ -207,138 +245,17 @@ public class JavaProject {
 			result = new Source(parent, folder, target);
 		}
 
-		// Note: We do not add parents directly to projects; parents go into the shared collection!
+		if (isVariable) {
 
+			IPackageFragmentRoot packageFragmentRoot = 
+				javaProject.getPackageFragmentRoot(project.getFolder(target.toString()));
+
+			getWorkspace().addVariableSourceRoot(packageFragmentRoot);
+		}
 		addSource(result);
 	}
 
 	public void exportSource(Path output) {
-		
+		new UnsupportedOperationException().printStackTrace();
 	}
-
-
-	private static IJavaProject createJavaProject(String name, boolean fresh) {
-
-		IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
-		IWorkspaceRoot workspaceRoot = workspace.getRoot();
-
-		// Create a new project in the workspace: ${workspace}/<project-name>.
-
-		// String workspaceLocation = Platform.getInstanceLocation().getURL().getFile();
-
-		// Path projectLocation = Paths.get(workspaceLocation, name);
-
-		IProject project = workspaceRoot.getProject(name);
-
-		if (fresh && project.exists()) {
-			System.out.println("initialize(): Project exists. Deleting project.");
-			try {
-				project.delete(IResource.FORCE, null);
-			} catch (CoreException e) {
-				e.printStackTrace();
-				throw new RuntimeException("Failed to delete project: " + name);
-			}
-			if (project.exists()) {
-				throw new RuntimeException("Failed to delete existing project: " + name);
-			}
-		}
-
-		System.out.println("initialize(): Creating a new project.");
-
-		IProjectDescription description = null;
-
-		try {
-
-			project.create(new NullProgressMonitor());
-			project.open(new NullProgressMonitor());
-
-			description = project.getDescription();
-
-		} catch (CoreException e) {
-			e.printStackTrace();
-			throw new RuntimeException("An error occured. See previous stack trace.");
-		}
-
-		// https://www.vogella.com/tutorials/EclipseProjectNatures/article.html
-		// https://help.eclipse.org/kepler/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_natures.htm
-
-		if (!description.hasNature(JavaCore.NATURE_ID)) {
-
-			String[] natures = description.getNatureIds();
-			String[] newNatures = new String[natures.length + 1];
-			System.arraycopy(natures, 0, newNatures, 0, natures.length);
-			newNatures[natures.length] = JavaCore.NATURE_ID;// "org.eclipse.jdt.core.javanature";
-
-			IStatus status = workspace.validateNatureSet(newNatures);
-
-			if (status.getCode() == IStatus.OK) {
-				description.setNatureIds(newNatures);
-				try {
-					project.setDescription(description, null);
-				} catch (CoreException e) {
-					e.printStackTrace();
-					throw new RuntimeException("An error occured. See previous stack trace.");
-				}
-			} else {
-				System.err.println("Failed to add JavaNature to project natures.");
-				throw new RuntimeException("Failed to validate project nature set!");
-			}
-		}
-		
-		// Access project as a IJavaProject.
-
-		IJavaProject javaProject = JavaCore.create(project);
-
-		//importResources(projectFile, srcDirFile, libDirFile, outputFile);
-
-		return javaProject;
-	}
-	
-	
-	
-	/** This should be placed in the SourceEntry class which represent the classpath entry. */
-/*
-	private void addToClasspath() {
-		try {
-			log("resource(" + resource.getFullPath() + ").exists=" + resource.exists());
-
-			IPackageFragmentRoot root = javaProject.getPackageFragmentRoot(resource);
-
-			IClasspathEntry[] oldEntries = javaProject.getRawClasspath();
-			IClasspathEntry[] newEntries = new IClasspathEntry[oldEntries.length + 1];
-			System.arraycopy(oldEntries, 0, newEntries, 0, oldEntries.length);
-			newEntries[oldEntries.length] = JavaCore.newSourceEntry(root.getPath());
-			
-			javaProject.setRawClasspath(newEntries, null);
-			
-		} catch (JavaModelException e) {
-			e.printStackTrace();
-		}
-	}
-	
-			public void copyFile(File source, File target) {
-			try (BufferedInputStream  in  = new BufferedInputStream(new FileInputStream(source));
-				 BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(target))) {
-
-				int b;
-				while ((b = in.read()) != -1)
-					out.write(b);	
-
-			} catch (Exception e)  {
-				e.printStackTrace();
-			}
-		}
-		
-			public Stream<Resource> getVariableResources() {
-		return resources.stream().filter(r -> { return (r instanceof SourceArchive) && r.isVariable(); });
-	}
-
-
-		public IPackageFragmentRoot getPackageFragmentRoot() {
-			return javaProject.getPackageFragmentRoot(resource);
-		}
-
-	
-*/
-
 }

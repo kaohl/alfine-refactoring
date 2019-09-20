@@ -71,6 +71,13 @@ public abstract class RefactoringOpportunity implements Comparable<RefactoringOp
 			throw new RuntimeException("No refactoring contribution");
 		}
 
+
+		// TODO: We must call the other version of `createDescriptor()' to be able to set refactoring arguments!
+		//       This method `getDescriptor()' must also use a provided argument map for the descriptor which is
+		//       to be constructed during source traversal by "Visitors" and passed as parameter to opportunities.
+		//       Therefore, an opportunity is a tuple: (id : String, args : Map<String, String>)
+		// Example: (IJavaRefactoring.INLINE_METHOD, new HashMap<String, String>())
+
 		JavaRefactoringDescriptor descriptor = (JavaRefactoringDescriptor)contribution.createDescriptor();
 
 		// org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor

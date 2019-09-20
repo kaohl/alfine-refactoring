@@ -2,10 +2,24 @@ package org.alfine.refactoring.framework;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import org.alfine.refactoring.framework.resources.Source;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IProjectDescription;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IPackageFragmentRoot;
+import org.eclipse.jdt.core.JavaCore;
 
 public class Workspace {
 
@@ -19,12 +33,30 @@ public class Workspace {
 	private Vector<ProjectConfiguration>      projectVec;
 	private Map<String, JavaProject>         projects;
 
-	public Workspace(WorkspaceConfiguration config) {
-		this.location   = config.getLocation();
-		this.projectVec = config.getProjects();
-		this.projectMap = config.getProjectMap();
+	/* Source roots to be considered variable in the workspace. */
+	private Set<IPackageFragmentRoot> variableSourceRootFolders;
+	
+	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath) {
+		this.location                  = config.getLocation();
+		this.projectVec                = config.getProjects();
+		this.projectMap                = config.getProjectMap();
+		this.variableSourceRootFolders = new HashSet<>();
+
+		this.srcPath = srcPath;
+		this.libPath = libPath;
+		this.outPath = outPath;
 
 		initialize();
+	}
+
+	/** Return set of all registered variable source root folders within the workspace. */
+	public Set<IPackageFragmentRoot> getVariableSourceRoots() {
+		return this.variableSourceRootFolders;
+	}
+
+	/** Register `folder' as a variable source root. */
+	public void addVariableSourceRoot(IPackageFragmentRoot root) {
+		variableSourceRootFolders.add(root);
 	}
 
 	/** Return workspace folder. */
@@ -116,5 +148,101 @@ public class Workspace {
 		for (Path p : sharedArchives.keySet()) {
 			sharedArchives.get(p).exportResource(output);
 		}
+	}
+
+	public IProject newProject(String name) {
+
+		IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
+		IWorkspaceRoot workspaceRoot = workspace.getRoot();
+
+		return workspaceRoot.getProject(name);
+
+	}
+
+	public IJavaProject newJavaProject(String name, boolean fresh) {
+
+		IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
+		IWorkspaceRoot workspaceRoot = workspace.getRoot();
+
+		// Create a new project in the workspace: ${workspace}/<project-name>.
+
+		// String workspaceLocation = Platform.getInstanceLocation().getURL().getFile();
+
+		// Path projectLocation = Paths.get(workspaceLocation, name);
+
+		IProject project = workspaceRoot.getProject(name);
+
+		if (fresh && project.exists()) {
+			System.out.println("initialize(): Project exists. Deleting project.");
+			try {
+				project.delete(IResource.FORCE, null);
+			} catch (CoreException e) {
+				e.printStackTrace();
+				throw new RuntimeException("Failed to delete project: " + name);
+			}
+			if (project.exists()) {
+				throw new RuntimeException("Failed to delete existing project: " + name);
+			}
+		}
+
+		System.out.println("initialize(): Creating a new project.");
+
+		IProjectDescription description = null;
+
+		try {
+
+			project.create(new NullProgressMonitor());
+			project.open(new NullProgressMonitor());
+
+			description = project.getDescription();
+
+		} catch (CoreException e) {
+			e.printStackTrace();
+			throw new RuntimeException("An error occured. See previous stack trace.");
+		}
+
+		// https://www.vogella.com/tutorials/EclipseProjectNatures/article.html
+		// https://help.eclipse.org/kepler/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Fguide%2FresAdv_natures.htm
+
+		if (!description.hasNature(JavaCore.NATURE_ID)) {
+
+			String[] natures = description.getNatureIds();
+			String[] newNatures = new String[natures.length + 1];
+			System.arraycopy(natures, 0, newNatures, 0, natures.length);
+			newNatures[natures.length] = JavaCore.NATURE_ID;// "org.eclipse.jdt.core.javanature";
+
+			IStatus status = workspace.validateNatureSet(newNatures);
+
+			if (status.getCode() == IStatus.OK) {
+				description.setNatureIds(newNatures);
+				try {
+					project.setDescription(description, null);
+				} catch (CoreException e) {
+					e.printStackTrace();
+					throw new RuntimeException("An error occured. See previous stack trace.");
+				}
+			} else {
+				System.err.println("Failed to add JavaNature to project natures.");
+				throw new RuntimeException("Failed to validate project nature set!");
+			}
+		}
+		return JavaCore.create(project);
+	}
+
+	public void close(boolean writeSrcToOutput) {
+		
+		// Export imported source artifacts to output folder specified on command-line.
+
+		System.out.println("Exporting project (save?=" + writeSrcToOutput + ")");
+
+		if (writeSrcToOutput) {
+			exportSource();
+		}
+
+		/*
+		for (String key : projects.keySet()) {
+			projects.get(key).close();
+		}
+		*/
 	}
 }

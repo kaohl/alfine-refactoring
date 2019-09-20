@@ -27,8 +27,4 @@ public class Library {
 	public boolean isExported() {
 		return this.export;
 	}
-
-	public IClasspathEntry getClasspathEntry() {
-		return null; //JavaCore.newLibraryEntry(path, sourceAttachmentPath, sourceAttachmentRootPath, isExported)
-	}
 }
