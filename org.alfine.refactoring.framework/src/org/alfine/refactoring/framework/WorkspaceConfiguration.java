@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -114,6 +114,8 @@ public class WorkspaceConfiguration {
 	/** Return names of all source archives that are to be considered variable. */
 	public static Set<String> parseVariables(Path variableConfig) {
 
+		System.out.println("Parsing variable configuration.");
+
 		Set<String> variables = new HashSet<>();
 
 		try (BufferedReader br = Files.newBufferedReader(variableConfig)) {
@@ -121,7 +123,7 @@ public class WorkspaceConfiguration {
 			br.lines()
 			.map    (line -> line.trim())
 			.filter  (line -> !line.equals(""))
-			.forEach(name -> { variables.add(name); });
+			.forEach(name -> { System.out.println("variable = " + name); variables.add(name); });
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -181,9 +183,11 @@ public class WorkspaceConfiguration {
 		Set<String> variables
 	) {
 
-		List<String> tokens = Arrays.asList(cnf.trim().split("\\s+"));
+		List<String> tokens = new ArrayList<>(Arrays.asList(cnf.trim().split("\\s+")));
 
-		String label = tokens.remove(0);
+		String label = tokens.remove(0).replaceAll("/", ".");
+
+		System.out.println("Loading configuration for project: " + label);
 
 		if (dependencies.contains(label)) {
 			throw new RuntimeException("Duplicate configurations for project: `" + label + "'");
@@ -254,7 +258,7 @@ public class WorkspaceConfiguration {
 
 				if (!it.hasNext() || (token = dir = it.next()) == null || isKeyword(dir)) {
 
-					System.err.printf(format, label, "Missing `dir' argument (0) in `src' option.");
+					System.err.printf(format, label, "Missing `dir' argument (0) in `src' option.\n");
 
 					if (isKeyword(dir)) {
 						hasErrors = true;
@@ -263,7 +267,7 @@ public class WorkspaceConfiguration {
 
 				} else if (!it.hasNext() || (token = jar = it.next()) == null || isKeyword(jar)) {
 
-					System.err.printf(format, label, "Missing `jar' argument (1) in `src' option.");
+					System.err.printf(format, label, "Missing `jar' argument (1) in `src' option.\n");
 
 					if (isKeyword(jar)) {
 						hasErrors = true;
@@ -271,8 +275,13 @@ public class WorkspaceConfiguration {
 					}
 
 				} else {
-					hasErrors = !isValidSrcEntry(dir, Paths.get(jar));
-					srcs.add(new SrcEntry(dir, Paths.get(jar), variables.contains(jar)));
+
+					System.out.println("Adding src entry: dir=" + dir + ", jar=" + jar);
+
+					Path jarPath = srcDir.resolve(jar);
+
+					hasErrors = !isValidSrcEntry(dir, jarPath);
+					srcs.add(new SrcEntry(dir, jarPath, variables.contains(jar)));
 				}
 
 				break;
@@ -281,7 +290,7 @@ public class WorkspaceConfiguration {
 
 				if (!it.hasNext() || (token = bin = it.next()) == null || isKeyword(bin)) {
 
-					System.err.printf(format, label, "Missing `binary archive' argument (0) in `lib' option.");
+					System.err.printf(format, label, "Missing `binary archive' argument (0) in `lib' option.\n");
 
 					if (isKeyword(bin)) {
 						hasErrors = true;
@@ -290,7 +299,7 @@ public class WorkspaceConfiguration {
 
 				} else if (!it.hasNext() || (token = src = it.next()) == null || isKeyword(src)) {
 
-					System.err.printf(format, label, "Missing `source archive' argument (1) in `lib' option.");
+					System.err.printf(format, label, "Missing `source archive' argument (1) in `lib' option.\n");
 
 					if (isKeyword(src)) {
 						hasErrors = true;
@@ -298,11 +307,16 @@ public class WorkspaceConfiguration {
 					}
 
 				} else {
-					if (!isValidLibEntry(Paths.get(bin), Paths.get(src))) {
-						System.err.printf(format, label, "Invalid lib entry: `lib " + bin + " " + src);
+
+					Path binJarPath = libDir.resolve(bin);
+					Path srcJarPath = srcDir.resolve(src);
+
+					if (!isValidLibEntry(binJarPath, srcJarPath)) {
+						System.err.printf(format, label, "Invalid lib entry: `lib " + bin + " " + src + "\n");
 						hasErrors = true;
 					}
-					libs.add(new LibEntry(Paths.get(bin), Paths.get(src), false));
+					System.out.println("Adding lib entry: bin=" + bin + ", src=" + src);
+					libs.add(new LibEntry(binJarPath, srcJarPath, false));
 				}
 
 				break;
@@ -311,7 +325,7 @@ public class WorkspaceConfiguration {
 
 				if (!it.hasNext() || (token = bin = it.next()) == null || isKeyword(bin)) {
 
-					System.err.printf(format, label, "Missing `binary archive' argument (0) in `exp' option.");
+					System.err.printf(format, label, "Missing `binary archive' argument (0) in `exp' option.\n");
 
 					if (isKeyword(bin)) {
 						hasErrors = true;
@@ -320,7 +334,7 @@ public class WorkspaceConfiguration {
 
 				} else if (!it.hasNext() || (token = src = it.next()) == null || isKeyword(src)) {
 
-					System.err.printf(format, label, "Missing `source archive' argument (1) in `exp' option.");
+					System.err.printf(format, label, "Missing `source archive' argument (1) in `exp' option.\n");
 
 					if (isKeyword(src)) {
 						hasErrors = true;
@@ -328,11 +342,18 @@ public class WorkspaceConfiguration {
 					}
 
 				} else {
-					if (!isValidLibEntry(Paths.get(bin), Paths.get(src))) {
-						System.err.printf(format, label, "Invalid exp entry: `exp " + bin + " " + src);
+
+					Path binJarPath = libDir.resolve(bin);
+					Path srcJarPath = srcDir.resolve(src);
+
+					if (!isValidLibEntry(binJarPath, srcJarPath)) {
+						System.err.printf(format, label, "Invalid exp entry: `exp " + bin + " " + src + "\n");
 						hasErrors = true;
 					}
-					libs.add(new LibEntry(Paths.get(bin), Paths.get(src), true));
+
+					System.out.println("Adding lib entry: bin=" + bin + ", src=" + src);
+
+					libs.add(new LibEntry(binJarPath, srcJarPath, true));
 				}
 
 				break;
@@ -341,7 +362,7 @@ public class WorkspaceConfiguration {
 
 				if (!it.hasNext() || (token = dep = it.next()) == null || isKeyword(dep)) {
 
-					System.err.printf(format, label, "Missing `project name' argument (0) in `dep' option.");
+					System.err.printf(format, label, "Missing `project name' argument (0) in `dep' option.\n");
 
 					if (isKeyword(dep)) {
 						hasErrors = true;
@@ -351,8 +372,11 @@ public class WorkspaceConfiguration {
 				} else {
 					if (!dependencies.contains(dep)) {
 						hasErrors = true;
-						System.err.printf(format, label, "Project dependency `" + dep + "' has not yet been declared.");
+						System.err.printf(format, label, "Project dependency `" + dep + "' has not yet been declared.\n");
 					}
+
+					System.out.println("Adding dependency: dep=" + dep);
+
 					deps.add(dep);
 				}
 
@@ -360,12 +384,12 @@ public class WorkspaceConfiguration {
 
 			default:
 				hasErrors = true;
-				System.err.printf(format, label, "Discarding token: " + token);
+				System.err.printf(format, label, "Discarding token: " + token + "\n");
 			}
 		}
 
 		if (hasErrors) {
-			System.err.printf("Bad configuration for project `%s'.", label);
+			System.err.printf("Bad configuration for project `%s'.\n", label);
 		}
 
 		return new ProjectConfiguration(label, deps, srcs, libs, !hasErrors);
@@ -387,7 +411,9 @@ public class WorkspaceConfiguration {
 		try (BufferedReader br = Files.newBufferedReader(config)) {
 
 			br.lines()
-			.filter (line -> line.trim().charAt(0) == '#') /* Remove one-line comments. */
+			.map   (line -> line.trim())
+			.filter (line -> !"".equals(line))
+			.filter (line -> line.charAt(0) != '#') /* Remove one-line comments. */
 			.flatMap(line -> { return Arrays.asList(line.split("\\s+")).stream(); })
 			.map   (word -> word.trim())
 			.forEach(token -> {
@@ -401,6 +427,7 @@ public class WorkspaceConfiguration {
 					cnf.delete(0, cnf.length());
 
 				} else if (!token.equals("{")) {
+					System.out.println("token = " + token);
 					cnf.append(" " + token);
 				}
 			});

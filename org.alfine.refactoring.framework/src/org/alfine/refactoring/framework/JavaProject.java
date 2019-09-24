@@ -171,11 +171,23 @@ public class JavaProject {
 	private void addSource(Source source) {
 		this.sources.add(source);
 
-		String target = source.getTarget().toString();
+		Path target = Paths.get(source.getTarget().getFileName().toString());
+
+		//target = source.getSource() == null ? Paths.get(getConfig().getName()).resolve(target) : target;
+
+		// System.out.println("target  = " + target);
 
 		source.importResource();
 
-		addClasspathEntry(asSourceEntry(project.getFolder(target)));
+		// Refresh project to make resources visible.
+
+		try {
+			project.refreshLocal(IProject.DEPTH_INFINITE, new NullProgressMonitor());
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+
+		addClasspathEntry(asSourceEntry(project.getFolder(target.toString())));
 	}
 
 	/** Return an IClasspath entry representing the specified library with optional source attachment. */
@@ -220,6 +232,9 @@ public class JavaProject {
 		String   filename = ss[ss.length - 1];
 		Path     target  = getLocation().resolve(filename + ".dir");
 
+		//System.out.println("getLocation() = " + getLocation());
+		//System.out.println("getLocation().resolve(filename.dir) = " + target);
+
 		Source result = null;
 
 		if (folder.equals("/")) {
@@ -235,6 +250,9 @@ public class JavaProject {
 				Path parentTarget = null;
 
 				parentTarget = getWorkspace().getLocation().resolve(filename + ".dir");
+
+				System.out.println("parentTarget = " + parentTarget);
+
 				parent       = new Source(source, "/", parentTarget);
 
 				getSharedSourceArchives().put(source, parent);
@@ -246,6 +264,8 @@ public class JavaProject {
 		}
 
 		if (isVariable) {
+
+			System.out.println("JavaProject::importSource(): TODO: check if correct folder path!");
 
 			IPackageFragmentRoot packageFragmentRoot = 
 				javaProject.getPackageFragmentRoot(project.getFolder(target.toString()));

@@ -1,5 +1,6 @@
 package org.alfine.refactoring.framework.launch;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
@@ -50,17 +51,23 @@ public class Main implements IApplication {
 
 		String location = Platform.getInstanceLocation().getURL().getFile();
 
+		System.out.println("Location = " + location);
+
+		Path locationPath = Paths.get(location);
+		Path srcFolderPath = locationPath.resolve(srcFolder);
+		Path libFolderPath = locationPath.resolve(libFolder);
+		Path outFolderPath = locationPath.resolve(outputFolder);
 		Workspace workspace = new Workspace(
 			new WorkspaceConfiguration(
-				Paths.get(location),
-				Paths.get(srcFolder),
-				Paths.get(libFolder),
-				Paths.get(srcFolder).resolve("workspace.config"),
-				Paths.get(srcFolder).resolve("variable.config")
+				locationPath,
+				srcFolderPath,
+				libFolderPath,
+				srcFolderPath.resolve("workspace.config"),
+				srcFolderPath.resolve("variable.config")
 			),
-			Paths.get(srcFolder),
-			Paths.get(libFolder),
-			Paths.get(outputFolder)
+			srcFolderPath,
+			libFolderPath,
+			outFolderPath
 		);
 
 		Set<IPackageFragmentRoot>  variableRoots = workspace.getVariableSourceRoots();

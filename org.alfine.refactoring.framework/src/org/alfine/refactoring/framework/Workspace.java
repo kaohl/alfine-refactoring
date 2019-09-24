@@ -2,6 +2,7 @@ package org.alfine.refactoring.framework;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +42,7 @@ public class Workspace {
 		this.projectVec                = config.getProjects();
 		this.projectMap                = config.getProjectMap();
 		this.variableSourceRootFolders = new HashSet<>();
+		this.projects                  = new HashMap<>();
 
 		this.srcPath = srcPath;
 		this.libPath = libPath;
@@ -92,6 +94,8 @@ public class Workspace {
 	/** Initializes the workspace by loading configured projects and resources. */
 	private void initialize() {
 
+		System.out.println("Initializing workspace ...");
+
 		boolean validConfig = true;
 
 		for (ProjectConfiguration p : getProjectVec()) {
@@ -106,8 +110,13 @@ public class Workspace {
 		}
 
 		for (ProjectConfiguration p : getProjectVec()) {
+			if (p == null) {
+				throw new RuntimeException("Workspace::initialize(): ProjectConfiguration is null!");
+			}
 			projects.put(p.getName(), new JavaProject(this, p, true));
 		}
+
+		System.out.println("Workspace initialized.");
 	}
 
 	/** Return true if a project with the specified name exists. */

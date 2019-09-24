@@ -66,16 +66,20 @@ public class Source {
 
 			try {
 
-				PUP.unjar(
+				if (!Files.exists(target.toAbsolutePath())) {
+					PUP.unjar(
 						new JarFile(source.toAbsolutePath().toString()),
 						target.toAbsolutePath().toFile()
-				);
+					);
+				}
 
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 
 		} else {
+
+			parent.importResource();
 
 			if (!Files.exists(this.target)) {
 				try {
@@ -87,7 +91,7 @@ public class Source {
 					e.printStackTrace();
 				}
 			} else {
-				new Exception("Resource could not be found.").printStackTrace();
+				new Exception("Resource already exists.").printStackTrace();
 			}
 		}
 	}

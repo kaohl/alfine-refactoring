@@ -1,6 +1,5 @@
 package org.alfine.refactoring.framework;
 
-import java.nio.file.Path;
 import java.util.Vector;
 
 import org.alfine.refactoring.framework.WorkspaceConfiguration.LibEntry;
