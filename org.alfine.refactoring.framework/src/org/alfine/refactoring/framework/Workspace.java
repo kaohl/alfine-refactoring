@@ -116,6 +116,12 @@ public class Workspace {
 			projects.put(p.getName(), new JavaProject(this, p, true));
 		}
 
+		for (String name : projects.keySet()) {
+			JavaProject p = projects.get(name);
+			p.printReferencingProjects();
+		}
+
+		
 		System.out.println("Workspace initialized.");
 	}
 

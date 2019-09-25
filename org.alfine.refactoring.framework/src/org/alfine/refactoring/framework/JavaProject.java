@@ -6,13 +6,19 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.WorkspaceConfiguration.LibEntry;
 import org.alfine.refactoring.framework.WorkspaceConfiguration.SrcEntry;
 import org.alfine.refactoring.framework.resources.Library;
 import org.alfine.refactoring.framework.resources.Source;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.IClasspathEntry;
@@ -121,6 +127,34 @@ public class JavaProject {
 		}
 
 		showClasspath();
+
+		// Set project dependencies.
+		try {
+			IProjectDescription desc = project.getDescription();
+			desc.setReferencedProjects(getProjectReferences());
+			project.setDescription(desc, new NullProgressMonitor());
+			project.clearCachedDynamicReferences();
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void printReferencingProjects() {
+		for (IProject p : project.getReferencingProjects()) {
+			System.out.println(p.getName() + " references " + this.getConfig().getName());
+		}
+	}
+
+	public IProject[] getProjectReferences() {
+		return this.dependencies.stream()
+			.map(name -> {
+				IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
+				IWorkspaceRoot workspaceRoot = workspace.getRoot();
+				IProject p = workspaceRoot.getProject(name);
+				return p;
+			})
+			.collect(Collectors.toList())
+			.toArray(new IProject[0]);
 	}
 
 	public void close() {
@@ -147,13 +181,39 @@ public class JavaProject {
 	}
 
 	/** */
-	private IClasspathEntry addDependency(String dep) {
+	private void addDependency(String dep) {
 		this.dependencies.add(dep);
 
-		Path      path   = getWorkspace().getLocation().resolve(Paths.get(dep));
-		IResource folder = project.getFolder(path.toString());
+		IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
+		IWorkspaceRoot workspaceRoot = workspace.getRoot();
+		IProject p = workspaceRoot.getProject(dep);
 
-		return JavaCore.newProjectEntry(folder.getFullPath(), true);
+		
+		// Path      path   = getWorkspace().getLocation().resolve(Paths.get(dep));
+		// IResource folder = project.getFolder(path.toString());
+
+
+		
+		//JavaCore.getJavaCore().
+		//javaProject.isOnClasspath(element);
+		//javaProject.isOnClasspath(resource);
+		/*
+		try {
+			return javaProject.getClasspathEntryFor(folder.getFullPath());
+		} catch (JavaModelException e) {
+			e.printStackTrace();
+		}
+		return null;
+		*/
+		
+		// for (IProject p : project.getReferencingProjects()) {}
+		
+		//System.out.println("dependency path:" + folder.getFullPath());
+		//addClasspathEntry(JavaCore.newProjectEntry(folder.getFullPath(), true));
+		//System.out.println("dependency path (location):" + p.getLocation());
+		//addClasspathEntry(JavaCore.newProjectEntry(p.getLocation(), true));
+		System.out.println("dependency path (fullpath):" + p.getFullPath());
+		addClasspathEntry(JavaCore.newProjectEntry(p.getFullPath(), true));
 	}
 
 	private IClasspathEntry asSourceEntry(IResource resource) {
@@ -168,7 +228,7 @@ public class JavaProject {
 	}
 
 	/** Add source entry to project classpath. */
-	private void addSource(Source source) {
+	private void addSource(Source source, boolean isVariable) {
 		this.sources.add(source);
 
 		Path target = Paths.get(source.getTarget().getFileName().toString());
@@ -187,7 +247,24 @@ public class JavaProject {
 			e.printStackTrace();
 		}
 
-		addClasspathEntry(asSourceEntry(project.getFolder(target.toString())));
+		IFolder targetFolder = project.getFolder(target.toString());
+
+		addClasspathEntry(asSourceEntry(targetFolder));
+
+		if (isVariable) {
+
+			System.out.println(
+				"Add IPackageFragmentRoot: project = "
+				+ project.getName()
+				+ ", target = "
+				+ target.toString()
+			);
+
+			IPackageFragmentRoot packageFragmentRoot = 
+				javaProject.getPackageFragmentRoot(targetFolder);
+
+			getWorkspace().addVariableSourceRoot(packageFragmentRoot);
+		}
 	}
 
 	/** Return an IClasspath entry representing the specified library with optional source attachment. */
@@ -263,16 +340,7 @@ public class JavaProject {
 			result = new Source(parent, folder, target);
 		}
 
-		if (isVariable) {
-
-			System.out.println("JavaProject::importSource(): TODO: check if correct folder path!");
-
-			IPackageFragmentRoot packageFragmentRoot = 
-				javaProject.getPackageFragmentRoot(project.getFolder(target.toString()));
-
-			getWorkspace().addVariableSourceRoot(packageFragmentRoot);
-		}
-		addSource(result);
+		addSource(result, isVariable);
 	}
 
 	public void exportSource(Path output) {

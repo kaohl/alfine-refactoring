@@ -8,13 +8,14 @@ import java.util.Random;
 import java.util.Vector;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.Project;
+import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.opportunities.RefactoringOpportunity;
 import org.alfine.refactoring.utils.Generator;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
-import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaModelException;
@@ -22,20 +23,29 @@ import org.eclipse.ltk.core.refactoring.Refactoring;
 
 public abstract class RefactoringSupplier {
 
-	private final IJavaProject project;
-	private final Generator    generator;
+	/* TODO: Consider removing subclasses and instead use visitor as parameter. */
 
-	public RefactoringSupplier(IJavaProject project, Generator generator) {
-		this.project   = project;
+	private final Workspace workspace;
+	private final Generator generator;
+
+	public RefactoringSupplier(Workspace workspace, Generator generator) {
+		this.workspace = workspace;
 		this.generator = generator;
 	}
 
-	protected IJavaProject getProject() {
-		return this.project;
+	protected Workspace getWorkspace() {
+		return this.workspace;
 	}
-	
+
 	protected Generator getGenerator() {
 		return this.generator;
+	}
+
+	protected List<IPackageFragmentRoot> getSortedVariableSourceRoots() {
+		return getWorkspace().getVariableSourceRoots()
+				.stream()
+				.sorted()
+				.collect(Collectors.toList());
 	}
 
 	private static <T extends Comparable<T>> void shuffle(Vector<T> list, Random random) {
@@ -103,10 +113,10 @@ public abstract class RefactoringSupplier {
 	public Supplier<Refactoring> getSupplier() {
 		return makeSupplierFrom(collectOpportunities());
 	}
-	
+
 	protected void visitCompilationUnits(Consumer<? super ICompilationUnit> action) {
 
-		List<IPackageFragmentRoot> roots = Project.getAvailableRoots();
+		List<IPackageFragmentRoot> roots = getSortedVariableSourceRoots();
 		
 		roots.stream()
 		.sorted((x,y) -> x.getElementName().compareTo(y.getElementName()))

@@ -25,7 +25,7 @@ public class RefactoringProcessor {
 		Supplier<Refactoring> supplier    = null;
 		Refactoring           refactoring = null;
 
-		System.out.println("Processing supply... (drop = " + drop + ", limit = " + limit + ")");
+		System.out.println("Processing supply...\n\t drop = " + drop + ",\n\t limit = " + limit + "");
 
 		supplier = refactoringSupplier.getSupplier();
 
@@ -35,7 +35,11 @@ public class RefactoringProcessor {
 			--i;
 			
 			System.out.println("dropping refactoring: " + refactoring);
-		}		
+		}
+
+		if (!(limit > 0)) {
+			System.out.println("Limit (`--limit') is set to zero. No attempts will be made.");
+		}
 
 		for (int attempt = 0; (!success && (attempt < limit)); ++attempt) {
 			
@@ -93,7 +97,7 @@ public class RefactoringProcessor {
 			if (status.hasEntries()) {
 				int i = 0;
 				for (RefactoringStatusEntry e : status.getEntries()) {
-					System.out.printf("RefactoringStatusEntry[%i] = %s", i++, e);
+					System.out.printf("RefactoringStatusEntry[%d] = %s\n", i++, e);
 				}
 			}
 

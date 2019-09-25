@@ -2,11 +2,7 @@ package org.alfine.refactoring.framework.launch;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.alfine.refactoring.framework.Project;
 import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
@@ -18,7 +14,6 @@ import org.alfine.refactoring.utils.Generator;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
-import org.eclipse.jdt.core.IPackageFragmentRoot;
 
 /**
  * This class controls all aspects of the application's execution
@@ -70,10 +65,10 @@ public class Main implements IApplication {
 			outFolderPath
 		);
 
-		Set<IPackageFragmentRoot>  variableRoots = workspace.getVariableSourceRoots();
-		List<IPackageFragmentRoot> sortedRoots   = variableRoots.stream().sorted().collect(Collectors.toList());
-
-		// TODO: Pass `sortedRoots' to refactoring supplier constructor
+		// TODO: Visitors are not made for traversing multiple source roots in multiple projects.
+		//       Make opportunities comparable (use element handle?) across projects.
+		
+		// TODO: Pass deterministic list of source roots to refactoring supplier
 		//       and build refactoring opportunities as (ID, ARGMAP)-tuples.
 
 		Generator           generator = new Generator(seed, offset);
@@ -85,7 +80,7 @@ public class Main implements IApplication {
 		case EXTRACT:
 			break;
 		case INLINE:
-			supplier = new RandomInlineMethodSupplier(Project.getJavaProject(), generator);
+			supplier = new RandomInlineMethodSupplier(workspace, generator);
 			break;
 		case RENAME:
 
@@ -96,7 +91,7 @@ public class Main implements IApplication {
 			generator.setMaxLength(length);
 			generator.setLengthFixed(fixed);    // TODO: Add as a command line option.
 
-			supplier = new RandomRenameSupplier(Project.getJavaProject(), generator);
+			supplier = new RandomRenameSupplier(workspace, generator);
 			break;
 		default:
 			System.out.println("Unknown refactoring type.");
@@ -110,6 +105,7 @@ public class Main implements IApplication {
 		return IApplication.EXIT_OK;
 	}
 
+	/*
 	public Object start1(IApplicationContext context) throws Exception {
 
 		// Note: The 'workspace' argument is passed to the eclipse
@@ -193,6 +189,7 @@ public class Main implements IApplication {
 
 		return IApplication.EXIT_OK;
 	}
+	*/
 
 	@Override
 	public void stop() {
