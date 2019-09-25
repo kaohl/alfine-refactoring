@@ -10,7 +10,7 @@ public class P0 {
         this.l = l;
     }
 
-    public void getL0() {
+    public L0 getL0() {
         return this.l;
     }
 
