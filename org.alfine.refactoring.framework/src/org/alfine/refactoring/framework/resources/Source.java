@@ -1,5 +1,7 @@
 package org.alfine.refactoring.framework.resources;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.jar.JarFile;
@@ -60,16 +62,16 @@ public class Source {
 	/** Import resources into targeted location. */
 	public void importResource() {
 
-		if (parent == null) {
+		if (getParent() == null) {
 
 			// Unjar `source' into `target' folder.
 
 			try {
 
-				if (!Files.exists(target.toAbsolutePath())) {
+				if (!Files.exists(getTarget().toAbsolutePath())) {
 					PUP.unjar(
-						new JarFile(source.toAbsolutePath().toString()),
-						target.toAbsolutePath().toFile()
+						new JarFile(getSource().toAbsolutePath().toString()),
+						getTarget().toAbsolutePath().toFile()
 					);
 				}
 
@@ -79,13 +81,13 @@ public class Source {
 
 		} else {
 
-			parent.importResource();
+			getParent().importResource();
 
-			if (!Files.exists(this.target)) {
+			if (!Files.exists(getTarget())) {
 				try {
 					PUP.treeCopy(
-						getParent().getTarget().resolve(folder),
-						target
+						getParent().getTarget().resolve(getFolder()),
+						getTarget()
 					);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -98,15 +100,21 @@ public class Source {
 
 	public void exportResource(Path output) {
 
-		if (parent == null) {
+		// Package sources into a new archive named after the original source archive.
+
+		if (getParent() == null) {
 
 			// Jar `target' folder to `output' directory.
 
 			try {
-				PUP.jar(
-					target.toAbsolutePath().toFile(),
-					output.toAbsolutePath().toFile()
-				);
+
+				output = output.resolve(getSource().getFileName());
+
+				File src = getTarget().toAbsolutePath().toFile();
+				File dst = output.toAbsolutePath().toFile();
+
+				PUP.jar(src, dst);
+
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

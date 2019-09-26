@@ -68,6 +68,11 @@ public class JavaProject {
 		return this.workspace;
 	}
 
+	/** Return project source archives. */
+	public Vector<Source> getSources() {
+		return this.sources;
+	}
+
 	/** Return project folder in workspace. */
 	public Path getLocation() {
 		return getWorkspace().getLocation().resolve(getConfig().getName());
@@ -344,6 +349,8 @@ public class JavaProject {
 	}
 
 	public void exportSource(Path output) {
-		new UnsupportedOperationException().printStackTrace();
+		for (Source s : getSources()) {
+			s.exportResource(output);
+		}
 	}
 }

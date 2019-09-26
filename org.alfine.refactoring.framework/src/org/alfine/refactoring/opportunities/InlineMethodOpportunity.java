@@ -112,10 +112,9 @@ public class InlineMethodOpportunity extends RefactoringOpportunity {
 		Where do we find the remaining arguments?
 		 */
 
-		
 		return null;
 	}
-	
+
 	@Override
 	protected Refactoring createRefactoring() {
 

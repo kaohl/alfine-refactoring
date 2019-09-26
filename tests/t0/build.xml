@@ -23,16 +23,40 @@
 
     <jar destfile="${export.dir}/p0.jar" basedir="${src.dir}/p0"/>
     <jar destfile="${export.dir}/l0.jar" basedir="${src.dir}/l0"/>
+    <jar destfile="${export.dir}/s0.jar" basedir="${src.dir}/s0"/>
 
     <echo file="${export.dir}/variable.config" message="l0.jar${line.separator}"/>
     <echo file="${export.dir}/workspace.config">
+
       l0 {
           src / l0.jar
       }
+
       p0 {
           dep l0
           src / p0.jar
       }
+
+      category0.test0 {
+          dep l0
+          src category0/test0 s0.jar
+      }
+
+      category0.test1 {
+          dep l0
+          src category0/test1 s0.jar
+      }
+
+      category1.test0 {
+          dep l0
+          src category1/test0 s0.jar
+      }
+
+      category1.test1 {
+          dep l0
+          src category1/test1 s0.jar
+      }
+
     </echo>
   </target>
 

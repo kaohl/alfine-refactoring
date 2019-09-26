@@ -1,5 +1,6 @@
 package org.alfine.refactoring.framework;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -146,9 +147,20 @@ public class Workspace {
 		return Files.exists(libPath.resolve(jar));
 	}
 
+	/** Export project source code. This method is called from `close()'. */
 	public void exportSource() {
 
 		Path output = getOutPath();
+
+		System.out.println("Exporting to " + output.toString());
+
+		if (!Files.exists(output)) {
+			try {
+				Files.createDirectories(output);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 
 		for (String key : projects.keySet()) {
 			projects.get(key).exportSource(output);
@@ -244,13 +256,13 @@ public class Workspace {
 		return JavaCore.create(project);
 	}
 
-	public void close(boolean writeSrcToOutput) {
+	public void close(boolean exportToOutput) {
 		
 		// Export imported source artifacts to output folder specified on command-line.
 
-		System.out.println("Exporting project (save?=" + writeSrcToOutput + ")");
+		System.out.println("Exporting project (save?=" + exportToOutput + ")");
 
-		if (writeSrcToOutput) {
+		if (exportToOutput) {
 			exportSource();
 		}
 

@@ -99,7 +99,7 @@ public class Main implements IApplication {
 
 		boolean success = new RefactoringProcessor(supplier).processSupply(drop, limit);
 
-		workspace.exportSource();
+		// workspace.exportSource();
 		workspace.close(success);
 
 		return IApplication.EXIT_OK;
