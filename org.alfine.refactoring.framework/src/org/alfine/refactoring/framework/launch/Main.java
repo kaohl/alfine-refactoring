@@ -20,6 +20,8 @@ import org.eclipse.equinox.app.IApplicationContext;
  */
 public class Main implements IApplication {
 
+	public static final String LOGFILE_KEY = "alfine.refactoring.stdlog";
+
 	@Override
 	public Object start(IApplicationContext context) throws Exception {
 
@@ -43,6 +45,9 @@ public class Main implements IApplication {
 		int             offset   = arguments.getOffset();       // Number generator initial offset.
 		int             length  = arguments.getLength();      // Rename symbol max length. (In case of a rename refactoring.)
 		boolean         fixed    = arguments.getFixed();     // Whether length of generated symbols is fixed or random.
+
+		Path logFilePath = Paths.get("refactoring-output.log");
+		System.setProperty(Main.LOGFILE_KEY, logFilePath.toString());
 
 		String location = Platform.getInstanceLocation().getURL().getFile();
 
@@ -99,7 +104,6 @@ public class Main implements IApplication {
 
 		boolean success = new RefactoringProcessor(supplier).processSupply(drop, limit);
 
-		// workspace.exportSource();
 		workspace.close(success);
 
 		return IApplication.EXIT_OK;
