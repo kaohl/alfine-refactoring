@@ -2,13 +2,13 @@ package org.alfine.refactoring.opportunities;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.IJavaElement;
-import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
-import org.eclipse.jdt.core.refactoring.descriptors.InlineMethodDescriptor;
 import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 import org.eclipse.ltk.core.refactoring.Refactoring;
+import org.eclipse.ltk.core.refactoring.RefactoringContext;
 import org.eclipse.ltk.core.refactoring.RefactoringContribution;
 import org.eclipse.ltk.core.refactoring.RefactoringCore;
 import org.eclipse.ltk.core.refactoring.RefactoringStatus;
+import org.eclipse.ltk.core.refactoring.RefactoringStatusEntry;
 
 public abstract class RefactoringOpportunity implements Comparable<RefactoringOpportunity> {
 
@@ -98,23 +98,39 @@ public abstract class RefactoringOpportunity implements Comparable<RefactoringOp
 
 		JavaRefactoringDescriptor descriptor = buildDescriptor();
 
-		if (descriptor.validateDescriptor().hasFatalError()) {
-			System.err.println("Missing args! Not all relevant parameters set for refactoring!\n");
+		RefactoringStatus status = descriptor.validateDescriptor();
+
+		for (RefactoringStatusEntry entry : status.getEntries()) {
+			System.out.println("RefactoringStatusEntry from `validateDescriptor()':\n" + entry.toString());
+		}
+
+		if (status.hasFatalError()) {
+			System.err.println("Invalid descriptor (FATAL).\n" + status);
 			return null;
 		}
 
-		RefactoringStatus status      = new RefactoringStatus();
-		Refactoring       refactoring = null;
+		Refactoring refactoring = null;
 
 		try {
-			refactoring = descriptor.createRefactoring(status);
+			RefactoringContext ctx    = null;
+
+			status = new RefactoringStatus();
+
+			ctx = descriptor.createRefactoringContext(status);
+
+			for (RefactoringStatusEntry entry : status.getEntries()) {
+				System.out.println("RefactoringStatusEntry:\n" + entry.toString());
+			}
+
+			if (status.hasError()) {
+				System.out.println("Status has errors. Refactoring can not be created.");
+				return null;
+			}
+
+			refactoring = ctx.getRefactoring();
+
 		} catch (CoreException e) {
 			e.printStackTrace();
-		}
-
-		if (status.hasError()) {
-			System.out.print("Initial refactoring status has errors: " + status);
-			return null;
 		}
 
 		return refactoring;
