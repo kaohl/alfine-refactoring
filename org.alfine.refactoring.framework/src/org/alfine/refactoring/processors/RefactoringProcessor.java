@@ -67,29 +67,27 @@ public class RefactoringProcessor {
 				break;
 			}
 		}
-		
+
 		if (success) {
 			System.out.println("One or more refactorings were applied.");
 		} else {
 			System.out.println("No refactorings were applied.");
 		}
-		
+
 		return success;
 	}
-	
+
 	public static boolean applyRefactoring(Refactoring refactoring) {
 		//
 		// Is this useful?
 		// RefactoringASTParser p; p.parse(typeRoot, owner, resolveBindings, statementsRecovery, bindingsRecovery, pm);
-	
+
 		// We can get undo here... (But we do not want to execute in a new thread...)
 		// final int style = org.eclipse.ltk.core.refactoring.CheckConditionsOperation.ALL_CONDITIONS;
 		// PerformRefactoringOperation prop = new PerformRefactoringOperation(refactoring, style);
 
 		System.out.println("RefactoringProcessor::applyRefactoring()");
 
-
-		
 		try {
 
 			RefactoringStatus status = refactoring.checkAllConditions(new NullProgressMonitor());
@@ -101,12 +99,19 @@ public class RefactoringProcessor {
 				}
 			}
 
-			
 			// RefactoringStatus status = refactoring.checkAllConditions(new NullProgressMonitor());
 
-			Change change = refactoring.createChange(new NullProgressMonitor());
+			Change change = null;
 
-			System.out.println("ChangeDescriptor: " + change.getDescriptor().toString());
+			try {
+				change = refactoring.createChange(new NullProgressMonitor());
+
+				System.out.println("ChangeDescriptor: " + change.getDescriptor().toString());
+
+			} catch (NullPointerException e) {
+				e.printStackTrace();
+				return false; // Fail.
+			}
 
 			try {
 
@@ -115,9 +120,9 @@ public class RefactoringProcessor {
 				if (o == null) {
 					return false; // Failed to apply change.
 				}
-				
+
 			} finally {
-				change.dispose();				
+				change.dispose();
 			}
 
 		} catch (Exception e) {
@@ -126,12 +131,7 @@ public class RefactoringProcessor {
 		}
 
 		return true;
-		
-		
-		
-		
-		
-		
+
 		/*
 		
 		
