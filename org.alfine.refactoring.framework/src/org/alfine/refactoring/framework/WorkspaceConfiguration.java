@@ -169,7 +169,13 @@ public class WorkspaceConfiguration {
 
 	public static boolean isValidLibEntry(Path lib, Path src) {
 		/* Note: Source archive is optional. */
-		return Files.exists(lib) && (src.toString().equals("?") || Files.exists(src));
+		/*
+		System.err.println("isValidLibEntry(): src.toString = " + src.toString());
+		System.err.println("Files.exists(lib) = " + Files.exists(lib));
+		System.err.println("Files.exists(src) = " + Files.exists(src));
+		System.err.println("src.toString().equals(\"?\") = " + src.endsWith("?"));
+		 */
+		return Files.exists(lib) && (src.endsWith("?") || Files.exists(src));
 	}
 
 	/** Create `ProjectConfiguration' from configuration string. 
