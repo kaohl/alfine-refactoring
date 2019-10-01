@@ -265,11 +265,5 @@ public class Workspace {
 		if (exportToOutput) {
 			exportSource();
 		}
-
-		/*
-		for (String key : projects.keySet()) {
-			projects.get(key).close();
-		}
-		*/
 	}
 }
