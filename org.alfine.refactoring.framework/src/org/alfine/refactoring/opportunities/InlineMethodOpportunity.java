@@ -4,18 +4,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.alfine.refactoring.utils.ASTHelper;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
+import org.eclipse.jdt.core.refactoring.descriptors.InlineMethodDescriptor;
 import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 import org.eclipse.jdt.internal.corext.refactoring.code.InlineMethodRefactoring;
 import org.eclipse.ltk.core.refactoring.Refactoring;
-import org.eclipse.ltk.core.refactoring.RefactoringContext;
 import org.eclipse.ltk.core.refactoring.RefactoringContribution;
 import org.eclipse.ltk.core.refactoring.RefactoringCore;
-import org.eclipse.ltk.core.refactoring.RefactoringStatus;
 
 public class InlineMethodOpportunity extends RefactoringOpportunity {
 
@@ -46,10 +44,12 @@ public class InlineMethodOpportunity extends RefactoringOpportunity {
 	@Override
 	protected JavaRefactoringDescriptor buildDescriptor() {
 
-		/*
-		Map<String, String> arguments = new HashMap<String, String>();
-
-		// TODO: Assign arguments to map.
+		@SuppressWarnings("serial")
+		Map<String, String> arguments = new HashMap<String, String>() {{
+			put("input", getICompilationUnit().getHandleIdentifier());
+			put("element", getElement().getHandleIdentifier());
+			put("selection", "" + getStart() + " " + getLength());
+		}};
 
 		String                    id           = IJavaRefactorings.INLINE_METHOD;
 		RefactoringContribution   contribution = RefactoringCore.getRefactoringContribution(id);
@@ -63,6 +63,9 @@ public class InlineMethodOpportunity extends RefactoringOpportunity {
 			defaultInit.getFlags()
 		);
 
+		return descriptor;
+
+		/*
 		try {
 			RefactoringContext ctx    = null;
 			RefactoringStatus  status = new RefactoringStatus();
@@ -77,8 +80,7 @@ public class InlineMethodOpportunity extends RefactoringOpportunity {
 			e.printStackTrace();
 		}
 		return null;
-	*/
-
+ 		*/
 
 
 
@@ -112,9 +114,10 @@ public class InlineMethodOpportunity extends RefactoringOpportunity {
 		Where do we find the remaining arguments?
 		 */
 
-		return null;
+		//return null;
 	}
 
+	/*
 	@Override
 	protected Refactoring createRefactoring() {
 
@@ -126,4 +129,5 @@ public class InlineMethodOpportunity extends RefactoringOpportunity {
 
 		return InlineMethodRefactoring.create(icunit, cunit, getStart(), getLength());
 	}
+	*/
 }
