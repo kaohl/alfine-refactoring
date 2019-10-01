@@ -1,8 +1,13 @@
 package org.alfine.refactoring.suppliers;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Vector;
 
 import org.alfine.refactoring.framework.Workspace;
+import org.alfine.refactoring.framework.launch.Main;
 import org.alfine.refactoring.opportunities.RefactoringOpportunity;
 import org.alfine.refactoring.utils.ASTHelper;
 import org.alfine.refactoring.utils.Generator;
@@ -41,13 +46,31 @@ public class RandomInlineMethodSupplier extends RefactoringSupplier {
 
 		*/
 
+		Vector<Long> nbrInvocations = new Vector<>();
+
 		Vector<RefactoringOpportunity> opportunities = new Vector<>();
 
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = ASTHelper.getCompilationUnit(icu);
-			cu.accept(new InlineVisitor(icu, opportunities));
+			InlineMethodVisitor visitor = new InlineMethodVisitor(icu, opportunities);
+			cu.accept(visitor);
+
+			nbrInvocations.add(visitor.getNbrInvocations());
 		});
 
+		try (OutputStream out = Files.newOutputStream(Paths.get(System.getProperty(Main.LOGFILE_KEY)))) {
+
+			long sum = 0;
+
+			for (Long n : nbrInvocations) {
+				sum += n;
+			}
+
+			out.write(("nbrOpportunities = " + opportunities.size() + ", nbrInvocations = " + sum).getBytes());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return opportunities;
 	}
 }
