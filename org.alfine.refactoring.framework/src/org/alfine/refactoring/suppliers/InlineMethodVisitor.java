@@ -52,6 +52,7 @@ class InlineMethodVisitor extends ASTVisitor {
 		System.out.printf("\n");
 	}
 
+	/** Check if `node` is a `MethodInvocation` in which case it is added as an opportunity. */
 	private void tryAddNode(ASTNode node) {
 
 		if (node instanceof MethodInvocation) {
@@ -62,7 +63,8 @@ class InlineMethodVisitor extends ASTVisitor {
 			if (mb == null) {
 
 				// Source is not available...
-				// (This happens for standard library and binary dependencies that does not ship with sources.)
+				// (This happens for standard library and binary
+				//  dependencies that does not ship with sources.)
 
 				System.err.println("Unable to resolve method binding for invoked method.");
 
@@ -145,46 +147,21 @@ class InlineMethodVisitor extends ASTVisitor {
 				nInvocations += 1;
 			}
 
-			// The purpose is to count total number of invocations in each
-			// compilation unit so that we can determine how many that are
-			// unavailable for transformation.
+			// Note:
+			//     The purpose is to count total number of invocations in each
+			//     compilation unit so that we can determine how many that are
+			//     unavailable for transformation and how many we cannot inline
+			//     without first extracting the call into a temporary variable:
+			//
+			//     int x = 1 + f();
+			// -->
+			//     int tmp = f();      // We can only inline function calls that are directly assigned to a variable.
+			//     int x   = 1 + tmp;
 		}
 
-		/*
 		// This method gives an example of how to use the InlineMethodDescriptor!
 		// https://android.wekeepcoding.com/article/20191382/How+to+execute+inline+refactoring+programmatically+using+JDT+LTK%3F
 
-		System.out.println("MethodInvocation: " + mi);
-
-		IMethodBinding mb = mi.resolveMethodBinding();
-
-		if (mb == null) {
-
-			// Source is not available...
-
-			System.err.println("Unable to resolve method binding for invoked method.");
-
-		} else {
-
-			// TODO: Check if invoked method is private or static so that it is a viable opportunity.
-
-			if (mi.getParent() instanceof Assignment) {
-				System.out.println("Found MethodInvocation as child of Assignment.");
-			} else if (mi.getParent() instanceof VariableDeclarationStatement) {
-				System.out.println("Found MethodInvocation as child of VariableDeclarationStatement.");
-			} else if (mi.getParent() instanceof VariableDeclarationExpression) {
-				System.out.println("Found MethodInvocation as child of VariableDeclarationExpression.");
-			} else if (mi.getParent() instanceof ExpressionStatement) {
-				System.out.println("Found MethodInvocation as child of ExpressionStatement.");
-			} else if (mi.getParent() instanceof SingleVariableDeclaration) {
-				System.out.println("Found MethodInvocation as child of SingleVariableDeclaration.");
-			} else if (mi.getParent() instanceof VariableDeclarationFragment) {
-				System.out.println("Found MethodInvocation as child of VariableDeclarationFragment.");
-			}
-
-			addOpportunity(new InlineMethodOpportunity(mb.getJavaElement(), this.unit, mi.getStartPosition(), mi.getLength()), mi.getStartPosition());
-		}
-		 */
 		return true;
 	}
 }
