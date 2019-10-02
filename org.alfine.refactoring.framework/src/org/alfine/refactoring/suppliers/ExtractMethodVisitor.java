@@ -1,7 +1,5 @@
 package org.alfine.refactoring.suppliers;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.Vector;
 
 import org.alfine.refactoring.opportunities.ExtractMethodOpportunity;
@@ -9,8 +7,6 @@ import org.alfine.refactoring.opportunities.RefactoringOpportunity;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Block;
-import org.eclipse.jdt.core.dom.IMethodBinding;
-import org.eclipse.jdt.core.dom.MethodDeclaration;
 
 public class ExtractMethodVisitor extends ASTVisitor {
 	private ICompilationUnit               unit;
