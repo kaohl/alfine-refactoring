@@ -17,30 +17,6 @@ public class RandomExtractMethodSupplier extends RefactoringSupplier {
 	@Override
 	protected Vector<RefactoringOpportunity> collectOpportunities() {
 
-		/*
-		IJavaProject project = getProject();
-
-		// Note: We must make sure that imported sources are listed on the classpath in a
-		//       deterministic way so that we always get the same order of opportunities.
-		//
-		// Note: Package fragment roots and package fragments are returned in order of appearance
-		//       on the classpath.
-
-		Vector<RefactoringOpportunity> opportunities = new Vector<>();
-
-		try {
-			for (IPackageFragment frag : project.getPackageFragments()) {
-				for (ICompilationUnit icu : frag.getCompilationUnits()) {
-					CompilationUnit cu = ASTHelper.getCompilationUnit(icu);
-					cu.accept(new InlineVisitor(icu, opportunities));
-				}
-			}
-		} catch (JavaModelException e) {
-			e.printStackTrace();
-		}
-
-		*/
-
 		Vector<RefactoringOpportunity> opportunities = new Vector<>();
 
 		visitCompilationUnits(icu -> {

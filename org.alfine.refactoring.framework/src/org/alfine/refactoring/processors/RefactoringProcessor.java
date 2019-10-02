@@ -78,13 +78,6 @@ public class RefactoringProcessor {
 	}
 
 	public static boolean applyRefactoring(Refactoring refactoring) {
-		//
-		// Is this useful?
-		// RefactoringASTParser p; p.parse(typeRoot, owner, resolveBindings, statementsRecovery, bindingsRecovery, pm);
-
-		// We can get undo here... (But we do not want to execute in a new thread...)
-		// final int style = org.eclipse.ltk.core.refactoring.CheckConditionsOperation.ALL_CONDITIONS;
-		// PerformRefactoringOperation prop = new PerformRefactoringOperation(refactoring, style);
 
 		System.out.println("RefactoringProcessor::applyRefactoring()");
 
@@ -98,8 +91,6 @@ public class RefactoringProcessor {
 					System.out.printf("RefactoringStatusEntry[%d] = %s\n", i++, e);
 				}
 			}
-
-			// RefactoringStatus status = refactoring.checkAllConditions(new NullProgressMonitor());
 
 			Change change = null;
 

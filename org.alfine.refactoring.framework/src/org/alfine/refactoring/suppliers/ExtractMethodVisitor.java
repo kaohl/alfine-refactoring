@@ -4,52 +4,46 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Vector;
 
+import org.alfine.refactoring.opportunities.ExtractMethodOpportunity;
 import org.alfine.refactoring.opportunities.RefactoringOpportunity;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 
 public class ExtractMethodVisitor extends ASTVisitor {
 	private ICompilationUnit               unit;
-	private Set<Integer>                   oppStartSet;   // Source start position for all found opportunities.
 	private Vector<RefactoringOpportunity> opportunities;
 
 	public ExtractMethodVisitor(ICompilationUnit unit, Vector<RefactoringOpportunity> opportunities) {
 		this.unit          = unit;
-		this.oppStartSet   = new HashSet<Integer>();
 		this.opportunities = opportunities;
 	}
 
-	private void addOpportunity(RefactoringOpportunity opp, int start) {
+	private ICompilationUnit getCompilationUnit() {
+		return this.unit;
+	}
 
-		System.out.print("addOpportunity start = " + start);
-
-		if (!oppStartSet.contains(start)) {
-			opportunities.add(opp);
-			oppStartSet.add(start);
-		} else {
-			System.out.print(", already present.");
-		}
-		System.out.println("");
+	private void addOpportunity(RefactoringOpportunity opp) {
+		opportunities.add(opp);
 	}
 
 	@Override
-	public boolean visit(MethodDeclaration decl) {
-		IMethodBinding b = decl.resolveBinding();
+	public boolean visit(Block block) {
+		// Note: This does not cover (non-block) single statement bodies of
+		//       control flow statements. But let's ignore that for now.
 
-		// Known constraints
-		// 1. The first and last statement in the selection must belong to the same block.
-		
-		return false;
-	}
+		int nbrStmts = block.statements().size();
 
-	public int f() {
-		int sum = 0;
-		for (int i = 0; i < 10; ++i) {
-			sum += i;
-			System.out.println("sum is " + sum);
+		if (nbrStmts > 0) {
+			for (int start = 0; start < nbrStmts; ++start) {
+				for (int end = start; end < nbrStmts; ++end) {
+					addOpportunity(new ExtractMethodOpportunity(getCompilationUnit(), block, start, end));
+					// System.out.println("range = " + start + ", " + end);
+				}
+			}
 		}
-		return sum;
+		return false;
 	}
 }
