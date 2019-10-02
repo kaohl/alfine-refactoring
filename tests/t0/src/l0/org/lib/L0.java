@@ -2,6 +2,9 @@ package org.lib;
 
 public class L0 {
 
+    private static final int    MY_INT_CONSTANT = 0;
+    private static final String MY_STR_CONSTANT = "CONSTANT";
+
     public void f() {
         int x = g();
 
@@ -21,14 +24,14 @@ public class L0 {
 
     public int h() {
         for (int i = g(); i > 10; --i) {
-            System.out.println("" + i);
+            System.out.println(MY_STR_CONSTANT + i);
         }
-        return 5;
+        return L0.MY_INT_CONSTANT;
     }
 
     public int e() {
         int i = 0;
-        for (i = g(); i > 0; --i) {
+        for (i = g() + MY_INT_CONSTANT; i > 0; --i) {
             System.out.println("" + g());
         }
         return 0;
