@@ -7,6 +7,7 @@ import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
 import org.alfine.refactoring.processors.RefactoringProcessor;
+import org.alfine.refactoring.suppliers.RandomExtractConstantSupplier;
 import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
@@ -86,6 +87,9 @@ public class Main implements IApplication {
 			break;
 		case INLINE_CONSTANT:
 			supplier = new RandomInlineConstantFieldSupplier(workspace, generator);
+			break;
+		case EXTRACT_CONSTANT:
+			supplier = new RandomExtractConstantSupplier(workspace, generator);
 			break;
 		case EXTRACT_METHOD:
 			supplier = new RandomExtractMethodSupplier(workspace, generator);

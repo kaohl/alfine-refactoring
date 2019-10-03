@@ -13,6 +13,14 @@ import org.eclipse.jdt.core.dom.SimpleName;
 
 public class InlineConstantFieldVisitor extends ASTVisitor {
 
+	// There are at least two ways of defining the inline-constant refactoring:
+	// 1. Only inline a single field reference per refactoring,
+	// 2. Resolve and replace a compile-time constant expression with the constant value.
+	// The second alternative includes resolving and inlining a complete constant expression
+	// while the first only inline one constant field reference in one (sub-)expression.
+	//
+	// We use the first alternative here.
+
 	private ICompilationUnit               unit;
 	private Set<Integer>                   oppStartSet;   // Source start position for all found opportunities.
 	private Vector<RefactoringOpportunity> opportunities;

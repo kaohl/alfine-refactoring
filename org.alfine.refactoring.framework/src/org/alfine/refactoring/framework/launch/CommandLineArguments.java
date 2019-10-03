@@ -14,19 +14,21 @@ public class CommandLineArguments {
 		NONE,
 		RENAME,
 		INLINE_METHOD,
-		EXTRACT_METHOD,
 		INLINE_CONSTANT,
+		EXTRACT_METHOD,
+		EXTRACT_CONSTANT,
 		UNKNOWN
 	}
 
 	public RefactoringType typeStringToType(String typeString) {		
 		switch (typeString) {
-		case "none":            return RefactoringType.NONE;
-		case "rename":          return RefactoringType.RENAME;
-		case "inline-method":   return RefactoringType.INLINE_METHOD;
-		case "inline-constant": return RefactoringType.INLINE_CONSTANT;
-		case "extract-method":  return RefactoringType.EXTRACT_METHOD;
-		default:                return RefactoringType.UNKNOWN;
+		case "none":             return RefactoringType.NONE;
+		case "rename":           return RefactoringType.RENAME;
+		case "inline-method":    return RefactoringType.INLINE_METHOD;
+		case "inline-constant":  return RefactoringType.INLINE_CONSTANT;
+		case "extract-method":   return RefactoringType.EXTRACT_METHOD;
+		case "extract-constant": return RefactoringType.EXTRACT_CONSTANT;
+		default:                 return RefactoringType.UNKNOWN;
 		}
 	}
 
