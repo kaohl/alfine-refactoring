@@ -20,6 +20,7 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
@@ -273,16 +274,16 @@ public class JavaProject {
 	}
 
 	/** Return an IClasspath entry representing the specified library with optional source attachment. */
-	private IClasspathEntry asLibEntry(IResource lib, IResource src, boolean doExport) {
+	private IClasspathEntry asLibEntry(IPath lib, IPath src, boolean doExport) {
 
 		// TODO: Get source paths:
 		// IPackageFragmentRoot root  = javaProject.getPackageFragmentRoot(...);
 		// if (src != null) ...
 
 		return JavaCore.newLibraryEntry(
-			lib.getFullPath(),
-			null, // src.getFullPath(),
-			null, // sourceAttachmentRootPath
+			lib,
+			src,
+			null, // sourceAttachmentRootPath (root within archive
 			doExport
 		);
 	}
@@ -292,11 +293,17 @@ public class JavaProject {
 
 		this.libraries.add(library);
 
-		addClasspathEntry(asLibEntry(
-			project.getFile(library.getBinaryPath().toString()),
-			project.getFile(library.getSourcePath().toString()),
-			library.isExported())
-		);
+		Path libPath = library.getBinaryPath();
+		Path srcPath = library.getSourcePath();
+
+		org.eclipse.core.runtime.Path lib = new org.eclipse.core.runtime.Path(libPath.toString());
+
+		org.eclipse.core.runtime.Path src =
+			srcPath != null
+			? new org.eclipse.core.runtime.Path(srcPath.toString())
+			: null;
+
+		addClasspathEntry(asLibEntry(lib, src, library.isExported()));
 	}
 
 	/** Add the specified library to the project. */

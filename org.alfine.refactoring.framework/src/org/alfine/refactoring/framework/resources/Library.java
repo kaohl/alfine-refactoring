@@ -17,7 +17,7 @@ public class Library {
 	}
 
 	public Path getSourcePath() {
-		return this.sourceArchive;
+		return sourceArchive.endsWith("?") ? null : this.sourceArchive;
 	}
 	
 	public Path getBinaryPath() {

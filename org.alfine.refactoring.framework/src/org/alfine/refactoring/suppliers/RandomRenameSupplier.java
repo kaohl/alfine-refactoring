@@ -50,7 +50,6 @@ public class RandomRenameSupplier extends RefactoringSupplier {
 		//       entries that are variable.
 		//
 
-		
 		Vector<RefactoringOpportunity> opportunities = new Vector<>();
 
 		visitCompilationUnits(icu -> {
