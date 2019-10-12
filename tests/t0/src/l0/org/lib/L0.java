@@ -1,5 +1,7 @@
 package org.lib;
 
+import org.mylib.MyLib;
+
 public class L0 {
 
     private static final int    MY_INT_CONSTANT = 0;
@@ -12,6 +14,9 @@ public class L0 {
            when it encounters method invocations for which the binding can not
            be resolved. */
         System.out.println("g() = " + x);
+
+        MyLib ml = new MyLib();
+        ml.f();
     }
 
     private int g() {

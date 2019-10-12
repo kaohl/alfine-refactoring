@@ -8,6 +8,7 @@
   <dirname property="antfile.dir" file="${ant.file}"/>
 
   <property name="src.dir"        value="${antfile.dir}/src"/>
+  <property name="target.dir"     value="${antfile.dir}/target"/>
 
   <property name="export.dir"     value="${basedir}/${where}"/>
   <property name="export.lib.dir" value="${export.dir}/lib"/>
@@ -21,14 +22,28 @@
     <mkdir dir="${export.dir}"/>
     <mkdir dir="${export.lib.dir}"/>
 
+    <!-- Produce source archives directly into `export.dir`. -->
     <jar destfile="${export.dir}/p0.jar" basedir="${src.dir}/p0"/>
     <jar destfile="${export.dir}/l0.jar" basedir="${src.dir}/l0"/>
     <jar destfile="${export.dir}/s0.jar" basedir="${src.dir}/s0"/>
 
+    <!-- Produce libraries directly into `export.lib.dir`. -->
+
+    <mkdir dir="${target.dir}/mylib-classes"/>
+    <javac destdir="${target.dir}/mylib-classes" srcdir="${src.dir}/mylib/src" includes="**/*.java" includeantruntime="false"/>
+    <jar   destfile="${export.lib.dir}/mylib.jar" basedir="${target.dir}/mylib-classes"/>
+
+    <!-- delete dir="${target.dir}"/ -->
+
     <echo file="${export.dir}/variable.config" message="l0.jar${line.separator}"/>
     <echo file="${export.dir}/workspace.config">
 
+      mylib {
+          exp mylib.jar ?
+      }
+
       l0 {
+          dep mylib
           src / l0.jar
       }
 
