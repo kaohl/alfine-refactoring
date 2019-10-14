@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Vector;
 
 import org.alfine.refactoring.opportunities.RefactoringOpportunity;
 import org.alfine.refactoring.opportunities.RenameFieldOpportunity;
@@ -12,6 +11,7 @@ import org.alfine.refactoring.opportunities.RenameLocalVariableOpportunity;
 import org.alfine.refactoring.opportunities.RenameMethodOpportunity;
 import org.alfine.refactoring.opportunities.RenameTypeOpportunity;
 import org.alfine.refactoring.opportunities.RenameTypeParameterOpportunity;
+import org.alfine.refactoring.suppliers.RefactoringSupplier.VectorSupply;
 import org.alfine.refactoring.utils.Generator;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IField;
@@ -32,16 +32,16 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 public class RenameVisitor extends ASTVisitor {
-	private ICompilationUnit               unit;
-	private Set<Integer>                   oppStartSet;   // Source start position for all found opportunities.
-	private Vector<RefactoringOpportunity> opportunities;
-	private Generator                      generator;
+	private ICompilationUnit unit;
+	private Set<Integer>     oppStartSet;   // Source start position for all found opportunities.
+	private VectorSupply     supply;
+	private Generator        generator;
 
-	public RenameVisitor(ICompilationUnit unit, Vector<RefactoringOpportunity> opportunities, Generator generator) {
-		this.unit          = unit;
-		this.oppStartSet   = new HashSet<Integer>();
-		this.opportunities = opportunities;
-		this.generator     = generator;
+	public RenameVisitor(ICompilationUnit unit, VectorSupply supply, Generator generator) {
+		this.unit        = unit;
+		this.oppStartSet = new HashSet<Integer>();
+		this.supply      = supply;
+		this.generator   = generator;
 	}
 	
 	private Generator getGenerator() {
@@ -53,7 +53,7 @@ public class RenameVisitor extends ASTVisitor {
 		System.out.print("addOpportunity start = " + start);
 
 		if (!oppStartSet.contains(start)) {
-			opportunities.add(opp);
+			supply.add(opp);
 			oppStartSet.add(start);
 		} else {
 			System.out.print(", already present.");

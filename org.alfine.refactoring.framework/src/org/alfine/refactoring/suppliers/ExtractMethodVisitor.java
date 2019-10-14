@@ -1,28 +1,27 @@
 package org.alfine.refactoring.suppliers;
 
-import java.util.Vector;
-
 import org.alfine.refactoring.opportunities.ExtractMethodOpportunity;
 import org.alfine.refactoring.opportunities.RefactoringOpportunity;
+import org.alfine.refactoring.suppliers.RefactoringSupplier.MatrixSupply;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Block;
 
 public class ExtractMethodVisitor extends ASTVisitor {
-	private ICompilationUnit               unit;
-	private Vector<RefactoringOpportunity> opportunities;
+	private ICompilationUnit unit;
+	private MatrixSupply     supply;
 
-	public ExtractMethodVisitor(ICompilationUnit unit, Vector<RefactoringOpportunity> opportunities) {
-		this.unit          = unit;
-		this.opportunities = opportunities;
+	public ExtractMethodVisitor(ICompilationUnit unit, MatrixSupply supply) {
+		this.unit   = unit;
+		this.supply = supply;
 	}
 
 	private ICompilationUnit getCompilationUnit() {
 		return this.unit;
 	}
 
-	private void addOpportunity(RefactoringOpportunity opp) {
-		opportunities.add(opp);
+	private void addOpportunity(int length, RefactoringOpportunity opp) {
+		supply.add(length, opp); // Note: `length` is reduced to `length` - 1 internally.
 	}
 
 	@Override
@@ -35,8 +34,9 @@ public class ExtractMethodVisitor extends ASTVisitor {
 		if (nbrStmts > 0) {
 			for (int start = 0; start < nbrStmts; ++start) {
 				for (int end = start; end < nbrStmts; ++end) {
-					addOpportunity(new ExtractMethodOpportunity(getCompilationUnit(), block, start, end));
-					// System.out.println("range = " + start + ", " + end);
+					int length = end - start + 1;
+					addOpportunity(length, new ExtractMethodOpportunity(getCompilationUnit(), block, start, end));
+					// System.out.println("range = " + start + ", " + end + ", length = " + length);
 				}
 			}
 		}

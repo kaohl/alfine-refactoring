@@ -20,39 +20,15 @@ public class RandomInlineMethodSupplier extends RefactoringSupplier {
 	}
 
 	@Override
-	protected Vector<RefactoringOpportunity> collectOpportunities() {
-
-		/*
-		IJavaProject project = getProject();
-
-		// Note: We must make sure that imported sources are listed on the classpath in a
-		//       deterministic way so that we always get the same order of opportunities.
-		//
-		// Note: Package fragment roots and package fragments are returned in order of appearance
-		//       on the classpath.
-
-		Vector<RefactoringOpportunity> opportunities = new Vector<>();
-
-		try {
-			for (IPackageFragment frag : project.getPackageFragments()) {
-				for (ICompilationUnit icu : frag.getCompilationUnits()) {
-					CompilationUnit cu = ASTHelper.getCompilationUnit(icu);
-					cu.accept(new InlineVisitor(icu, opportunities));
-				}
-			}
-		} catch (JavaModelException e) {
-			e.printStackTrace();
-		}
-
-		*/
+	protected Supply collectOpportunities() {
 
 		Vector<Long> nbrInvocations = new Vector<>();
 
-		Vector<RefactoringOpportunity> opportunities = new Vector<>();
+		VectorSupply supply = new VectorSupply();
 
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = ASTHelper.getCompilationUnit(icu);
-			InlineMethodVisitor visitor = new InlineMethodVisitor(icu, opportunities);
+			InlineMethodVisitor visitor = new InlineMethodVisitor(icu, supply);
 			cu.accept(visitor);
 
 			nbrInvocations.add(visitor.getNbrInvocations());
@@ -66,11 +42,11 @@ public class RandomInlineMethodSupplier extends RefactoringSupplier {
 				sum += n;
 			}
 
-			out.write(("nbrOpportunities = " + opportunities.size() + ", nbrInvocations = " + sum).getBytes());
+			out.write(("nbrOpportunities = " + supply.size() + ", nbrInvocations = " + sum).getBytes());
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return opportunities;
+		return supply;
 	}
 }

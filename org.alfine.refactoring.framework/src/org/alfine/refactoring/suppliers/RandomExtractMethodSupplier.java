@@ -15,15 +15,15 @@ public class RandomExtractMethodSupplier extends RefactoringSupplier {
 	}
 
 	@Override
-	protected Vector<RefactoringOpportunity> collectOpportunities() {
+	protected Supply collectOpportunities() {
 
-		Vector<RefactoringOpportunity> opportunities = new Vector<>();
+		MatrixSupply supply = new MatrixSupply();
 
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = ASTHelper.getCompilationUnit(icu);
-			cu.accept(new ExtractMethodVisitor(icu, opportunities));
+			cu.accept(new ExtractMethodVisitor(icu, supply));
 		});
 
-		return opportunities;
+		return supply;
 	}
 }

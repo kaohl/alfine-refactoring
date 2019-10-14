@@ -15,14 +15,15 @@ public class RandomExtractConstantSupplier extends RefactoringSupplier {
 	}
 
 	@Override
-	protected Vector<RefactoringOpportunity> collectOpportunities() {
-		Vector<RefactoringOpportunity> opportunities = new Vector<>();
+	protected Supply collectOpportunities() {
+
+		VectorSupply supply = new VectorSupply();
 
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = ASTHelper.getCompilationUnit(icu);
-			cu.accept(new ExtractConstantVisitor(icu, opportunities));
+			cu.accept(new ExtractConstantVisitor(icu, supply));
 		});
 
-		return opportunities;
+		return supply;
 	}
 }

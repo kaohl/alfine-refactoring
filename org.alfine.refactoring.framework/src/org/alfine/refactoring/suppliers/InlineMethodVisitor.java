@@ -3,10 +3,10 @@ package org.alfine.refactoring.suppliers;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 import org.alfine.refactoring.opportunities.InlineMethodOpportunity;
 import org.alfine.refactoring.opportunities.RefactoringOpportunity;
+import org.alfine.refactoring.suppliers.RefactoringSupplier.VectorSupply;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -21,18 +21,18 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 class InlineMethodVisitor extends ASTVisitor {
 
-	private ICompilationUnit               unit;
-	private Set<Integer>                   oppStartSet;   // Source start position for all found opportunities.
-	private Vector<RefactoringOpportunity> opportunities;
+	private ICompilationUnit unit;
+	private Set<Integer>     oppStartSet; // Source start position for all found opportunities.
+	private VectorSupply     supply;
 
 	/** The number of `MethodInvocation' nodes in a traversal of the tree. */
 	private long nInvocations;
 
-	public InlineMethodVisitor(ICompilationUnit unit, Vector<RefactoringOpportunity> opportunities) {
-		this.unit          = unit;
-		this.oppStartSet   = new HashSet<Integer>();
-		this.opportunities = opportunities;
-		this.nInvocations  = 0;
+	public InlineMethodVisitor(ICompilationUnit unit, VectorSupply supply) {
+		this.unit         = unit;
+		this.oppStartSet  = new HashSet<Integer>();
+		this.supply       = supply;
+		this.nInvocations = 0;
 	}
 
 	public long getNbrInvocations() {
@@ -44,7 +44,7 @@ class InlineMethodVisitor extends ASTVisitor {
 		System.out.print("addOpportunity start = " + start);
 
 		if (!oppStartSet.contains(start)) {
-			opportunities.add(opp);
+			supply.add(opp);
 			oppStartSet.add(start);
 		} else {
 			System.out.print(", already present.");

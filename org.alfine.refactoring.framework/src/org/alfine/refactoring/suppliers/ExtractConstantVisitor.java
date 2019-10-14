@@ -1,9 +1,9 @@
 package org.alfine.refactoring.suppliers;
 
-import java.util.Vector;
-
 import org.alfine.refactoring.opportunities.ExtractConstantOpportunity;
 import org.alfine.refactoring.opportunities.RefactoringOpportunity;
+import org.alfine.refactoring.suppliers.RefactoringSupplier.Supply;
+import org.alfine.refactoring.suppliers.RefactoringSupplier.VectorSupply;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
@@ -12,14 +12,14 @@ import org.eclipse.jdt.core.dom.NumberLiteral;
 import org.eclipse.jdt.core.dom.StringLiteral;
 
 public class ExtractConstantVisitor extends ASTVisitor  {
-	private ICompilationUnit               unit;
-	private Vector<RefactoringOpportunity> opportunities;
+	private ICompilationUnit unit;
+	private VectorSupply     supply;
 
 	private static final String NAME = "_ALFINE_CONSTANT_";
 
-	public ExtractConstantVisitor(ICompilationUnit unit, Vector<RefactoringOpportunity> opportunities) {
-		this.unit          = unit;
-		this.opportunities = opportunities;
+	public ExtractConstantVisitor(ICompilationUnit unit, VectorSupply supply) {
+		this.unit   = unit;
+		this.supply = supply;
 	}
 
 	private ICompilationUnit getCompilationUnit() {
@@ -27,7 +27,7 @@ public class ExtractConstantVisitor extends ASTVisitor  {
 	}
 
 	private void addOpportunity(RefactoringOpportunity opp) {
-		opportunities.add(opp);
+		supply.add(opp);
 	}
 
 	@Override

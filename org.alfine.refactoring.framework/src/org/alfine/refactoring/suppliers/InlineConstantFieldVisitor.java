@@ -2,10 +2,9 @@ package org.alfine.refactoring.suppliers;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Vector;
 
 import org.alfine.refactoring.opportunities.InlineConstantFieldOpportunity;
-import org.alfine.refactoring.opportunities.RefactoringOpportunity;
+import org.alfine.refactoring.suppliers.RefactoringSupplier.VectorSupply;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.IBinding;
@@ -21,14 +20,14 @@ public class InlineConstantFieldVisitor extends ASTVisitor {
 	//
 	// We use the first alternative here.
 
-	private ICompilationUnit               unit;
-	private Set<Integer>                   oppStartSet;   // Source start position for all found opportunities.
-	private Vector<RefactoringOpportunity> opportunities;
+	private ICompilationUnit unit;
+	private Set<Integer>     oppStartSet;   // Source start position for all found opportunities.
+	private VectorSupply     supply;
 
-	public InlineConstantFieldVisitor(ICompilationUnit icu, Vector<RefactoringOpportunity> opportunities) {
-		this.unit          = icu;
-		this.opportunities = opportunities;
-		this.oppStartSet   = new HashSet<Integer>();
+	public InlineConstantFieldVisitor(ICompilationUnit icu, VectorSupply supply) {
+		this.unit        = icu;
+		this.supply      = supply;
+		this.oppStartSet = new HashSet<Integer>();
 	}
 
 	private ICompilationUnit getICompilationUnit() {
@@ -40,7 +39,7 @@ public class InlineConstantFieldVisitor extends ASTVisitor {
 		System.out.print("addOpportunity start = " + start);
 
 		if (!oppStartSet.contains(start)) {
-			opportunities.add(opp);
+			supply.add(opp);
 			oppStartSet.add(start);
 		} else {
 			System.out.print(", already present.");
