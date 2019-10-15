@@ -1,7 +1,6 @@
 package org.alfine.refactoring.suppliers;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -49,14 +48,7 @@ public abstract class RefactoringSupplier {
 	}
 
 	private static <T extends Comparable<T>> void shuffle(Vector<T> list, Random random) {
-		
-		// TODO: This initial sort is not needed since they already are in the order in which they were crerated.
-		// We must make sure that they are always created in the same order or use a naming-scheme which enforce
-		// an absolute order on all opportunitites. We should use some sort of extended fully qualified name which
-		// also uniquely names local variables. We should make use of elements´ start position.
-
-		list.sort(null);                 // Force an initial absolute order (The order in which they are created.)
-		Collections.shuffle(list, random); // Shuffle using number generator for reproducibility.
+		Collections.shuffle(list, random); // Shuffle using pseudo number-generator for reproducibility.
 	}
 
 	//private Supplier<Refactoring> makeSupplierFrom(Vector<RefactoringOpportunity> opportunities) {
@@ -67,12 +59,6 @@ public abstract class RefactoringSupplier {
 		System.out.println("RefactoringSupplier::makeSupplierFrom()");
 
 		supply.shuffle(new Random(0)); // TODO: This seed should be configurable: option '--shuffle <seed>'
-
-		/*
-		for (RefactoringOpportunity opp : opportunities) {
-			System.out.println("shuffled opportunity: " + opp);
-		}
-		*/
 
 		Iterator<RefactoringOpportunity> iter = supply.iterator(new Random(0)); // TODO: This seed should be configurable.
 
@@ -222,14 +208,17 @@ public abstract class RefactoringSupplier {
 		}
 
 		public void add(int length, RefactoringOpportunity opp) {
-			this.matrix.ensureCapacity(length - 1);
+			this.matrix.ensureCapacity(length + 1);
 
 			Vector<RefactoringOpportunity> vec = null;
-			vec = this.matrix.elementAt(length - 1);
+			try {
+				vec = this.matrix.elementAt(length);
+			} catch (ArrayIndexOutOfBoundsException e) {
+			}
 
 			if (vec == null) {
 				vec = new Vector<>(0);
-				this.matrix.add(length - 1, vec);
+				this.matrix.add(length, vec);
 			}
 
 			vec.add(opp);
@@ -314,9 +303,24 @@ public abstract class RefactoringSupplier {
 
 			@Override
 			public RefactoringOpportunity next() {
+
+				// Note: We do not prevent a data-point from being selected more than once.
+
+				// We only include non-null and non-empty vectors so this
+				// test should be sufficient to prevent crash if there are
+				// no opportunities available at all.
+
+				if (!(this.matrix.size() > 0))
+					return null;
+
+				int vecIndex  = (int)Math.floor(this.random.nextDouble() * this.matrix.size());
+
 				Vector<RefactoringOpportunity> opps = null;
-				opps = this.matrix.elementAt(this.random.nextInt() % this.matrix.size());
-				return opps.elementAt(this.random.nextInt() % opps.size());
+				opps = this.matrix.elementAt(vecIndex);
+
+				int elemIndex = (int)Math.floor(this.random.nextDouble() * opps.size());
+
+				return opps.elementAt(elemIndex);
 			}
 		}
 		

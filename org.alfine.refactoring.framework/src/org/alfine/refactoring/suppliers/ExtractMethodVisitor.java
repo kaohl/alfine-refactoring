@@ -21,7 +21,7 @@ public class ExtractMethodVisitor extends ASTVisitor {
 	}
 
 	private void addOpportunity(int length, RefactoringOpportunity opp) {
-		supply.add(length, opp); // Note: `length` is reduced to `length` - 1 internally.
+		supply.add(length, opp);
 	}
 
 	@Override
@@ -35,7 +35,7 @@ public class ExtractMethodVisitor extends ASTVisitor {
 			for (int start = 0; start < nbrStmts; ++start) {
 				for (int end = start; end < nbrStmts; ++end) {
 					int length = end - start + 1;
-					addOpportunity(length, new ExtractMethodOpportunity(getCompilationUnit(), block, start, end));
+					addOpportunity(length - 1, new ExtractMethodOpportunity(getCompilationUnit(), block, start, end));
 					// System.out.println("range = " + start + ", " + end + ", length = " + length);
 				}
 			}
