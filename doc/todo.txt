@@ -1,0 +1,14 @@
+[TODO]
+  Consider if we should prevent opportunities from being selected more than once.
+  Because the framework is restarted between each refactoring we would have to
+  track used refactorings in a file between runs. (We can let the `Supply` know
+  about the file and exclude any opportunities that have already been tried so
+  that the supplier only contains untried opportunities.)
+
+[TODO]
+  Add and propagate seeds specified on the framework command-line. Use one seed
+  parameter for sorting and another for selection.
+
+[TODO]
+  Extract method refactoring should sort all opportunities by interval length
+  and then draw a random interval length and a random opportunity of that length.
