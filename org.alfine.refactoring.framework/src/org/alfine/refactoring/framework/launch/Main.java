@@ -41,7 +41,8 @@ public class Main implements IApplication {
 		boolean verbose         = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
 		int     drop            = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
 		int     limit           = arguments.getLimit();        // Number of refactoring attempts before we give up.
-		int     shuffleSeed       = arguments.getShuffleSeed();    // Seed used for Random instance used for shuffling opportunities.
+		long    shuffleSeed       = arguments.getShuffleSeed();    // Seed passed to Random instance used for shuffling opportunities.
+		long    selectSeed      = arguments.getSelectSeed(); // Seed passed to supply iterator used for selecting next opportunity.
 
 		RefactoringType type    = arguments.getRefactoring(); // Refactoring type.
 		long            seed    = arguments.getSeed();        // Number generator seed.
@@ -73,9 +74,6 @@ public class Main implements IApplication {
 			outFolderPath
 		);
 
-		// TODO: Visitors are not made for traversing multiple source roots in multiple projects.
-		//       Make opportunities comparable (use element handle?) across projects.
-		
 		// TODO: Pass deterministic list of source roots to refactoring supplier
 		//       and build refactoring opportunities as (ID, ARGMAP)-tuples.
 
@@ -111,6 +109,9 @@ public class Main implements IApplication {
 		default:
 			System.out.println("Unknown refactoring type.");
 		}
+
+		supplier.setShuffleSeed(shuffleSeed);
+		supplier.setSelectSeed(selectSeed);
 
 		boolean success = new RefactoringProcessor(supplier).processSupply(drop, limit);
 

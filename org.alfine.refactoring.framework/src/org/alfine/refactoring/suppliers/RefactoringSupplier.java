@@ -26,6 +26,8 @@ public abstract class RefactoringSupplier {
 
 	private final Workspace workspace;
 	private final Generator generator;
+	private long           shuffleSeed;
+	private long           selectSeed;
 
 	public RefactoringSupplier(Workspace workspace, Generator generator) {
 		this.workspace = workspace;
@@ -38,6 +40,22 @@ public abstract class RefactoringSupplier {
 
 	protected Generator getGenerator() {
 		return this.generator;
+	}
+
+	public void setShuffleSeed(long shuffleSeed) {
+		this.shuffleSeed = shuffleSeed;
+	}
+
+	public void setSelectSeed(long selectSeed) {
+		this.selectSeed = selectSeed;
+	}
+
+	private long getSelectSeed() {
+		return this.selectSeed;
+	}
+
+	private long getShuffleSeed() {
+		return this.shuffleSeed;
 	}
 
 	protected List<IPackageFragmentRoot> getSortedVariableSourceRoots() {
@@ -58,9 +76,9 @@ public abstract class RefactoringSupplier {
 
 		System.out.println("RefactoringSupplier::makeSupplierFrom()");
 
-		supply.shuffle(new Random(0)); // TODO: This seed should be configurable: option '--shuffle <seed>'
+		supply.shuffle(new Random(getShuffleSeed()));
 
-		Iterator<RefactoringOpportunity> iter = supply.iterator(new Random(0)); // TODO: This seed should be configurable.
+		Iterator<RefactoringOpportunity> iter = supply.iterator(new Random(getSelectSeed()));
 
 		return new Supplier<Refactoring>() {
 

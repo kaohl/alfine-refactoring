@@ -78,8 +78,12 @@ public class CommandLineArguments {
 		return hasOption("fixed");
 	}
 
-	public int getShuffleSeed() {
-		return cmd.hasOption("shuffle") ? Integer.parseInt(cmd.getOptionValue("shuffle")) : 0;
+	public long getShuffleSeed() {
+		return cmd.hasOption("shuffle") ? Long.parseLong(cmd.getOptionValue("shuffle")) : 0;
+	}
+
+	public long getSelectSeed() {
+		return cmd.hasOption("select") ? Long.parseLong(cmd.getOptionValue("select")) : 0;
 	}
 
 	public boolean hasOption(String opt) {
@@ -135,12 +139,16 @@ public class CommandLineArguments {
         options.addOption(length);
 
         Option fixed = new Option("f", "fixed", false, "always generate symbols of set max length.");
-        fixed.setRequired(false); // Default to zero (which makes the program crash).
+        fixed.setRequired(false); // Default to false.
         options.addOption(fixed);
 
-        Option shuffle = new Option("x", "shuffle", true, "rename refactoring max symbol length");
-        shuffle.setRequired(false); // Default to zero (which makes the program crash).
+        Option shuffle = new Option("x", "shuffle", true, "seed passed to random number generator used for shuffling opportunities.");
+        shuffle.setRequired(false); // Default to zero.
         options.addOption(shuffle);
+
+        Option select = new Option("y", "select", true, "seed passed to random number generator used for selecting refactoring opportunities.");
+        select.setRequired(false); // Default to zero.
+        options.addOption(select);
 
         try {
             CommandLineParser parser = new BasicParser();
