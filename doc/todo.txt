@@ -1,4 +1,8 @@
 [TODO]
+  Manage output. Make it possible to toggle output from different parts of the
+  refactoring process.
+
+[TODO]
   Consider if we should prevent opportunities from being selected more than once.
   Because the framework is restarted between each refactoring we would have to
   track used refactorings in a file between runs. (We can let the `Supply` know
