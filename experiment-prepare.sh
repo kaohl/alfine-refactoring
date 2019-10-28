@@ -22,4 +22,4 @@ mkdir -p experiment/assets/lib
 exportSrcDir=experiment/assets
 exportLibDir=experiment/assets/lib
 
-java -jar alfine.jar export --src $exportSrcDir --lib $exportLibDir $@
+java -jar alfine.jar --command export --src $exportSrcDir --lib $exportLibDir $@
