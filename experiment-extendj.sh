@@ -9,6 +9,9 @@ export JAVA_HOME=/usr/lib/jvm/java-8-openjdk
 #       particular length ...
 
 ./experiment/scripts/experiment-prepare.sh --project extendj-bms --variable extendj-8.1.2
+
+RANDOM=0 # Seed for controlling refactoring seeds generation (`seed`, `shuffle`, and `select`).
+
 ./experiment/scripts/experiment-run.sh --limit 10 --type rename --length 49
 
 # TODO: Because the test suite is unreliable in the sense it may hang when test
