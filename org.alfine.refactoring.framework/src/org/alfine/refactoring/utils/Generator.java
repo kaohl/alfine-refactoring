@@ -15,6 +15,8 @@ public final class Generator extends Random {
 		this.index         = 0; // Don't drop any values.
 		this.maxLength     = 1; // Whatever.
 		this.isLengthFixed = false;
+
+		setSeed(0);
 	}
 
 	public Generator(long seed, int index) {
@@ -28,11 +30,10 @@ public final class Generator extends Random {
 
 	public Generator(long seed, int index, int maxLength, boolean isLengthFixed) {
 		this.index         = index;
-		this.maxLength     = 1;     // Whatever.
+		this.maxLength     = maxLength;
 		this.isLengthFixed = isLengthFixed;
-		
+
 		setSeed(seed);
-		setMaxLength(maxLength);
 		drop(index);
 	}
 
@@ -119,7 +120,7 @@ public final class Generator extends Random {
 		String name = generateId();
 		return ("" + name.charAt(0)).toLowerCase() + name.substring(1);
 	}
-	
+
 	private String generateId() {
 
 		// TODO: Remove this method or use it from methods above.
@@ -131,21 +132,19 @@ public final class Generator extends Random {
 		if (getMaxLength() == 0) {
 			throw new RuntimeException("Option 'length' must be set to a non-zero natural number.");
 		}
-		
-		int length = (nextInt() % getMaxLength());
-		
-		if (getIsLengthFixed()) {
-			length = getMaxLength();
+
+		int length = getMaxLength();
+
+		if (!getIsLengthFixed()) {
+			length = (int)(nextDouble() * length) + 1;
 		}
 
-		// sb.append(Character.toUpperCase(next(true)));
-
 		sb.append(next(true));
-		
+
 		while (--length > 0) {
 			sb.append(next(false));
 		}
-		
+
 		return sb.toString();
 	}
 
