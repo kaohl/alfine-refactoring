@@ -2,6 +2,7 @@ package org.alfine.refactoring.suppliers;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -58,10 +59,11 @@ public abstract class RefactoringSupplier {
 		return this.shuffleSeed;
 	}
 
+	/** Return sorted list of source roots. (The resulting list should be deterministic.)*/
 	protected List<IPackageFragmentRoot> getSortedVariableSourceRoots() {
 		return getWorkspace().getVariableSourceRoots()
 				.stream()
-				.sorted()
+				.sorted(Comparator.comparing(IPackageFragmentRoot::getHandleIdentifier))
 				.collect(Collectors.toList());
 	}
 
