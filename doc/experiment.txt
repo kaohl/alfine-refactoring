@@ -39,3 +39,29 @@ di   := runtime average deviation from original average
 (d0=(r0 - r), [-std0,+std0]),
 (d1=(r1 - r), [-std1,+std1]),
 ...
+
+
+
+# About selecting distinct opportunities:
+# One way to do this is to use the same shuffle-seed but drop one extra
+# refactoring each iteration, this way, we are guaranteed to get
+# distinct refactorings because the list is deterministic and each
+# opportunity occurs once. The only problem with this is that
+# we do not know how many refactorings to drop if one fails which
+# means that we would redo the same refactoring a number of times
+# before reaching a new one. A fix would be to skip an integer multiple
+# of `limit` number of refactorings. This would pick the first
+# successful refactoring in each interval of `limit` refactorings
+# or fail if a refactoring can not be found within the interval.
+# `limit` would have to be chosen depending on the number of
+# available refactorings (we risk running out of refactorings).
+#
+# A third way is to pick a random shuffle-seed and then pick the first
+# successful refactoring for each seed, terminating if limit is reached.
+# This method is probably best because it is simpler and does not risk
+# scewing the probability for selecting any particular refactoring by
+# introducing yet another selection mechanism. However, to guarantee
+# uniqueness, we have to compare patch files (inspect them manually?).
+# The probability for collisions should be pretty low though especially
+# for rename-refactorings.
+
