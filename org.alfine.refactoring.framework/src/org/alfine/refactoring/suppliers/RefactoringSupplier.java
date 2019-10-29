@@ -133,7 +133,8 @@ public abstract class RefactoringSupplier {
 		}
 
 		roots.stream()
-		.sorted((x,y) -> x.getElementName().compareTo(y.getElementName()))
+		// Note: Roots are already sorted according to handle identifiers.
+		// .sorted((x,y) -> x.getElementName().compareTo(y.getElementName()))
 		.flatMap(r -> {
 			try {
 				return Arrays.asList(r.getChildren()).stream();
