@@ -71,10 +71,7 @@ public abstract class RefactoringSupplier {
 		Collections.shuffle(list, random); // Shuffle using pseudo number-generator for reproducibility.
 	}
 
-	//private Supplier<Refactoring> makeSupplierFrom(Vector<RefactoringOpportunity> opportunities) {
 	private Supplier<Refactoring> makeSupplierFrom(Supply supply) {
-		// We should not have to use the same random generator everywhere as long as
-		// we produce deterministic results.
 
 		System.out.println("RefactoringSupplier::makeSupplierFrom()");
 
@@ -133,8 +130,6 @@ public abstract class RefactoringSupplier {
 		}
 
 		roots.stream()
-		// Note: Roots are already sorted according to handle identifiers.
-		// .sorted((x,y) -> x.getElementName().compareTo(y.getElementName()))
 		.flatMap(r -> {
 			try {
 				return Arrays.asList(r.getChildren()).stream();
@@ -364,5 +359,4 @@ public abstract class RefactoringSupplier {
 	}
 
 	protected abstract Supply collectOpportunities();
-	// protected abstract Vector<RefactoringOpportunity> collectOpportunities();
 }
