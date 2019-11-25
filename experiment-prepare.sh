@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/usr/bin/env bash
 
 # Description
 #   This script prepares the `experiment` folder for experiments by

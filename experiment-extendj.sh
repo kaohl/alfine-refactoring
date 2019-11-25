@@ -1,7 +1,7 @@
-#!/bin/env sh
+#!/usr/bin/env bash
 
 export ALFINE_HOME=`pwd`
-export JAVA_HOME=/usr/lib/jvm/java-8-openjdk
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 # Edit depending on OS.
 
 # Note: The identifier length was chosen arbitrarily. In my limited experience most identifiers
 #       are less than 49 characters (this could be less true about generated code). We could

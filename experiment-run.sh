@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/usr/bin/env bash
 
 # Produce 100 refactorings of specified type.
 #
@@ -30,7 +30,7 @@ do
     #  length in extract method refactorings, respectively. All seeds default to
     #  zero unless specified.
 
-    # Construct command.
+    # Construct command (will be executed from workspace directory!)
 
     seeds="--seed $((RANDOM)) --shuffle $((RANDOM)) --select $((RANDOM))"
     cmd="../eclipse/eclipse -data . --src assets --lib assets/lib --out output $seeds $@"
@@ -84,6 +84,7 @@ do
         if [[ -e $new ]]; then
             $ALFINE_HOME/lib/jdiff.sh $old $new $out
         else
+	    # Should we use `touch` instead?
             echo "" > $out
         fi
     done
