@@ -70,7 +70,7 @@ public class RenameVisitor extends ASTVisitor {
 		Optional.ofNullable(decl.getName().resolveBinding())
 		.map  (b -> (IJavaElement)b.getJavaElement())
 		.filter(e -> e instanceof IType)
-		.ifPresentOrElse(element -> {
+		.ifPresent(element -> {
 			System.out.println("TypeDeclaration"
 				+ "\n\tname   = " + name
 				+ "\n\tstart  = " + decl.getStartPosition()
@@ -90,7 +90,7 @@ public class RenameVisitor extends ASTVisitor {
 
 				addOpportunity(new RenameTypeParameterOpportunity(element, generator), tp.getStartPosition());
 			}
-		}, () -> {});
+		});
 
 		return true;
 
@@ -140,15 +140,13 @@ public class RenameVisitor extends ASTVisitor {
 			Optional.ofNullable(frag.getName().resolveBinding())
 			.map  (b -> (IJavaElement)b.getJavaElement())
 			.filter(e -> e instanceof IField)
-			.ifPresentOrElse(e -> {
+			.ifPresent(e -> {
 				System.out.println("VariableDeclarationFragment in FieldDeclaration"
 						+ "\n\tname   = " + frag.getName()
 						+ "\n\tstart  = " + frag.getStartPosition()
 						+ "\n\tlength = " + frag.getLength());
 
 				addOpportunity(new RenameFieldOpportunity(e, generator), frag.getStartPosition());
-			}, () -> {
-				System.err.println("IJavaElement for VariableDeclarationFragment is not instanceof ILocalVariable!");
 			});
 			
 			/*
@@ -178,7 +176,7 @@ public class RenameVisitor extends ASTVisitor {
 		Optional.ofNullable(decl.resolveBinding())
 		.map  (b -> (IJavaElement)b.getJavaElement())
 		.filter(e -> e instanceof IMethod)
-		.ifPresentOrElse(element -> {
+		.ifPresent(element -> {
 
 			IMethod method  = (IMethod)element;
 
@@ -220,7 +218,7 @@ public class RenameVisitor extends ASTVisitor {
 				Optional.ofNullable(tp.getName().resolveBinding())
 				.map  (b -> (IJavaElement)b.getJavaElement())
 				.filter(e -> e instanceof ITypeParameter)
-				.ifPresentOrElse(e -> {
+				.ifPresent(e -> {
 
 					System.out.println("TypeParameter (MethodDeclaration)"
 						+ "\n\tname   = " + tp.getName()
@@ -228,9 +226,9 @@ public class RenameVisitor extends ASTVisitor {
 						+ "\n\tlength = " + tp.getLength());
 
 					addOpportunity(new RenameTypeParameterOpportunity(e, generator), tp.getStartPosition());
-				}, () -> {});
+				});
 			}
-		}, () -> {});
+		});
 
 		return true;
 
@@ -310,7 +308,7 @@ public class RenameVisitor extends ASTVisitor {
 		Optional.ofNullable(svd.resolveBinding())
 		.map  (b -> (IJavaElement)b.getJavaElement())
 		.filter(e -> e instanceof ILocalVariable)
-		.ifPresentOrElse(ije -> {
+		.ifPresent(ije -> {
 
 			IVariableBinding svb = svd.resolveBinding(); // We know it can be resolved now.
 
@@ -320,8 +318,6 @@ public class RenameVisitor extends ASTVisitor {
 					+ "\n\tlength = " + svd.getLength());
 
 			addOpportunity(new RenameLocalVariableOpportunity(ije, generator), svd.getStartPosition());
-		}, ()->{
-			System.err.println("Unable to resolve SingleVariableDeclaration.");
 		});
 
 		return true;
@@ -354,7 +350,7 @@ public class RenameVisitor extends ASTVisitor {
 			Optional.ofNullable(frag.getName().resolveBinding())
 			.map  (b -> (IJavaElement)b.getJavaElement())
 			.filter(e -> e instanceof ILocalVariable)
-			.ifPresentOrElse(e -> {
+			.ifPresent(e -> {
 
 				System.out.println("VariableDeclarationFragment in VariableDeclarationStatement"
 						+ "\n\tname   = " + frag.getName()
@@ -362,8 +358,6 @@ public class RenameVisitor extends ASTVisitor {
 						+ "\n\tlength = " + frag.getLength());
 
 				addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
-			}, ()->{
-				System.err.println("Unable to resolve VariableDeclarationFragment in VariableDeclarationStatement.");
 			});
 				
 				
@@ -399,7 +393,7 @@ public class RenameVisitor extends ASTVisitor {
 			Optional.ofNullable(frag.getName().resolveBinding())
 			.map  (b -> (IJavaElement)b.getJavaElement())
 			.filter(e -> e instanceof ILocalVariable)
-			.ifPresentOrElse(e -> {
+			.ifPresent(e -> {
 				
 				System.out.println("VariableDeclarationFragment in VariableDeclarationExpression"
 					+ "\n\tname   = " + frag.getName()
@@ -408,8 +402,6 @@ public class RenameVisitor extends ASTVisitor {
 
 				addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
 				
-			}, ()->{
-				System.err.println("Unable to resolve VariableDeclarationFragment in VariableDeclarationExpression!");
 			});
 			
 			
