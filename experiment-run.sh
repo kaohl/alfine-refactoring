@@ -75,6 +75,12 @@ do
 
     archives=$(ls experiment/assets/*.{jar,zip})
 
+    # Save new versions of archives for debugging purposes.
+
+    outputJarsDir=experiment/output/d$i/jars
+
+    mkdir $outputJarsDir
+    
     for old in $archives
     do
         filename=$(basename $old)
@@ -87,5 +93,9 @@ do
 	    # Should we use `touch` instead?
             echo "" > $out
         fi
+
+	# Save new version of archive.
+	# cp $new $outputJarsDir/$filename
+
     done
 done
