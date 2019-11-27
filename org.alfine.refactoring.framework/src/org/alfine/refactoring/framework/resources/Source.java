@@ -71,7 +71,7 @@ public class Source {
 				if (!Files.exists(getTarget().toAbsolutePath())) {
 					PUP.unjar(
 						new JarFile(getSource().toAbsolutePath().toString()),
-						getTarget().toAbsolutePath().toFile()
+						getTarget().toAbsolutePath()
 					);
 				}
 
@@ -110,8 +110,8 @@ public class Source {
 
 				output = output.resolve(getSource().getFileName());
 
-				File src = getTarget().toAbsolutePath().toFile();
-				File dst = output.toAbsolutePath().toFile();
+				Path src = getTarget().toAbsolutePath();
+				Path dst = output.toAbsolutePath();
 
 				PUP.jar(src, dst);
 
