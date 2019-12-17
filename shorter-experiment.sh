@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 declare -a projects=("extendj-bms" "jacop-bms")
-declare -a types=("rename" "inline-method")
+declare -a types=("extract-method" "inline-method" "inline-constant" "extract-constant" "rename")
 
 # Alfine export-command argument. (Specify all variable projects.)
 
@@ -46,7 +46,7 @@ function refactor {
 
     procID=$1; project=$2; type=$3; n=$4
 
-    args="--limit 10 --type $type"
+    args="--limit 100 --type $type"
     typeargs=""
 
     case $type in
