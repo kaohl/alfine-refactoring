@@ -38,7 +38,7 @@ public class Workspace {
 	/* Source roots to be considered variable in the workspace. */
 	private Set<IPackageFragmentRoot> variableSourceRootFolders;
 	
-	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath) {
+	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath, boolean fresh) {
 		this.location                  = config.getLocation();
 		this.projectVec                = config.getProjects();
 		this.projectMap                = config.getProjectMap();
@@ -49,7 +49,7 @@ public class Workspace {
 		this.libPath = libPath;
 		this.outPath = outPath;
 
-		initialize();
+		initialize(fresh);
 	}
 
 	/** Return set of all registered variable source root folders within the workspace. */
@@ -93,36 +93,40 @@ public class Workspace {
 	}
 
 	/** Initializes the workspace by loading configured projects and resources. */
-	private void initialize() {
+	private void initialize(boolean fresh) {
 
 		System.out.println("Initializing workspace ...");
 
-		boolean validConfig = true;
+		if (fresh) {			
 
-		for (ProjectConfiguration p : getProjectVec()) {
-			if (!p.validate(this)) {
-				validConfig = false;
+			boolean validConfig = true;
+
+			for (ProjectConfiguration p : getProjectVec()) {
+				if (!p.validate(this)) {
+					validConfig = false;
+				}
+				// Run through all to print errors.
 			}
-			// Run through all to print errors.
-		}
 
-		if (!validConfig) {
-			throw new RuntimeException("Workspace configuration contains errors.");
+			if (!validConfig) {
+				throw new RuntimeException("Workspace configuration contains errors.");
+			}
 		}
 
 		for (ProjectConfiguration p : getProjectVec()) {
 			if (p == null) {
 				throw new RuntimeException("Workspace::initialize(): ProjectConfiguration is null!");
 			}
-			projects.put(p.getName(), new JavaProject(this, p, true));
+			projects.put(p.getName(), new JavaProject(this, p, fresh));
 		}
 
-		for (String name : projects.keySet()) {
-			JavaProject p = projects.get(name);
-			p.printReferencingProjects();
+		if (fresh) {
+			for (String name : projects.keySet()) {
+				JavaProject p = projects.get(name);
+				p.printReferencingProjects();
+			}
 		}
 
-		
 		System.out.println("Workspace initialized.");
 	}
 
@@ -177,19 +181,44 @@ public class Workspace {
 		}
 	}
 
-	public IProject newProject(String name) {
-
+	/** Return handle to the specified project. */
+	public IProject getProject(String name) {
+		
 		IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot workspaceRoot = workspace.getRoot();
 
 		return workspaceRoot.getProject(name);
-
 	}
 
+	/** Open existing java project. */
+	private IJavaProject openJavaProject(String name) {
+
+		IProject project = getProject(name);
+
+		try {
+
+			project.open(new NullProgressMonitor());
+
+			if (!project.getDescription().hasNature(JavaCore.NATURE_ID)) {
+				throw new RuntimeException("Bad java project configuration. Expected java nature.");
+			}
+
+		} catch (CoreException e) {
+			e.printStackTrace();
+			throw new RuntimeException("An error occured. See previous stack trace.");
+		}
+
+		return JavaCore.create(project);
+	}
+
+	/** Open the java project specified by `name`. If `fresh` is true, the project is created first. */
 	public IJavaProject newJavaProject(String name, boolean fresh) {
 
-		IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
-		IWorkspaceRoot workspaceRoot = workspace.getRoot();
+		if (!fresh) {
+			return openJavaProject(name);
+		}
+
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 
 		// Create a new project in the workspace: ${workspace}/<project-name>.
 
@@ -197,7 +226,7 @@ public class Workspace {
 
 		// Path projectLocation = Paths.get(workspaceLocation, name);
 
-		IProject project = workspaceRoot.getProject(name);
+		IProject project = getProject(name);
 
 		if (fresh && project.exists()) {
 			System.out.println("initialize(): Project exists. Deleting project.");

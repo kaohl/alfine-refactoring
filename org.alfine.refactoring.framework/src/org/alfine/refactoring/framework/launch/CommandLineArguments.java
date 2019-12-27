@@ -50,6 +50,10 @@ public class CommandLineArguments {
 	    return cmd.getOptionValue("out");
 	}
 
+	public boolean getPrepare() {
+		return cmd.hasOption("prepare");
+	}
+
 	public RefactoringType getRefactoring() {
 		return typeStringToType(cmd.hasOption("type") ? cmd.getOptionValue("type") : "none");
 	}
@@ -101,6 +105,10 @@ public class CommandLineArguments {
 		Option verbose = new Option("v", "verbose", false, "verbose execution");
         verbose.setRequired(false);
         options.addOption(verbose);
+        
+		Option prepare = new Option("p", "prepare", false, "prepare workspace and cache refactoring opportunities");
+        prepare.setRequired(false);
+        options.addOption(prepare);
 
         Option srcFolder = new Option("j", "src", true, "source (jar) archives folder");
         srcFolder.setRequired(true);

@@ -8,7 +8,6 @@ import java.util.Vector;
 
 import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.launch.Main;
-import org.alfine.refactoring.opportunities.RefactoringOpportunity;
 import org.alfine.refactoring.utils.ASTHelper;
 import org.alfine.refactoring.utils.Generator;
 import org.eclipse.jdt.core.dom.CompilationUnit;
