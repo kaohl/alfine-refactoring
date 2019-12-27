@@ -1,4 +1,13 @@
 [TODO]
+  Produce a static file containing all refactoring opportunities in the
+  specified project so that we only have to generate opportunities once
+  per project. The refactoring framework should create and print the file
+  unless the specified file on the command line does not exists.
+
+  Each refactoring opportunity visitor should produce a set of eclipse source
+  handles that can be converted into refactoring opportunities.
+
+[TODO]
   Manage output. Make it possible to toggle output from different parts of the
   refactoring process.
 
