@@ -114,6 +114,8 @@ public class JavaProject {
 
 		String projectName = getConfig().getName();
 
+		System.out.println("JavaProject::initialize(boolean): projectName = " + projectName);
+
 		this.project     = getWorkspace().getProject(projectName);
 		this.javaProject = getWorkspace().newJavaProject(projectName, fresh);
 

@@ -164,7 +164,7 @@ public class CommandLineArguments {
         } catch (ParseException e) {
             System.out.println(e.getMessage());
             new HelpFormatter().printHelp("refactoring framework", options);
-            // TODO: exit?
+            System.exit(0);
         }
 	}
 }

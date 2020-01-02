@@ -183,10 +183,8 @@ public class Workspace {
 
 	/** Return handle to the specified project. */
 	public IProject getProject(String name) {
-		
 		IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
 		IWorkspaceRoot workspaceRoot = workspace.getRoot();
-
 		return workspaceRoot.getProject(name);
 	}
 

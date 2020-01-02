@@ -77,6 +77,7 @@ public class Main implements IApplication {
 		);
 
 		if (prepareWorkspace) {
+			return IApplication.EXIT_OK;
 			// 
 			// 1. Refactoring Opportunity Type Generator (visitor) (code selector)
 			// 2. Refactoring Opportunity selector and instantiation.
