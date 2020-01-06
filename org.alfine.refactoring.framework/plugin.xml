@@ -18,7 +18,7 @@
          point="org.eclipse.core.runtime.products">
       <product
             application="org.alfine.refactoring.framework.application"
-            name="Alfine Refactoring Framework">
+            name="%product.name.21">
          <property
                name="appName"
                value="Alfine Refactoring Framework">

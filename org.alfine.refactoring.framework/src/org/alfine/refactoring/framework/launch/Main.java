@@ -7,23 +7,17 @@ import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
 import org.alfine.refactoring.processors.RefactoringProcessor;
-import org.alfine.refactoring.suppliers.RandomExtractConstantSupplier;
 import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
-import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomRenameSupplier;
 import org.alfine.refactoring.suppliers.RefactoringSupplier;
-import org.alfine.refactoring.utils.Generator;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * This class controls all aspects of the application's execution
- */
 public class Main implements IApplication {
-
-	public static final String LOGFILE_KEY = "alfine.refactoring.stdlog";
 
 	@Override
 	public Object start(IApplicationContext context) throws Exception {
@@ -31,14 +25,17 @@ public class Main implements IApplication {
 		String[]             args      = null;
 		CommandLineArguments arguments = null;
 
+		Logger logger = LoggerFactory.getLogger(Main.class);
+
 		args      = (String [])context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
 		arguments = new CommandLineArguments(args);
 
 		boolean prepareWorkspace = arguments.getPrepare();      // Setup workspace and cache opportunities then exit if true.
+		String  cacheFolder      = arguments.getCacheFolder();  // Location of project specific cache files.
 		String  srcFolder        = arguments.getSrcFolder();    // Location of source archives to be imported.
 		String  libFolder        = arguments.getLibFolder();    // Location of binary archives to be imported.
 		String  outputFolder     = arguments.getOutputFolder(); // Output folder for source archives on success.
-		boolean verbose          = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
+		//boolean verbose          = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
 		int     drop             = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
 		int     limit            = arguments.getLimit();        // Number of refactoring attempts before we give up.
 		long    shuffleSeed        = arguments.getShuffleSeed();    // Seed passed to Random instance used for shuffling opportunities.
@@ -50,17 +47,14 @@ public class Main implements IApplication {
 		int             length   = arguments.getLength();      // Rename symbol max length. (In case of a rename refactoring.)
 		boolean         fixed     = arguments.getFixed();       // Whether length of generated symbols is fixed or random.
 
-		Path logFilePath = Paths.get("refactoring-output.log");
-		System.setProperty(Main.LOGFILE_KEY, logFilePath.toString());
-
 		String location = Platform.getInstanceLocation().getURL().getFile();
+		logger.info("Location: {}", location);
 
-		System.out.println("Location = " + location);
-
-		Path locationPath = Paths.get(location);
-		Path srcFolderPath = locationPath.resolve(srcFolder);
-		Path libFolderPath = locationPath.resolve(libFolder);
-		Path outFolderPath = locationPath.resolve(outputFolder);
+		Path locationPath    = Paths.get(location);
+		Path srcFolderPath   = locationPath.resolve(srcFolder);
+		Path libFolderPath   = locationPath.resolve(libFolder);
+		Path outFolderPath   = locationPath.resolve(outputFolder);
+		Path cacheFolderPath = locationPath.resolve(cacheFolder);
 
 		Workspace workspace = new Workspace(
 			new WorkspaceConfiguration(
@@ -73,46 +67,53 @@ public class Main implements IApplication {
 			srcFolderPath,
 			libFolderPath,
 			outFolderPath,
-			prepareWorkspace /* If true, workspace is set up and refactoring opportunities written to file. */
+			prepareWorkspace, /* If true, workspace is set up and refactoring opportunities written to file. */
+			cacheFolderPath /* `RefactoringDescriptor` cache in workspace. */
 		);
 
 		if (prepareWorkspace) {
+			new RandomRenameSupplier(workspace).cacheOpportunities();
+			new RandomInlineMethodSupplier(workspace).cacheOpportunities();
+		    new RandomExtractMethodSupplier(workspace).cacheOpportunities();
+
+		    // TODO: Enable more refactorings.
+
+			// new RandomInlineConstantFieldSupplier().cacheOpportunities();
+			// new RandomExtractConstantFieldSupplier().cacheOpportunities();
+
 			return IApplication.EXIT_OK;
-			// 
-			// 1. Refactoring Opportunity Type Generator (visitor) (code selector)
-			// 2. Refactoring Opportunity selector and instantiation.
 		}
 
-		// TODO: Consider representing refactoring opportunities as (ID, ARGMAP)-tuples.
-
-		Generator           generator = new Generator(seed, offset);
 		RefactoringSupplier supplier  = null;
 
 		switch (type) {
 		case NONE:
 			break;
 		case INLINE_CONSTANT:
-			supplier = new RandomInlineConstantFieldSupplier(workspace, generator);
+			// supplier = new RandomInlineConstantFieldSupplier(workspace, generator);
 			break;
 		case EXTRACT_CONSTANT:
-			supplier = new RandomExtractConstantSupplier(workspace, generator);
+			// supplier = new RandomExtractConstantSupplier(workspace, generator);
 			break;
 		case EXTRACT_METHOD:
-			supplier = new RandomExtractMethodSupplier(workspace, generator);
+			supplier = new RandomExtractMethodSupplier(workspace);
 			break;
 		case INLINE_METHOD:
-			supplier = new RandomInlineMethodSupplier(workspace, generator);
+			supplier = new RandomInlineMethodSupplier(workspace);
 			break;
 		case RENAME:
 
 			if (!arguments.hasOption("length")) {
 				System.out.println("Missing command-line option 'length' (-l) for rename refactorings.");
 			}
-			
-			generator.setMaxLength(length);
-			generator.setLengthFixed(fixed);    // TODO: Add as a command line option.
 
-			supplier = new RandomRenameSupplier(workspace, generator);
+			RandomRenameSupplier renameSupplier =
+				new RandomRenameSupplier(workspace, seed, offset);
+
+			renameSupplier.setMaxLength(length);
+			renameSupplier.setLengthFixed(fixed); // TODO: Add as a command line option.
+
+			supplier = renameSupplier;
 			break;
 		default:
 			System.out.println("Unknown refactoring type.");

@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.alfine.refactoring.framework.resources.Source;
+import org.alfine.refactoring.opportunities.Cache;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
@@ -25,10 +26,12 @@ import org.eclipse.jdt.core.JavaCore;
 
 public class Workspace {
 
-	private Path location; /* Workspace folder. */
-	private Path srcPath;  /* Folder containing source archives. */
-	private Path libPath;  /* Folder containing binary archives. */
-	private Path outPath;  /* Destination folder for transformed source archives. */
+	private Path location;  /* Workspace folder. */
+	private Path srcPath;   /* Folder containing source archives. */
+	private Path libPath;   /* Folder containing binary archives. */
+	private Path outPath;   /* Destination folder for transformed source archives. */
+
+	private Cache cache; /* Refactoring descriptor cache. */
 
 	/* Project configuration from configuration file. */
 	private Map<String, ProjectConfiguration> projectMap;
@@ -38,18 +41,20 @@ public class Workspace {
 	/* Source roots to be considered variable in the workspace. */
 	private Set<IPackageFragmentRoot> variableSourceRootFolders;
 	
-	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath, boolean fresh) {
+	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath, boolean fresh, Path cachePath) {
 		this.location                  = config.getLocation();
 		this.projectVec                = config.getProjects();
 		this.projectMap                = config.getProjectMap();
 		this.variableSourceRootFolders = new HashSet<>();
 		this.projects                  = new HashMap<>();
 
-		this.srcPath = srcPath;
-		this.libPath = libPath;
-		this.outPath = outPath;
+		this.srcPath   = srcPath;
+		this.libPath   = libPath;
+		this.outPath   = outPath;
 
 		initialize(fresh);
+
+		this.cache = new Cache(cachePath);
 	}
 
 	/** Return set of all registered variable source root folders within the workspace. */
@@ -80,6 +85,11 @@ public class Workspace {
 	/** Return `Path' to source output folder. */
 	public Path getOutPath() {
 		return this.outPath;
+	}
+
+	/** Return refactoring descriptor cache. */
+	public Cache getCache() {
+		return this.cache;
 	}
 
 	/** Return vector with projects in top-down configuration file order (declare before use!). */

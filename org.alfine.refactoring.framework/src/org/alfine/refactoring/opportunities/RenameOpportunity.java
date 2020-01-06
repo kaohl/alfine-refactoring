@@ -1,10 +1,15 @@
 package org.alfine.refactoring.opportunities;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.alfine.refactoring.utils.Generator;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
 import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 import org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class RenameOpportunity extends RefactoringOpportunity {
 	
@@ -13,6 +18,18 @@ public abstract class RenameOpportunity extends RefactoringOpportunity {
 	public RenameOpportunity(IJavaElement element, Generator generator) {
 		super(element);
 		this.generator = generator;
+	}
+
+	@Override
+	public Path getCachePath() {
+		return null;
+	}
+
+	@Override
+	public String getCacheLine() {
+		Logger logger = LoggerFactory.getLogger(RenameOpportunity.class);
+		logger.info("getElement().getHandleIdentifier() = `{}`", getElement().getHandleIdentifier());
+		return getElement().getHandleIdentifier();
 	}
 
 	protected Generator getGenerator() {

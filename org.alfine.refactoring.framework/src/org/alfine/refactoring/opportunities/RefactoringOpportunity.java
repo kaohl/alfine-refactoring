@@ -1,5 +1,10 @@
 package org.alfine.refactoring.opportunities;
 
+import java.io.BufferedWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
@@ -19,12 +24,35 @@ public abstract class RefactoringOpportunity implements Comparable<RefactoringOp
 
 	private IJavaElement element;
 
+	/** This constructor is meant to be used in
+	 *  conjunction with `restoreFromCacheLine()`.*/
+	public RefactoringOpportunity() {
+		this.element = null;
+	}
+
 	public RefactoringOpportunity(IJavaElement element) {
 		this.element = element;
 	}
 
 	public int getId() {
 		return this.id;
+	}
+
+	/** Return cache file path for deriving type.
+	 *  (This method should be overridden by derived types.) */
+	public Path getCachePath() {
+		return Paths.get(Cache.KEY_CACHE_DEFAULT);
+	}
+
+	/** Create and return cache file entry.
+	 *  (This method should be overridden by derived types.)
+	 *  TODO: This method should be abstract when all derived types have
+	 *        been refactored and produce valid cache-lines.) */
+	public abstract String getCacheLine();
+
+	/** Cache this opportunity in preconfigured location. */
+	public void cache() {
+		Cache.write(getCachePath(), getCacheLine());
 	}
 
 	@Override

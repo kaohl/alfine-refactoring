@@ -38,6 +38,10 @@ public class CommandLineArguments {
 		return cmd.hasOption("verbose");
 	}
 
+	public String getCacheFolder() {
+		return cmd.getOptionValue("cache");
+	}
+
 	public String getSrcFolder() {
 	    return cmd.getOptionValue("src");
 	}
@@ -109,6 +113,10 @@ public class CommandLineArguments {
 		Option prepare = new Option("p", "prepare", false, "prepare workspace and cache refactoring opportunities");
         prepare.setRequired(false);
         options.addOption(prepare);
+
+        Option cacheFolder = new Option("c", "cache", true, "cache folder where project specific refactoring opportunity cache files are stored");
+        cacheFolder.setRequired(true);
+        options.addOption(cacheFolder);
 
         Option srcFolder = new Option("j", "src", true, "source (jar) archives folder");
         srcFolder.setRequired(true);

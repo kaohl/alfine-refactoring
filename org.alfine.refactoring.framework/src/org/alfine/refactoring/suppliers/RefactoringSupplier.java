@@ -1,5 +1,6 @@
 package org.alfine.refactoring.suppliers;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -12,6 +13,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.Workspace;
+import org.alfine.refactoring.opportunities.Cache;
 import org.alfine.refactoring.opportunities.RefactoringOpportunity;
 import org.alfine.refactoring.utils.Generator;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -21,26 +23,24 @@ import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.ltk.core.refactoring.Refactoring;
 
-public abstract class RefactoringSupplier {
-
-	/* TODO: Consider removing subclasses and instead use visitor as parameter. */
+public abstract class RefactoringSupplier
+	implements Iterable<RefactoringDescriptor> {
 
 	private final Workspace workspace;
-	private final Generator generator;
 	private long           shuffleSeed;
 	private long           selectSeed;
 
-	public RefactoringSupplier(Workspace workspace, Generator generator) {
+	public RefactoringSupplier(Workspace workspace) {
 		this.workspace = workspace;
-		this.generator = generator;
 	}
 
 	protected Workspace getWorkspace() {
 		return this.workspace;
 	}
 
-	protected Generator getGenerator() {
-		return this.generator;
+	/** Access workspace cache. */
+	protected Cache getCache() {
+		return getWorkspace().getCache();
 	}
 
 	public void setShuffleSeed(long shuffleSeed) {
@@ -51,11 +51,11 @@ public abstract class RefactoringSupplier {
 		this.selectSeed = selectSeed;
 	}
 
-	private long getSelectSeed() {
+	protected long getSelectSeed() {
 		return this.selectSeed;
 	}
 
-	private long getShuffleSeed() {
+	protected long getShuffleSeed() {
 		return this.shuffleSeed;
 	}
 
@@ -71,13 +71,11 @@ public abstract class RefactoringSupplier {
 		Collections.shuffle(list, random); // Shuffle using pseudo number-generator for reproducibility.
 	}
 
-	private Supplier<Refactoring> makeSupplierFrom(Supply supply) {
+	public Supplier<Refactoring> getSupplier() {
 
-		System.out.println("RefactoringSupplier::makeSupplierFrom()");
+		System.out.println("RefactoringSupplier::getSupplier()");
 
-		supply.shuffle(new Random(getShuffleSeed()));
-
-		Iterator<RefactoringOpportunity> iter = supply.iterator(new Random(getSelectSeed()));
+		Iterator<RefactoringDescriptor> iter = iterator();
 
 		return new Supplier<Refactoring>() {
 
@@ -86,8 +84,8 @@ public abstract class RefactoringSupplier {
 				
 				System.out.println("Supplier::get()");
 
-				RefactoringOpportunity opp = null;
-				Refactoring            ref = null;
+				RefactoringDescriptor opp = null;
+				Refactoring           ref = null;
 
 				while (iter.hasNext()) {
 
@@ -115,9 +113,7 @@ public abstract class RefactoringSupplier {
 		};
 	}
 
-	public Supplier<Refactoring> getSupplier() {
-		return makeSupplierFrom(collectOpportunities());
-	}
+	public abstract void cacheOpportunities();
 
 	protected void visitCompilationUnits(Consumer<? super ICompilationUnit> action) {
 
@@ -150,30 +146,59 @@ public abstract class RefactoringSupplier {
 		.forEach(action);
 	}
 
+/*	
 	protected interface Supply {
 
 		public void shuffle(Random random);
 
-		/**
-		 *  Merge two supplies of the same type.
-		 * 
-		 * @param supply,
-		 *     supply to be merged into `this` supply.
-		 * @throws IllegalArgumentException
-		 *     if specified supply is not of the same type as `this`.
-		 */
+		//
+		//  Merge two supplies of the same type.
+		// 
+		// @param supply,
+		//     supply to be merged into `this` supply.
+		// @throws IllegalArgumentException
+		//     if specified supply is not of the same type as `this`.
+		//
 		public Supply merge(Supply supply) throws IllegalArgumentException;
 
 		public Iterator<RefactoringOpportunity> iterator(Random random);
 
-		/**
-		 * @return total number of opportunities in supply.
-		 */
+		//
+		// @return total number of opportunities in supply.
+		//
 		public int size();
 	}
 
 	protected static class VectorSupply implements Supply {
 
+		public static final VectorSupply EMPTY = new VectorSupply() {
+
+			private final List<RefactoringOpportunity> opportunities = new ArrayList<>(0);
+
+			@Override
+			public void shuffle(Random random) {			
+			}
+
+			@Override
+			public Supply merge(Supply supply) throws IllegalArgumentException {
+				return this;
+			}
+
+			@Override
+			public Iterator<RefactoringOpportunity> iterator(Random random) {
+				return this.opportunities.iterator();
+			}
+
+			@Override
+			public int size() {
+				return 0;
+			}
+
+			@Override
+			public void add(RefactoringOpportunity opp) {
+			}
+		};
+		
 		private Vector<RefactoringOpportunity> opportunities;
 
 		public VectorSupply() {
@@ -212,6 +237,33 @@ public abstract class RefactoringSupplier {
 	}
 
 	protected static class MatrixSupply implements Supply {
+
+		public static final MatrixSupply EMPTY = new MatrixSupply() {
+
+			private final List<RefactoringOpportunity> opportunities = new ArrayList<>(0);
+
+			public void add(int length, RefactoringOpportunity opp) {
+			}
+
+			@Override
+			public void shuffle(Random random) {
+			}
+
+			@Override
+			public Supply merge(Supply supply) throws IllegalArgumentException {
+				return this;
+			}
+
+			@Override
+			public Iterator<RefactoringOpportunity> iterator(Random random) {
+				return this.opportunities.iterator();
+			}
+
+			@Override
+			public int size() {
+				return 0;
+			}
+		};
 
 		private Vector<Vector<RefactoringOpportunity>> matrix;
 
@@ -339,7 +391,7 @@ public abstract class RefactoringSupplier {
 				return opps.elementAt(elemIndex);
 			}
 		}
-		
+
 		@Override
 		public Iterator<RefactoringOpportunity> iterator(Random random) {
 			return new MatrixSupplyIterator(this, random);
@@ -357,6 +409,5 @@ public abstract class RefactoringSupplier {
 			return count;
 		}
 	}
-
-	protected abstract Supply collectOpportunities();
+*/
 }

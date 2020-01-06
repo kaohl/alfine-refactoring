@@ -1,18 +1,11 @@
 package org.alfine.refactoring.suppliers;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.TreeMap;
 
-import org.alfine.refactoring.opportunities.RefactoringOpportunity;
-import org.alfine.refactoring.opportunities.RenameFieldOpportunity;
-import org.alfine.refactoring.opportunities.RenameLocalVariableOpportunity;
-import org.alfine.refactoring.opportunities.RenameMethodOpportunity;
-import org.alfine.refactoring.opportunities.RenameTypeOpportunity;
-import org.alfine.refactoring.opportunities.RenameTypeParameterOpportunity;
-import org.alfine.refactoring.suppliers.RefactoringSupplier.VectorSupply;
-import org.alfine.refactoring.utils.Generator;
+import org.alfine.refactoring.opportunities.Cache;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IJavaElement;
@@ -32,36 +25,59 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 public class RenameVisitor extends ASTVisitor {
-	private ICompilationUnit unit;
-	private Set<Integer>     oppStartSet;   // Source start position for all found opportunities.
-	private VectorSupply     supply;
-	private Generator        generator;
 
-	public RenameVisitor(ICompilationUnit unit, VectorSupply supply, Generator generator) {
-		this.unit        = unit;
-		this.oppStartSet = new HashSet<Integer>();
-		this.supply      = supply;
-		this.generator   = generator;
+	/** Cache for refactoring descriptors.*/
+	private Cache            cache;
+
+	/** The IJavaProject to which compilation unit belongs. */
+//	private IJavaProject     project;
+
+	/** The compilation unit traversed by this visitor. */
+//	private ICompilationUnit unit;
+
+	// TODO: Do we need the IProject of the refactored project as well to fix context?
+
+	public RenameVisitor(Cache cache, ICompilationUnit unit) {
+		this.cache       = cache;
+//		this.unit        = unit;
+//		this.project     = unit.getJavaProject();
 	}
 
-	private Generator getGenerator() {
-		return this.generator;
+	private void addOpportunity(RefactoringDescriptor descriptor) {
+		this.cache.write(descriptor);
 	}
 
-	private void addOpportunity(RefactoringOpportunity opp, int start) {
+	private Map<String, String> defaultArguments(IJavaElement element) {
+		Map<String, String> args = new TreeMap<>();
 
-		System.out.print("addOpportunity start = " + start);
+		// Note: Refactoring defaults to workspace; input argument seems to specify project as well.
+		//args.put("project", this.project.getHandleIdentifier()); 
 
-		if (!oppStartSet.contains(start)) {
-			supply.add(opp);
-			oppStartSet.add(start);
-		} else {
-			System.out.print(", already present.");
-		}
-		
-		System.out.println("");
+		args.put("input", element.getHandleIdentifier());
+		return args;
 	}
 
+	private RenameTypeDescriptor createRenameTypeDescriptor(IJavaElement element) {
+		return new RenameTypeDescriptor(defaultArguments(element));
+	}
+
+	private RenameTypeParameterDescriptor createRenameTypeParameterDescriptor(IJavaElement element) {
+		return new RenameTypeParameterDescriptor(defaultArguments(element));
+	}
+
+	private RenameFieldDescriptor createRenameFieldDescriptor(IJavaElement element) {
+		return new RenameFieldDescriptor(defaultArguments(element));
+	}
+
+	private RenameMethodDescriptor createRenameMethodDescriptor(IJavaElement element) {
+		return new RenameMethodDescriptor(defaultArguments(element));
+	}
+
+	private RenameLocalVariableDescriptor createRenameLocalVariableDescriptor(IJavaElement element) {
+		return new RenameLocalVariableDescriptor(defaultArguments(element));
+	}
+
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean visit(TypeDeclaration decl) {
 
@@ -71,13 +87,14 @@ public class RenameVisitor extends ASTVisitor {
 		.map  (b -> (IJavaElement)b.getJavaElement())
 		.filter(e -> e instanceof IType)
 		.ifPresent(element -> {
+
 			System.out.println("TypeDeclaration"
 				+ "\n\tname   = " + name
 				+ "\n\tstart  = " + decl.getStartPosition()
 				+ "\n\tlength = " + decl.getLength());
 
-			addOpportunity(new RenameTypeOpportunity(element, generator), decl.getStartPosition());
-
+			// addOpportunity(new RenameTypeOpportunity(element, generator), decl.getStartPosition());
+			addOpportunity(createRenameTypeDescriptor((IType) element));
 				
 			for (TypeParameter tp : (List<TypeParameter>)decl.typeParameters()) {
 
@@ -88,13 +105,15 @@ public class RenameVisitor extends ASTVisitor {
 						+ "\n\tstart  = " + tp.getStartPosition()
 						+ "\n\tlength = " + tp.getLength());
 
-				addOpportunity(new RenameTypeParameterOpportunity(element, generator), tp.getStartPosition());
+				// addOpportunity(new RenameTypeParameterOpportunity(element, generator), tp.getStartPosition());
+				addOpportunity(createRenameTypeParameterDescriptor(element));
 			}
 		});
 
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	public boolean visit(FieldDeclaration decl) {
 
 		System.out.println("FieldDeclaration: " + decl);
@@ -110,13 +129,15 @@ public class RenameVisitor extends ASTVisitor {
 						+ "\n\tstart  = " + frag.getStartPosition()
 						+ "\n\tlength = " + frag.getLength());
 
-				addOpportunity(new RenameFieldOpportunity(e, generator), frag.getStartPosition());
+				//addOpportunity(new RenameFieldOpportunity(e, generator), frag.getStartPosition());
+				addOpportunity(createRenameFieldDescriptor(e));
 			});
 		}
 
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	public boolean visit(MethodDeclaration decl) {
 
 		Optional.ofNullable(decl.resolveBinding())
@@ -156,7 +177,8 @@ public class RenameVisitor extends ASTVisitor {
 			}
 
 			if (!isMain && ! isCtor) {
-				addOpportunity(new RenameMethodOpportunity(element, generator), decl.getStartPosition());
+				//addOpportunity(new RenameMethodOpportunity(element, generator), decl.getStartPosition());
+				addOpportunity(createRenameMethodDescriptor(element));
 			}
 
 			for (TypeParameter tp : (List<TypeParameter>)decl.typeParameters()) {
@@ -171,7 +193,8 @@ public class RenameVisitor extends ASTVisitor {
 						+ "\n\tstart  = " + tp.getStartPosition()
 						+ "\n\tlength = " + tp.getLength());
 
-					addOpportunity(new RenameTypeParameterOpportunity(e, generator), tp.getStartPosition());
+					// addOpportunity(new RenameTypeParameterOpportunity(e, generator), tp.getStartPosition());
+					addOpportunity(createRenameTypeParameterDescriptor(e));
 				});
 			}
 		});
@@ -195,12 +218,14 @@ public class RenameVisitor extends ASTVisitor {
 					+ "\n\tstart  = " + svd.getStartPosition()
 					+ "\n\tlength = " + svd.getLength());
 
-			addOpportunity(new RenameLocalVariableOpportunity(ije, generator), svd.getStartPosition());
+			//addOpportunity(new RenameLocalVariableOpportunity(ije, generator), svd.getStartPosition());
+			addOpportunity(createRenameLocalVariableDescriptor(ije));
 		});
 
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	public boolean visit(VariableDeclarationStatement decl) {
 
 		System.out.println("VariableDeclarationStatement: " + decl);
@@ -217,13 +242,15 @@ public class RenameVisitor extends ASTVisitor {
 						+ "\n\tstart  = " + frag.getStartPosition()
 						+ "\n\tlength = " + frag.getLength());
 
-				addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
+				//addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
+				addOpportunity(createRenameLocalVariableDescriptor(e));
 			});
 		}
 
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	public boolean visit(VariableDeclarationExpression decl) {
 
 		System.out.println("VariableDeclarationExpression: " + decl);
@@ -240,8 +267,9 @@ public class RenameVisitor extends ASTVisitor {
 					+ "\n\tstart  = " + frag.getStartPosition()
 					+ "\n\tlength = " + frag.getLength());
 
-				addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
-				
+				// addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
+				addOpportunity(createRenameLocalVariableDescriptor(e));
+
 			});
 		}
 

@@ -1,51 +1,49 @@
 package org.alfine.refactoring.suppliers;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Vector;
+import java.util.Iterator;
+import java.util.Random;
 
 import org.alfine.refactoring.framework.Workspace;
-import org.alfine.refactoring.framework.launch.Main;
+import org.alfine.refactoring.opportunities.Cache;
 import org.alfine.refactoring.utils.ASTHelper;
-import org.alfine.refactoring.utils.Generator;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RandomInlineMethodSupplier extends RefactoringSupplier {
 
-	public RandomInlineMethodSupplier(Workspace workspace, Generator generator) {
-		super(workspace, generator);
+	public RandomInlineMethodSupplier(Workspace workspace) {
+		super(workspace);
+		Cache.installCachePath(new InlineMethodDescriptor().getRefactoringID(), "inline.method.txt");
 	}
 
 	@Override
-	protected Supply collectOpportunities() {
-
-		Vector<Long> nbrInvocations = new Vector<>();
-
-		VectorSupply supply = new VectorSupply();
-
+	public void cacheOpportunities() {
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = ASTHelper.getCompilationUnit(icu);
-			InlineMethodVisitor visitor = new InlineMethodVisitor(icu, supply);
-			cu.accept(visitor);
-
-			nbrInvocations.add(visitor.getNbrInvocations());
+			cu.accept(new InlineMethodVisitor(getCache(), icu));
 		});
+		Logger logger = LoggerFactory.getLogger(RandomInlineMethodSupplier.class);
+		logger.info("Total number of method invocations `{}`", InlineMethodVisitor.nInvocations);
+	}
 
-		try (OutputStream out = Files.newOutputStream(Paths.get(System.getProperty(Main.LOGFILE_KEY)))) {
+	@Override
+	public Iterator<RefactoringDescriptor> iterator() {
+		return getCache().makeSupplier((Cache cache) -> {
 
-			long sum = 0;
+			final org.alfine.refactoring.opportunities.VectorSupply supply =
+				new org.alfine.refactoring.opportunities.VectorSupply();
 
-			for (Long n : nbrInvocations) {
-				sum += n;
-			}
+			cache
+			.getCacheLines(new InlineMethodDescriptor().getRefactoringID())
+			.forEach(line -> supply.add(new InlineMethodDescriptor(line)));
 
-			out.write(("nbrOpportunities = " + supply.size() + ", nbrInvocations = " + sum).getBytes());
+			Random shuffle  = new Random(getShuffleSeed());
+			Random select = new Random(getSelectSeed());
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return supply;
+			supply.shuffle(shuffle);
+
+			return supply.iterator(select);
+		});
 	}
 }

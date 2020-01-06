@@ -35,6 +35,11 @@ public class ExtractMethodOpportunity extends RefactoringOpportunity {
 		this.blockLength = last.getStartPosition() - blockStart + last.getLength();
 	}
 
+	/** Create a refactoring opportunity from string represenation (cache line format). */
+	public static ExtractMethodOpportunity makeOpportunityFromString(String cacheLine) {
+		ExtractMethodOpportunity
+	}
+
 	private ICompilationUnit getICompilationUnit() {
 		return this.unit;
 	}
@@ -45,6 +50,17 @@ public class ExtractMethodOpportunity extends RefactoringOpportunity {
 
 	private int getBlockLength() {
 		return this.blockLength;
+	}
+
+	@Override
+	public String getCacheLine() {
+		return new StringBuilder()
+			.append(getBlockStart())
+			.append(" ")
+			.append(getBlockLength())
+			.append(" ")
+			.append(getICompilationUnit().getHandleIdentifier())
+			.toString();
 	}
 
 	@Override

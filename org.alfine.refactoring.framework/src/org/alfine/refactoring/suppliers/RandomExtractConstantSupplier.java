@@ -1,9 +1,6 @@
 package org.alfine.refactoring.suppliers;
 
-import java.util.Vector;
-
 import org.alfine.refactoring.framework.Workspace;
-import org.alfine.refactoring.opportunities.RefactoringOpportunity;
 import org.alfine.refactoring.utils.ASTHelper;
 import org.alfine.refactoring.utils.Generator;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -15,9 +12,9 @@ public class RandomExtractConstantSupplier extends RefactoringSupplier {
 	}
 
 	@Override
-	protected Supply collectOpportunities() {
+	protected void cacheOpportunities() {
 
-		VectorSupply supply = new VectorSupply();
+		VectorSupply supply = doCache ? VectorSupply.EMPTY : new VectorSupply();
 
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = ASTHelper.getCompilationUnit(icu);

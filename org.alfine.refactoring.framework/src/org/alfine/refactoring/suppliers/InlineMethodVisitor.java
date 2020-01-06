@@ -2,12 +2,13 @@ package org.alfine.refactoring.suppliers;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
-import org.alfine.refactoring.opportunities.InlineMethodOpportunity;
-import org.alfine.refactoring.opportunities.RefactoringOpportunity;
-import org.alfine.refactoring.suppliers.RefactoringSupplier.VectorSupply;
+import org.alfine.refactoring.opportunities.Cache;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.Assignment;
@@ -21,35 +22,33 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
 class InlineMethodVisitor extends ASTVisitor {
 
+	/** Cache for refactoring descriptors.*/
+	private Cache            cache;
+
 	private ICompilationUnit unit;
 	private Set<Integer>     oppStartSet; // Source start position for all found opportunities.
-	private VectorSupply     supply;
 
-	/** The number of `MethodInvocation' nodes in a traversal of the tree. */
-	private long nInvocations;
+	public static long nInvocations = 0;
 
-	public InlineMethodVisitor(ICompilationUnit unit, VectorSupply supply) {
+	public InlineMethodVisitor(Cache cache, ICompilationUnit unit) {
+		this.cache        = cache;
 		this.unit         = unit;
 		this.oppStartSet  = new HashSet<Integer>();
-		this.supply       = supply;
-		this.nInvocations = 0;
 	}
 
-	public long getNbrInvocations() {
-		return this.nInvocations;
-	}
-
-	private void addOpportunity(RefactoringOpportunity opp, int start) {
-
-		System.out.print("addOpportunity start = " + start);
-
+	private void addOpportunity(RefactoringDescriptor descriptor, int start) {
 		if (!oppStartSet.contains(start)) {
-			supply.add(opp);
 			oppStartSet.add(start);
-		} else {
-			System.out.print(", already present.");
+			cache.write(descriptor);
 		}
-		System.out.printf("\n");
+	}
+
+	private InlineMethodDescriptor createInlineMethodDescriptor(IJavaElement element, int start, int length) {
+		Map<String, String> args = new TreeMap<>();
+		args.put("input", this.unit.getHandleIdentifier());
+		args.put("element", element.getHandleIdentifier());
+		args.put("selection", "" + start + " " + length);
+		return new InlineMethodDescriptor(args);
 	}
 
 	/** Check if `node` is a `MethodInvocation` in which case it is added as an opportunity. */
@@ -82,7 +81,15 @@ class InlineMethodVisitor extends ASTVisitor {
 				// Note: We only consider private or static non-constructor methods for inlining.
 
 				if (!isConstructor && isPrivateOrStatic) {
-					addOpportunity(new InlineMethodOpportunity(mb.getJavaElement(), this.unit, mi.getStartPosition(), mi.getLength()), mi.getStartPosition());
+					//addOpportunity(new InlineMethodOpportunity(mb.getJavaElement(), this.unit, mi.getStartPosition(), mi.getLength()), mi.getStartPosition());
+					addOpportunity(
+						createInlineMethodDescriptor(
+							mb.getJavaElement(),
+							mi.getStartPosition(),
+							mi.getLength()
+						),
+						mi.getStartPosition()
+					);
 				}
 			}
 		}
@@ -144,7 +151,7 @@ class InlineMethodVisitor extends ASTVisitor {
 			// Note: We only consider private or static non-constructor methods for inlining.
 
 			if (!isConstructor && isPrivateOrStatic) {
-				nInvocations += 1;
+				InlineMethodVisitor.nInvocations += 1;
 			}
 
 			// Note:
