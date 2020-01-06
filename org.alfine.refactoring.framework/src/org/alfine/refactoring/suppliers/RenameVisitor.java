@@ -43,7 +43,7 @@ public class RenameVisitor extends ASTVisitor {
 		this.supply      = supply;
 		this.generator   = generator;
 	}
-	
+
 	private Generator getGenerator() {
 		return this.generator;
 	}
@@ -93,42 +93,6 @@ public class RenameVisitor extends ASTVisitor {
 		});
 
 		return true;
-
-		/*
-		SimpleName   simpleName  = decl.getName();
-		IBinding     binding     = simpleName.resolveBinding();
-		IJavaElement element     = binding.getJavaElement();
-		int          elementType = binding.getJavaElement().getElementType();
-
-		String name = simpleName.getIdentifier();
-
-		if (elementType == IJavaElement.TYPE) {
-			IType type = (IType)element;
-			name = type.getFullyQualifiedName();
-		}
-
-		System.out.println("TypeDeclaration"
-			+ "\n\tname   = " + name
-			+ "\n\tstart  = " + decl.getStartPosition()
-			+ "\n\tlength = " + decl.getLength());
-
-		addOpportunity(new RenameTypeOpportunity(element, generator), decl.getStartPosition());
-
-		
-		for (TypeParameter tp : (List<TypeParameter>)decl.typeParameters()) {
-
-			element = tp.getName().resolveBinding().getJavaElement();
-
-			System.out.println("TypeParameter (TypeDeclaration)"
-					+ "\n\tname   = " + tp.getName()
-					+ "\n\tstart  = " + tp.getStartPosition()
-					+ "\n\tlength = " + tp.getLength());
-
-			addOpportunity(new RenameTypeParameterOpportunity(element, generator), tp.getStartPosition());
-		}
-		
-		return true;
-		*/
 	}
 
 	public boolean visit(FieldDeclaration decl) {
@@ -148,24 +112,6 @@ public class RenameVisitor extends ASTVisitor {
 
 				addOpportunity(new RenameFieldOpportunity(e, generator), frag.getStartPosition());
 			});
-			
-			/*
-			IBinding     b = frag.getName().resolveBinding();
-			IJavaElement e = b.getJavaElement();
-
-			if (e != null && e instanceof IField) {
-
-				System.out.println("VariableDeclarationFragment in FieldDeclaration"
-						+ "\n\tname   = " + frag.getName()
-						+ "\n\tstart  = " + frag.getStartPosition()
-						+ "\n\tlength = " + frag.getLength());
-
-				addOpportunity(new RenameFieldOpportunity(e, generator), frag.getStartPosition());
-
-			} else {
-				System.err.println("IJavaElement for VariableDeclarationFragment is not instanceof ILocalVariable!");
-			}
-			*/
 		}
 
 		return true;
@@ -231,74 +177,6 @@ public class RenameVisitor extends ASTVisitor {
 		});
 
 		return true;
-
-		/*
-		IMethodBinding mb      = decl.resolveBinding();
-		IJavaElement   element = mb.getJavaElement();
-		IMethod        method  = (IMethod)element;
-		
-		String tag = "";
-
-		try {
-			tag = method.isMainMethod()  ? " (main)"        : tag;
-			tag = method.isConstructor() ? " (constructor)" : tag;
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		System.out.println("MethodDeclaration" + tag
-				+ "\n\tname   = " + mb.getName()
-				+ "\n\tstart  = " + decl.getStartPosition()
-				+ "\n\tlength = " + decl.getLength());
-
-		try {
-			if (!method.isMainMethod() && !method.isConstructor()) {
-				addOpportunity(new RenameMethodOpportunity(element, generator), decl.getStartPosition());
-			}
-		} catch (JavaModelException e) {
-			System.err.println("Failed to check if method is 'public static void main()'");
-			e.printStackTrace();
-		}
-
-		for (TypeParameter tp : (List<TypeParameter>)decl.typeParameters()) {
-
-			element = tp.getName().resolveBinding().getJavaElement();
-
-			System.out.println("TypeParameter (MethodDeclaration)"
-					+ "\n\tname   = " + tp.getName()
-					+ "\n\tstart  = " + tp.getStartPosition()
-					+ "\n\tlength = " + tp.getLength());
-
-			addOpportunity(new RenameTypeParameterOpportunity(element, generator), tp.getStartPosition());
-		}
-		return true;
-		*/
-		
-		
-		
-		
-
-		/*
-		 * These should be captured by SingleVariableDeclaration.
-		 * 
-		for (Object obj : decl.parameters()) {
-			// https://help.eclipse.org/neon/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fdom%2FMethodDeclaration.html
-			// https://help.eclipse.org/neon/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fdom%2FSingleVariableDeclaration.html
-
-			SingleVariableDeclaration svd = (SingleVariableDeclaration)obj;
-			IVariableBinding svb = svd.resolveBinding();
-			IJavaElement     ije = svb.getJavaElement();
-
-			System.out.println("Parameter (MethodDeclaration)"
-					+ "\n\tname   = " + svd.getName()
-					+ "\n\tstart  = " + svd.getStartPosition()
-					+ "\n\tlength = " + svd.getLength());
-
-			opportunities.add(new RenameLocalVariable(ije, generator));
-		}
-		return true;
-		*/
-
 	}
 
 	public boolean visit(SingleVariableDeclaration svd) {
@@ -321,24 +199,6 @@ public class RenameVisitor extends ASTVisitor {
 		});
 
 		return true;
-
-		/*
-		IVariableBinding svb = svd.resolveBinding();
-		IJavaElement     ije = svb.getJavaElement();
-
-		System.out.println("SingleVariableDeclaration"
-				+ "\n\tname   = " + svb.getName()
-				+ "\n\tstart  = " + svd.getStartPosition()
-				+ "\n\tlength = " + svd.getLength());
-
-		if (ije != null && ije instanceof ILocalVariable) {
-			addOpportunity(new RenameLocalVariableOpportunity(ije, generator), svd.getStartPosition());
-		} else {
-			System.err.println("SingleVariableDeclaration IJavaElement `element' is not instanceof ILocalVariable!");
-		}
-
-		return true;
-		*/
 	}
 
 	public boolean visit(VariableDeclarationStatement decl) {
@@ -359,26 +219,6 @@ public class RenameVisitor extends ASTVisitor {
 
 				addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
 			});
-				
-				
-			/*
-				
-			IBinding     b = frag.getName().resolveBinding();
-			IJavaElement e = b.getJavaElement();
-
-			if (e != null && e instanceof ILocalVariable) {
-
-				System.out.println("VariableDeclarationFragment in VariableDeclarationStatement"
-						+ "\n\tname   = " + frag.getName()
-						+ "\n\tstart  = " + frag.getStartPosition()
-						+ "\n\tlength = " + frag.getLength());
-
-				addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
-
-			} else {
-				System.err.println("IJavaElement for VariableDeclarationFragment is not instanceof ILocalVariable!");
-			}
-			*/
 		}
 
 		return true;
@@ -403,51 +243,8 @@ public class RenameVisitor extends ASTVisitor {
 				addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
 				
 			});
-			
-			
-			/*
-			IBinding     b = frag.getName().resolveBinding();
-			IJavaElement e = b.getJavaElement();
-
-			if (e != null && e instanceof ILocalVariable) {
-
-				System.out.println("VariableDeclarationFragment in VariableDeclarationExpression"
-						+ "\n\tname   = " + frag.getName()
-						+ "\n\tstart  = " + frag.getStartPosition()
-						+ "\n\tlength = " + frag.getLength());
-
-				addOpportunity(new RenameLocalVariableOpportunity(e, generator), frag.getStartPosition());
-
-			} else {
-				System.err.println("IJavaElement for VariableDeclarationFragment is not instanceof ILocalVariable!");
-			}
-			*/
 		}
 
 		return true;
 	}
-	/*
-	 * We must collect these in VariableDeclarationStatement otherwise the binding is not resolved...
-	 * 
-	public boolean visit(VariableDeclarationFragment frag) {
-
-		IBinding     b = frag.getName().resolveBinding();
-		IJavaElement e = b.getJavaElement();
-
-		if (e != null && e instanceof ILocalVariable) {
-
-			System.out.println("VariableDeclarationFragment"
-					+ "\n\tname   = " + frag.getName()
-					+ "\n\tstart  = " + frag.getStartPosition()
-					+ "\n\tlength = " + frag.getLength());
-
-			opportunities.add(new RenameLocalVariable(e, generator));
-
-		} else {
-			System.err.println("IJavaElement for VariableDeclarationFragment is not instanceof ILocalVariable!");
-		}
-		
-		return true;
-	}
-	 */
 }
