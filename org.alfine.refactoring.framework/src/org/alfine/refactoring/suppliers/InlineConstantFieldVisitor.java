@@ -1,10 +1,11 @@
 package org.alfine.refactoring.suppliers;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
-import org.alfine.refactoring.opportunities.InlineConstantFieldOpportunity;
-import org.alfine.refactoring.suppliers.RefactoringSupplier.VectorSupply;
+import org.alfine.refactoring.opportunities.Cache;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.IBinding;
@@ -12,39 +13,35 @@ import org.eclipse.jdt.core.dom.SimpleName;
 
 public class InlineConstantFieldVisitor extends ASTVisitor {
 
-	// There are at least two ways of defining the inline-constant refactoring:
-	// 1. Only inline a single field reference per refactoring,
-	// 2. Resolve and replace a compile-time constant expression with the constant value.
-	// The second alternative includes resolving and inlining a complete constant expression
-	// while the first only inline one constant field reference in one (sub-)expression.
-	//
-	// We use the first alternative here.
+	// It is important to note that we only consider inlining a single
+	// reference to a constant field and not all references, nor constant
+	// propagation in general, which would be a form of accumulated inlining.
 
+	private Cache            cache;
 	private ICompilationUnit unit;
 	private Set<Integer>     oppStartSet;   // Source start position for all found opportunities.
-	private VectorSupply     supply;
 
-	public InlineConstantFieldVisitor(ICompilationUnit icu, VectorSupply supply) {
+	public InlineConstantFieldVisitor(Cache cache, ICompilationUnit icu) {
+		this.cache       = cache;
 		this.unit        = icu;
-		this.supply      = supply;
 		this.oppStartSet = new HashSet<Integer>();
 	}
 
-	private ICompilationUnit getICompilationUnit() {
-		return this.unit;
+	/** Inline constant at specified location. */
+	private InlineConstantFieldDescriptor createInlineConstantFieldDescriptor(int start, int length) {
+		String selection = "" + start + " " + length;
+		Map<String, String> args = new TreeMap<>();
+		args.put("input", this.unit.getHandleIdentifier());
+		args.put("element", this.unit.getHandleIdentifier());
+		args.put("selection", selection);
+		return new InlineConstantFieldDescriptor(args);
 	}
 
-	private void addOpportunity(InlineConstantFieldOpportunity opp, int start) {
-
-		System.out.print("addOpportunity start = " + start);
-
+	private void addOpportunity(InlineConstantFieldDescriptor descriptor, int start) {
 		if (!oppStartSet.contains(start)) {
-			supply.add(opp);
 			oppStartSet.add(start);
-		} else {
-			System.out.print(", already present.");
+			this.cache.write(descriptor);
 		}
-		System.out.printf("\n");
 	}
 
 	@Override
@@ -59,14 +56,13 @@ public class InlineConstantFieldVisitor extends ASTVisitor {
 			boolean isStatic = (modifiers & org.eclipse.jdt.core.dom.Modifier.STATIC) > 0;
 
 			if (isFinal && isStatic) {
-				String selection = "" + name.getStartPosition() + " " + name.getLength();
-
-				System.out.println("Add SimpleName: " + name + ", selection = " + selection);
-
+				/*
 				addOpportunity(
 					new InlineConstantFieldOpportunity(getICompilationUnit(), selection),
 					name.getStartPosition()
 				);
+				*/
+				addOpportunity(createInlineConstantFieldDescriptor(name.getStartPosition(), name.getLength()), name.getStartPosition());
 			}
 		}
 		return true;

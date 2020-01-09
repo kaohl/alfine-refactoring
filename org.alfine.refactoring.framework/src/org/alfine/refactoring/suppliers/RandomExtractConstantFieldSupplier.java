@@ -8,18 +8,18 @@ import org.alfine.refactoring.opportunities.Cache;
 import org.alfine.refactoring.utils.ASTHelper;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
-public class RandomInlineConstantFieldSupplier extends RefactoringSupplier {
+public class RandomExtractConstantFieldSupplier extends RefactoringSupplier {
 
-	public RandomInlineConstantFieldSupplier(Workspace workspace) {
+	public RandomExtractConstantFieldSupplier(Workspace workspace) {
 		super(workspace);
-		Cache.installCachePath(new InlineConstantFieldDescriptor().getRefactoringID(), "inline.field.txt");
+		Cache.installCachePath(new InlineConstantFieldDescriptor().getRefactoringID(), "extract.field.txt");
 	}
 
 	@Override
 	public void cacheOpportunities() {
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = ASTHelper.getCompilationUnit(icu);
-			cu.accept(new InlineConstantFieldVisitor(getCache(), icu));
+			cu.accept(new ExtractConstantFieldVisitor(getCache(), icu));
 		});
 	}
 
@@ -31,8 +31,8 @@ public class RandomInlineConstantFieldSupplier extends RefactoringSupplier {
 					new org.alfine.refactoring.opportunities.VectorSupply();
 
 			cache
-			.getCacheLines(new InlineConstantFieldDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new InlineConstantFieldDescriptor(line)));
+			.getCacheLines(new ExtractConstantFieldDescriptor().getRefactoringID())
+			.forEach(line -> supply.add(new ExtractConstantFieldDescriptor(line)));
 
 			Random shuffle  = new Random(getShuffleSeed());
 			Random select = new Random(getSelectSeed());

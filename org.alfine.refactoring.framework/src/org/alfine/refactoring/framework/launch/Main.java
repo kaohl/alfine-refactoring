@@ -7,7 +7,9 @@ import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
 import org.alfine.refactoring.processors.RefactoringProcessor;
+import org.alfine.refactoring.suppliers.RandomExtractConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
+import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomRenameSupplier;
 import org.alfine.refactoring.suppliers.RefactoringSupplier;
@@ -75,11 +77,8 @@ public class Main implements IApplication {
 			new RandomRenameSupplier(workspace).cacheOpportunities();
 			new RandomInlineMethodSupplier(workspace).cacheOpportunities();
 		    new RandomExtractMethodSupplier(workspace).cacheOpportunities();
-
-		    // TODO: Enable more refactorings.
-
-			// new RandomInlineConstantFieldSupplier().cacheOpportunities();
-			// new RandomExtractConstantFieldSupplier().cacheOpportunities();
+		    new RandomInlineConstantFieldSupplier(workspace).cacheOpportunities();
+			new RandomExtractConstantFieldSupplier(workspace).cacheOpportunities();
 
 			return IApplication.EXIT_OK;
 		}
@@ -90,10 +89,10 @@ public class Main implements IApplication {
 		case NONE:
 			break;
 		case INLINE_CONSTANT:
-			// supplier = new RandomInlineConstantFieldSupplier(workspace, generator);
+			supplier = new RandomInlineConstantFieldSupplier(workspace);
 			break;
 		case EXTRACT_CONSTANT:
-			// supplier = new RandomExtractConstantSupplier(workspace, generator);
+			supplier = new RandomExtractConstantFieldSupplier(workspace);
 			break;
 		case EXTRACT_METHOD:
 			supplier = new RandomExtractMethodSupplier(workspace);
