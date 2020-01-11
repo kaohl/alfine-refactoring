@@ -44,7 +44,7 @@ public class ExtractMethodVisitor extends ASTVisitor {
 		// This "argument" is only for mapping the opportunity
 		// to the correct location in the histogram supply.
 
-		args.put(ExtractMethodDescriptor.KEY_NBR_STMTS, "" + (end - start + 1));
+		args.put(RefactoringDescriptor.KEY_HIST_BIN, "" + (end - start + 1));
 
 		return new ExtractMethodDescriptor(args);
 	}
@@ -65,7 +65,7 @@ public class ExtractMethodVisitor extends ASTVisitor {
 				}
 			}
 		}
-		 // Visit recursive blocks.
+		 // Visit nested blocks recursively.
 		return true;
 	}
 }

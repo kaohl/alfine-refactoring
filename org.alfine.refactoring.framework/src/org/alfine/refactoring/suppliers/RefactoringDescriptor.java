@@ -22,6 +22,13 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 	 *  use to produce a comparable string for refactoring descriptors. */
 	private Map<String, String> args = new TreeMap<>();
 
+	/** Predefined built-in descriptor argument key which should be defined on
+	 *  descriptors that we want to distribute into bins in a histogram supply
+	 *  (see `HistSupply`). An example is the ExtracMethod abstraction interval.
+	 *  Whether we need it or not depends on how we want to bias our experiment. */
+	public static final String KEY_HIST_BIN =
+		"bin";
+
 	public RefactoringDescriptor() {
 	}
 
@@ -34,17 +41,6 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 
 	/** Populate map from line of key-value pairs. */
 	public RefactoringDescriptor(String line) {
-
-		// TODO:
-		// Consider using a header with extract method size argument.
-		// Cache-line format: `<header>|<args>`, where <header> may not contain '|'.
-		// header = line.substring(0, line.indexOf('|'));
-		// args = line.substring(line.indexOf('|') + 1);
-		// line = args;
-		//
-		// But first check if we can add arguments to the map as usual without affecting
-		// refactoring arguments, e.g., the number of statements that's extracted from
-		// a method.
 
 		String key = null;
 		String val = null;
@@ -86,7 +82,10 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 	/** The bin into which the descriptor is
 	 *  added when a HistSupply is used. */
 	public int histBin() {
-		return 0;
+		return
+			this.args.containsKey(KEY_HIST_BIN)
+			? Integer.parseInt(get(KEY_HIST_BIN))
+			: 0;
 	}
 
 	/** Return present set of keys. */
@@ -118,12 +117,9 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 
 		StringBuilder sb = new StringBuilder();
 
-		// We do not need to store the id because we always
-		// know which id all opportunities have in the cache
-		// file we are loading from (as long as we do not mix
-		// opportunities of different types). 
-		//
-		// sb.append("id=" + getRefactoringID());
+		// We do not need to store the id because all opportunities
+		// in the same file have the same id which we can hardcode in
+		// the cache loading routine for in a given supplier.
 
 		for (Entry<String, String> entry: this.args.entrySet()) {
 			sb.append(" " + entry.getKey() + "=" + entry.getValue());

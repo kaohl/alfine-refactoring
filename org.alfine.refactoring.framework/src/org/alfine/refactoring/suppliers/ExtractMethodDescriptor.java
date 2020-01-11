@@ -7,11 +7,6 @@ import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 
 public class ExtractMethodDescriptor extends RefactoringDescriptor {
 
-	/** Argument map key for number abstraction interval, i.e.,
-	 *  the number of consecutive statements that are extracted. */
-	public static final String KEY_NBR_STMTS =
-		"nbrStmts";
-
 	public ExtractMethodDescriptor() {
 	}
 
@@ -28,12 +23,15 @@ public class ExtractMethodDescriptor extends RefactoringDescriptor {
 		return IJavaRefactorings.EXTRACT_METHOD;
 	}
 
+	/*
 	@Override
 	public int histBin() {
 		// Map to one less than length since length is always > 0
 		// (we always extract at least one statement).
-		return Integer.parseInt(get(KEY_NBR_STMTS)) - 1;
+		return Integer.parseInt(get(RefactoringDescriptor.KEY_HIST_BIN)) - 1;
 	}
+	*/
+
 	@Override
 	protected void configure() {
 		put("name", "extractedMethodByAlfine");
