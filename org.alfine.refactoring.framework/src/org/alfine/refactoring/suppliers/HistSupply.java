@@ -1,43 +1,10 @@
-package org.alfine.refactoring.opportunities;
+package org.alfine.refactoring.suppliers;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
 import java.util.Vector;
 
-import org.alfine.refactoring.suppliers.RefactoringDescriptor;
-
-public class HistSupply implements org.alfine.refactoring.opportunities.Supply {
-
-
-	public static final HistSupply EMPTY = new HistSupply() {
-
-		private final List<RefactoringDescriptor> opportunities = new ArrayList<>(0);
-
-		@SuppressWarnings("unused")
-		public void add(int length, RefactoringOpportunity opp) {
-		}
-
-		@Override
-		public void shuffle(Random random) {
-		}
-
-		@Override
-		public Supply merge(Supply supply) throws IllegalArgumentException {
-			return this;
-		}
-
-		@Override
-		public Iterator<RefactoringDescriptor> iterator(Random random) {
-			return this.opportunities.iterator();
-		}
-
-		@Override
-		public int size() {
-			return 0;
-		}
-	};
+public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
 
 	private Vector<Vector<RefactoringDescriptor>> matrix;
 

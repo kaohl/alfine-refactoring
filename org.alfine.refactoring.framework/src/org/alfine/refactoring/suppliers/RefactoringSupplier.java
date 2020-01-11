@@ -1,21 +1,14 @@
 package org.alfine.refactoring.suppliers;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
-import java.util.Vector;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.Workspace;
-import org.alfine.refactoring.opportunities.Cache;
-import org.alfine.refactoring.opportunities.RefactoringOpportunity;
-import org.alfine.refactoring.utils.Generator;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IPackageFragment;
@@ -65,10 +58,6 @@ public abstract class RefactoringSupplier
 				.stream()
 				.sorted(Comparator.comparing(IPackageFragmentRoot::getHandleIdentifier))
 				.collect(Collectors.toList());
-	}
-
-	private static <T extends Comparable<T>> void shuffle(Vector<T> list, Random random) {
-		Collections.shuffle(list, random); // Shuffle using pseudo number-generator for reproducibility.
 	}
 
 	public Supplier<Refactoring> getSupplier() {

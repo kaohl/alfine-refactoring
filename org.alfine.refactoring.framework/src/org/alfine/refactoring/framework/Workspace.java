@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.Vector;
 
 import org.alfine.refactoring.framework.resources.Source;
-import org.alfine.refactoring.opportunities.Cache;
+import org.alfine.refactoring.suppliers.Cache;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;

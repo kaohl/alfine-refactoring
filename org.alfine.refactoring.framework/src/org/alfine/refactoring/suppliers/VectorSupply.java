@@ -1,10 +1,8 @@
-package org.alfine.refactoring.opportunities;
+package org.alfine.refactoring.suppliers;
 
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Vector;
-
-import org.alfine.refactoring.suppliers.RefactoringDescriptor;
 
 public class VectorSupply implements Supply {
 	

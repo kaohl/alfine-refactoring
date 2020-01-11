@@ -4,7 +4,6 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.alfine.refactoring.framework.Workspace;
-import org.alfine.refactoring.opportunities.Cache;
 import org.alfine.refactoring.utils.ASTHelper;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 
@@ -27,8 +26,8 @@ public class RandomExtractMethodSupplier extends RefactoringSupplier {
 	public Iterator<RefactoringDescriptor> iterator() {
 		return getCache().makeSupplier((Cache cache) -> {
 
-			final org.alfine.refactoring.opportunities.HistSupply supply =
-				new org.alfine.refactoring.opportunities.HistSupply();
+			final org.alfine.refactoring.suppliers.HistSupply supply =
+				new org.alfine.refactoring.suppliers.HistSupply();
 
 			cache
 			.getCacheLines(new ExtractMethodDescriptor().getRefactoringID())

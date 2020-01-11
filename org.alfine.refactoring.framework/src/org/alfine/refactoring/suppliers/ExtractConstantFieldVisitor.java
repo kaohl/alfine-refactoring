@@ -3,7 +3,6 @@ package org.alfine.refactoring.suppliers;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.alfine.refactoring.opportunities.Cache;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.BooleanLiteral;

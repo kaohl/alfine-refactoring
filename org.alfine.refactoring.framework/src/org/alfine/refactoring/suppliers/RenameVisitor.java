@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
-import org.alfine.refactoring.opportunities.Cache;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IJavaElement;
