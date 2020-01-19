@@ -1,4 +1,7 @@
 [TODO]
+  Should `Supply.iterator()` and `Supply.iterator(Random)` depend on `shuffle()`?.
+
+[TODO][DONE]
   1. Make sure we can restore refactorings from ID and argmap.
 
   2. Serialize opportunities to file as (ID, ARGMAP)-pairs (generate cache in workspace
