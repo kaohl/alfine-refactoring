@@ -2,26 +2,16 @@ package org.alfine.refactoring.suppliers;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
-import java.util.Vector;
 
 public interface Supply {
 
-	public static <T extends Comparable<T>> void shuffle(Vector<T> list, Random random) {
-		Collections.shuffle(list, random); // Shuffle using pseudo number-generator for reproducibility.
+	public static <T extends Comparable<T>> void shuffle(List<T> list, Random random) {
+		Collections.shuffle(list, random); // Shuffle using pseudo-random number generator for reproducibility.
 	}
 
 	public void shuffle(Random random);
-
-	/**
-	 *  Merge two supplies of the same type.
-	 * 
-	 * @param supply,
-	 *     supply to be merged into `this` supply.
-	 * @throws IllegalArgumentException
-	 *     if specified supply is not of the same type as `this`.
-	 */
-	public Supply merge(Supply supply) throws IllegalArgumentException;
 
 	/** Return iterator over opportunities after shuffling using
 	 * 	the specified pseudo-random number generator. */

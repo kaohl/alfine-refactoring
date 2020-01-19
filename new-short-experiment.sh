@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 
+# This script should be executed in the Alfine home folder.
+
+# Uncomment these to generate all data in one go.
+# declare -a projects=("extendj-bms" "jacop-bms")
+# declare -a types=("extract-method" "inline-method" "inline-constant" "extract-constant" "rename")
+
+# Replace these with above expressions to generate all data.
 declare -a projects=("extendj-bms" "jacop-bms")
-declare -a types=("extract-method" "inline-method" "inline-constant" "extract-constant" "rename")
+declare -a types=("extract-method" "inline-method")
 
 # Alfine export-command argument. (Specify all variable projects.)
 
@@ -11,62 +18,62 @@ variableProjects="extendj-8.1.2 jacop-4.6.0"
 # framework (eclipse rcp-application).
 
 baseDir=experiment
-sharedAssetsDir=$baseDir/assets
+workspacesDir=$baseDir/workspaces
 dataRootDir=$baseDir/data
 
-# Path to framework application relative workspace directory.
+# Path to framework application relative `$baseDir` directory.
 framework="eclipse2/eclipse"
+
+# Name of cache dir in workspace. 
+cacheDirName=oppcache
 
 # rm    -rf $dataRootDir
 mkdir -p  $dataRootDir
-
-# rm    -rf $sharedAssetsDir
-mkdir -p  $sharedAssetsDir
 
 for project in "${projects[@]}"; do
 
     # Export benchmark-project assets.
 
-    preparedWorkspaceDir=$sharedAssetsDir/$project/workspace
+    preparedWorkspaceDir=$workspacesDir/$project/workspace
     preparedWorkspaceAssetsDir=$preparedWorkspaceDir/assets
+    preparedWorkspaceOutputDir=$preparedWorkspaceDir/output
 
     projectSrcDir=$preparedWorkspaceAssetsDir/src
     projectLibDir=$preparedWorkspaceAssetsDir/lib
 
-    if [ ! -d $projectSrcDir ]; then
-
-        # Prepare a workspace for the project (set up eclipse
-        # projects and cache refactoring opportunities).
-
-	mkdir -p $projectSrcDir
-	mkdir -p $projectLibDir
-
-        # Set up assets directory in workspace.
-
-	java -jar alfine.jar\
-             --command  export\
-             --project  $project\
-             --src      $projectSrcDir\
-             --lib      $projectLibDir\
-             --variable $variableProjects
-
-        # Set up empty output directory.
-        mkdir $preparedWorkspaceDir/output
-
-        # Set up eclipse projects and cache refactoring opportunities.
-        ./experiment/$framework\
-            -data      $preparedWorkspaceDir\
-            --prepare\
-            --src      assets/src\
-            --lib      assets/lib\
-            --cache    oppcache\
-            --out      output\
-            --type     rename
-        # The specified type above is a dummy argument because the `type` option is required...
+    if [ -d $preparedWorkspaceDir ]; then
+        continue; # Workspace already prepared.
     fi
-done
 
-exit 0;
+    # Prepare a workspace for the project (set up eclipse
+    # projects and cache refactoring opportunities).
+
+    mkdir -p $projectSrcDir
+    mkdir -p $projectLibDir
+
+    # Set up assets directory in workspace.
+
+    java -jar alfine.jar\
+         --command  export\
+         --project  $project\
+         --src      $projectSrcDir\
+         --lib      $projectLibDir\
+         --variable $variableProjects
+
+    # Set up empty output directory.
+    mkdir $preparedWorkspaceDir/output
+
+    # Set up eclipse projects and cache refactoring opportunities.
+    ./experiment/$framework\
+        -data      $preparedWorkspaceDir\
+        --prepare\
+        --src      assets/src\
+        --lib      assets/lib\
+        --cache    $cacheDirName\
+        --out      output\
+        --type     rename
+    # The specified type above is a dummy argument because the `type` option is required...
+done
 
 function refactor {
 
@@ -88,15 +95,17 @@ function refactor {
 
     # Refactor assets.
 
-    preparedWorkspaceDir=$sharedAssetsDir/$project/workspace
+    preparedWorkspaceDir=$workspacesDir/$project/workspace
 
     dataDir=$dataRootDir/$project/$type/"d$n"
 
     procDir=$baseDir/process-$procID
-    workspaceDir=$procDir/workspace
-    procOutputDir=$workspaceDir/output
+    procWorkspaceDir=$procDir/workspace
+    procOutputDir=$procWorkspaceDir/output
 
-    rm -rf $workspaceDir
+    # Replace proc workspace with a fresh copy.
+
+    rm -rf $procWorkspaceDir
     cp -r $preparedWorkspaceDir $procDir
 
     # Note
@@ -109,11 +118,11 @@ function refactor {
     # Construct command (will be executed from workspace directory!)
 
     seeds="--seed $((RANDOM)) --shuffle $((RANDOM)) --select $((RANDOM))"
-    cmd="../../$framework -data . --src assets/src --lib assets/lib --out output $seeds $args"
+    cmd="../../$framework -data . --cache $cacheDirName --src assets/src --lib assets/lib --out output $seeds $args"
 
     # Execute command.
 
-    cd $workspaceDir
+    cd $procWorkspaceDir
 
     eval $cmd > output.log
 
@@ -148,7 +157,7 @@ function refactor {
     # files. However, we still get a list of all
     # successfully matched files by other patterns.
 
-    archives=$(ls $sharedAssetsDir/$project/src/*.{jar,zip})
+    archives=$(ls $workspacesDir/$project/workspace/assets/src/*.{jar,zip})
 
     # Save new versions of archives for debugging purposes.
 
@@ -177,8 +186,8 @@ function refactor {
 
 # Start one refactoring process per processing unit.
 
-total=100            # Number of refactorings per project per type.
 n=`nproc`            # Number of available processing units.
+total=$n             # Number of refactorings per project per type.
 m=$(( $total / $n )) # Number of refactorings per process.
 n_times_m=$(( $n * $m )) # Actual number of refactorings per project per type.
 

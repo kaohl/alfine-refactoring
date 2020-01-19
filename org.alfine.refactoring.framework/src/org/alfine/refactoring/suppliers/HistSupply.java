@@ -1,142 +1,32 @@
 package org.alfine.refactoring.suppliers;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Random;
-import java.util.Vector;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
 
-	private Vector<Vector<RefactoringDescriptor>> matrix;
-
-	public HistSupply(Vector<Vector<RefactoringDescriptor>> matrix) {
-		this.matrix = matrix;
-	}
+	/** Lazily populated histogram. (We do not know the absolute size of the
+	 *  base array when we traverse a set of source files or load refactoring
+	 *  descriptors from file so we use a map and populate it lazily with
+	 *  opportunity lists (bins) and opportunities (descriptors).) */
+	private Map<Integer, List<RefactoringDescriptor>> matrix;
 
 	public HistSupply() {
-		this.matrix = new Vector<>();
+		this.matrix = new HashMap<>();
 	}
 
 	public void add(RefactoringDescriptor opp) {
-
-		this.matrix.ensureCapacity(opp.histBin() + 1);
-
-		Vector<RefactoringDescriptor> vec = null;
-		try {
-			vec = this.matrix.elementAt(opp.histBin());
-		} catch (ArrayIndexOutOfBoundsException e) {
+		if (!this.matrix.containsKey(opp.histBin())) {
+			this.matrix.put(opp.histBin(), new ArrayList<>());
 		}
-
-		if (vec == null) {
-			vec = new Vector<>(0);
-			this.matrix.add(opp.histBin(), vec);
-		}
-
-		vec.add(opp);
-	}
-
-	@Override
-	public void shuffle(Random random) {
-		for (Vector<RefactoringDescriptor> opps : this.matrix) {
-			if (opps != null) {
-				Supply.shuffle(opps, random);
-			}
-		}
-	}
-
-	@Override
-	public Supply merge(Supply supply) throws IllegalArgumentException {
-
-		if (supply instanceof HistSupply) {
-
-			HistSupply other = (HistSupply)supply;
-
-			int size = Math.max(this.matrix.size(), other.matrix.size());
-
-			Vector<Vector<RefactoringDescriptor>> resultM = null;
-
-			resultM = new Vector<>(size);
-
-			for (int i = 0; i < size; ++i) {
-
-				Vector<RefactoringDescriptor> opps = new Vector<>();
-
-				if (i < this.matrix.size() && this.matrix.elementAt(i) != null) {
-					opps.addAll(this.matrix.elementAt(i));
-				}
-
-				if (i < other.matrix.size() && other.matrix.elementAt(i) != null) {
-					opps.addAll(other.matrix.elementAt(i));
-				}
-
-				resultM.add(i, opps);
-			}
-
-			return new HistSupply(resultM);
-
-		} else {
-			throw new IllegalArgumentException("Supplies must be of the same type.");
-		}
-	}
-
-	private static class HistSupplyIterator implements Iterator<RefactoringDescriptor> {
-
-		private Vector<Vector<RefactoringDescriptor>> matrix;
-		private Random random;
-
-		public HistSupplyIterator(HistSupply supply, Random random) {
-
-			Vector<Vector<RefactoringDescriptor>> matrix = new Vector<>();
-
-			// Only keep non-null and non-empty vectors.
-
-			for (Vector<RefactoringDescriptor> opps : supply.matrix) {
-				if (opps != null && opps.size() > 0) {
-
-					Vector<RefactoringDescriptor> itOpps = new Vector<>();
-
-					for (RefactoringDescriptor opp : opps) {
-						itOpps.add(opp);
-					}
-
-					matrix.add(itOpps);
-				}
-			}
-
-			this.random = random;
-			this.matrix = matrix;
-		}
-
-		@Override
-		public boolean hasNext() {
-			return this.matrix.size() > 0;
-		}
-
-		@Override
-		public RefactoringDescriptor next() {
-
-			// Note: We do not prevent a data-point from being selected more than once.
-
-			// We only include non-null and non-empty vectors so this
-			// test should be sufficient to prevent crash if there are
-			// no opportunities available at all.
-
-			if (!(this.matrix.size() > 0))
-				return null;
-
-			int vecIndex  = (int)Math.floor(this.random.nextDouble() * this.matrix.size());
-
-			Vector<RefactoringDescriptor> opps = null;
-			opps = this.matrix.elementAt(vecIndex);
-
-			int elemIndex = (int)Math.floor(this.random.nextDouble() * opps.size());
-
-			return opps.elementAt(elemIndex);
-		}
-	}
-
-	@Override
-	public Iterator<RefactoringDescriptor> iterator(Random random) {
-		return new HistSupplyIterator(this, random);
+		this.matrix.get(opp.histBin()).add(opp);
 	}
 
 	@Override
@@ -144,11 +34,25 @@ public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
 
 		int count = 0;
 
-		for (Vector<RefactoringDescriptor> opps : this.matrix) {
-			count += opps.size();
+		for (Map.Entry<Integer, List<RefactoringDescriptor>> entry : this.matrix.entrySet()) {
+			count += entry.getValue().size();
 		}
 
 		return count;
+	}
+
+	@Override
+	public void shuffle(Random random) {
+		this.matrix.entrySet().parallelStream()
+		.forEach(entry -> {
+			Supply.shuffle(entry.getValue(), random);
+		});
+	}
+
+	@Override
+	public Iterator<RefactoringDescriptor> iterator(Random random) {
+		shuffle(random);
+		return new HistSupplyIterator(this, random);
 	}
 
 	@Override
@@ -156,5 +60,49 @@ public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
 		return iterator(new Random(0));
 	}
 
-}
+	private static class HistSupplyIterator implements Iterator<RefactoringDescriptor> {
 
+		private final HistSupply  supply;
+		private final Random      random;
+		private final Map<Integer, Iterator<RefactoringDescriptor>> iterators;
+
+		public HistSupplyIterator(HistSupply supply, Random random) {
+			this.supply = supply;
+			this.random = random;
+			this.iterators = new TreeMap<>();
+
+			for (Map.Entry<Integer, List<RefactoringDescriptor>> entry : this.supply.matrix.entrySet()) {
+				if (!entry.getValue().isEmpty()) {
+					this.iterators.put(entry.getKey(), entry.getValue().iterator());
+				}
+			}
+		}
+
+		@Override
+		public boolean hasNext() {
+			return this.supply.size() > 0;
+		}
+
+		@Override
+		public RefactoringDescriptor next() {
+			while (this.iterators.size() != 0) {
+
+				// The key-set stream over `iterators` is
+				// always sorted since we use a tree map.
+
+				int nbrIters        = this.iterators.size();
+				int randomIterIndex = (int)Math.floor(this.random.nextDouble() * nbrIters);
+				int iterKey         = this.iterators.keySet().stream().collect(Collectors.toList()).get(randomIterIndex);
+
+				Iterator<RefactoringDescriptor> iter = this.iterators.get(iterKey);
+
+				try {
+					return iter.next();
+				} catch (NoSuchElementException e) {
+					this.iterators.remove(iterKey);
+				}
+			}
+			return null;
+		}
+	}
+}

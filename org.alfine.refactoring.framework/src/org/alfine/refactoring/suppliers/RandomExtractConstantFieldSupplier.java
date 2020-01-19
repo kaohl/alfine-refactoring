@@ -26,8 +26,8 @@ public class RandomExtractConstantFieldSupplier extends RefactoringSupplier {
 	public Iterator<RefactoringDescriptor> iterator() {
 		return getCache().makeSupplier((Cache cache) -> {
 
-			final org.alfine.refactoring.suppliers.VectorSupply supply =
-					new org.alfine.refactoring.suppliers.VectorSupply();
+			final org.alfine.refactoring.suppliers.ListSupply supply =
+					new org.alfine.refactoring.suppliers.ListSupply();
 
 			cache
 			.getCacheLines(new ExtractConstantFieldDescriptor().getRefactoringID())
