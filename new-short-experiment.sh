@@ -157,7 +157,7 @@ function refactor {
     # files. However, we still get a list of all
     # successfully matched files by other patterns.
 
-    archives=$(ls $workspacesDir/$project/workspace/assets/src/*.{jar,zip})
+    archives=$(ls $preparedWorkspaceDir/assets/src/*.{jar,zip})
 
     # Save new versions of archives for debugging purposes.
 
