@@ -3,11 +3,13 @@ package org.alfine.refactoring.framework;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.resources.Source;
 import org.alfine.refactoring.suppliers.Cache;
@@ -21,8 +23,11 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
+import org.slf4j.LoggerFactory;
 
 public class Workspace {
 
@@ -38,8 +43,56 @@ public class Workspace {
 	private Vector<ProjectConfiguration>      projectVec;
 	private Map<String, JavaProject>         projects;
 
+	private class VariablePackageFragments {
+		private IPackageFragmentRoot root;
+		private Set<String>          includedPackagesNames;
+
+		public VariablePackageFragments(IPackageFragmentRoot root, Set<String> includedPackagesNames) {
+			this.root                  = root;
+			this.includedPackagesNames = includedPackagesNames;
+		}
+
+		public Set<IPackageFragment> getVariablePackageFragments() {
+			Set<IPackageFragment> fragments = new HashSet<>();
+			try {
+				Arrays.asList(root.getChildren()).stream()
+				.filter(c -> c instanceof IPackageFragment)
+				.map(IPackageFragment.class::cast)
+				.filter(c -> checkIncludeFragment(c, this.includedPackagesNames))
+				.forEach(f -> {
+					fragments.add(f);
+					getVariablePackageFragmentsRec(f, fragments, this.includedPackagesNames);
+				});
+			} catch (JavaModelException e) {
+				e.printStackTrace();
+			}
+			return fragments;
+		}
+		
+		private void getVariablePackageFragmentsRec(IPackageFragment fragment, Set<IPackageFragment> set, Set<String> names) {
+			try {
+
+				Arrays.asList(fragment.getChildren()).stream()
+				.filter(c -> c instanceof IPackageFragment)
+				.map(IPackageFragment.class::cast)
+				.filter(c -> checkIncludeFragment(c, names))
+				.forEach(f -> {
+					set.add(f);
+					getVariablePackageFragmentsRec(f, set, names);
+				});
+			} catch (JavaModelException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		private boolean checkIncludeFragment(IPackageFragment fragment, Set<String> names) {
+			boolean result = names.contains(fragment.getElementName());
+			LoggerFactory.getLogger(getClass()).debug("[" + (result ? "T" : "F") + "] Fragment `" + fragment.getElementName() + "`");
+			return result;
+		}
+	}
 	/* Source roots to be considered variable in the workspace. */
-	private Set<IPackageFragmentRoot> variableSourceRootFolders;
+	private Set<VariablePackageFragments> variableSourceRootFolders;
 	
 	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath, boolean fresh, Path cachePath) {
 		this.location                  = config.getLocation();
@@ -56,15 +109,19 @@ public class Workspace {
 
 		this.cache = new Cache(cachePath);
 	}
-
-	/** Return set of all registered variable source root folders within the workspace. */
-	public Set<IPackageFragmentRoot> getVariableSourceRoots() {
-		return this.variableSourceRootFolders;
+	
+	/** Return set of all registered variable source folders within the workspace. */
+	public Set<IPackageFragment> getVariableSourceFragments() {
+		return this.variableSourceRootFolders.stream()
+				.map(vsr -> vsr.getVariablePackageFragments())
+				.flatMap(set -> set.stream())
+				.collect(Collectors.toSet());
 	}
 
-	/** Register `folder' as a variable source root. */
-	public void addVariableSourceRoot(IPackageFragmentRoot root) {
-		variableSourceRootFolders.add(root);
+	/** Register `root' as a variable source root from packages whose names are in
+	 * `includedPackagesNames` should be open for transformation. */
+	public void addVariableSourceRoot(IPackageFragmentRoot root, Set<String> includedPackagesNames) {
+		variableSourceRootFolders.add(new VariablePackageFragments(root, includedPackagesNames));
 	}
 
 	/** Return workspace folder. */

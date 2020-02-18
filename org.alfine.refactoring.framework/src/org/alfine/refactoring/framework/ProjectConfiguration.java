@@ -1,6 +1,9 @@
 package org.alfine.refactoring.framework;
 
+import java.util.List;
+import java.util.Set;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.WorkspaceConfiguration.LibEntry;
 import org.alfine.refactoring.framework.WorkspaceConfiguration.SrcEntry;
@@ -19,21 +22,22 @@ public class ProjectConfiguration {
 	private final Vector<String>   deps; /* Project dependencies. */
 	private final Vector<SrcEntry> srcs; /* Source entries. */
 	private final Vector<LibEntry> libs; /* Library entries. */
-
-	private final boolean isValidConfig;
+	private final Set<String>      includedPackagesNames; /* Qualified package names of variable packages. */
+	private final boolean          isValidConfig;
 
 	public ProjectConfiguration(
 		String           name,
 		Vector<String>   deps,
 		Vector<SrcEntry> srcs,
 		Vector<LibEntry> libs,
+		List<String>     includedPackagesNames,
 		boolean isValidConfig) {
 
 		this.name = name;
 		this.deps = deps;
 		this.srcs = srcs;
 		this.libs = libs;
-
+		this.includedPackagesNames = includedPackagesNames.stream().collect(Collectors.toSet());
 		this.isValidConfig = isValidConfig;
 	}
 
@@ -51,6 +55,10 @@ public class ProjectConfiguration {
 
 	public Vector<LibEntry> getLibs() {
 		return this.libs;
+	}
+
+	public Set<String> getIncludedPackagesNames() {
+		return this.includedPackagesNames;
 	}
 
 	private boolean isConfigValid() {

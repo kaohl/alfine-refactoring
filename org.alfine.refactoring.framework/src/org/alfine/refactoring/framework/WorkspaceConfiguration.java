@@ -2,6 +2,7 @@ package org.alfine.refactoring.framework;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 import java.util.jar.JarFile;
@@ -77,11 +79,15 @@ public class WorkspaceConfiguration {
 	private Map<String, ProjectConfiguration> projectMap; /* Projects loaded from configuration file. */
 	private Vector<ProjectConfiguration>      projects;   /* Project order as they appear in configuration file. */
 
-	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config, Path variableConfig) {
+	private static Properties includedPackagesNames;
+
+	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config, Path variableConfig, Path includePackageConfig) {
 		this.location  = location;
 		this.srcPath   = srcPath;
 		this.libPath   = libPath;
 		this.config     = config;
+		
+		includedPackagesNames = parseIncludedPackagesNames(includePackageConfig);
 
 		Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> p;
 
@@ -109,6 +115,20 @@ public class WorkspaceConfiguration {
 	/** Return `Path' to workspace configuration file. */
 	public Path getConfigPath() {
 		return this.config;
+	}
+
+	public static List<String> getIncludedPackagesNamesForProject(String name) {
+		return Arrays.asList(includedPackagesNames.getProperty(name, "").split(" "));
+	}
+
+	private static Properties parseIncludedPackagesNames(Path path) {
+		Properties ps = new Properties();
+		try (InputStream in = Files.newInputStream(path)){
+			ps.load(in);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return ps;
 	}
 
 	/** Return names of all source archives that are to be considered variable. */
@@ -398,7 +418,8 @@ public class WorkspaceConfiguration {
 			System.err.printf("Bad configuration for project `%s'.\n", label);
 		}
 
-		return new ProjectConfiguration(label, deps, srcs, libs, !hasErrors);
+		List<String> includedPackagesNamesList = getIncludedPackagesNamesForProject(label);
+		return new ProjectConfiguration(label, deps, srcs, libs, includedPackagesNamesList, !hasErrors);
 	}
 
 	/** Parse project configuration file and construct a `ProjectConfiguration' per project configuration.

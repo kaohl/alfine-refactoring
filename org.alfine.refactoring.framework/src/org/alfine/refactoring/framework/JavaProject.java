@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -43,7 +44,8 @@ public class JavaProject {
 	private Vector<Source>      sources;
 	private Vector<Library>     libraries;
 	private Vector<String>      dependencies;
-
+	private Set<String>         includedPackagesNames;
+	
 	private IProject            project;
 	private IJavaProject        javaProject;
 
@@ -53,6 +55,7 @@ public class JavaProject {
 		this.sources      = new Vector<>();
 		this.libraries    = new Vector<>();
 		this.dependencies = new Vector<>();
+		this.includedPackagesNames = config.getIncludedPackagesNames();
 
 		this.javaProject  = null;
 
@@ -269,7 +272,7 @@ public class JavaProject {
 			IPackageFragmentRoot packageFragmentRoot = 
 				getIJavaProject().getPackageFragmentRoot(targetFolder);
 
-			getWorkspace().addVariableSourceRoot(packageFragmentRoot);
+			getWorkspace().addVariableSourceRoot(packageFragmentRoot, this.includedPackagesNames);
 		}
 	}
 

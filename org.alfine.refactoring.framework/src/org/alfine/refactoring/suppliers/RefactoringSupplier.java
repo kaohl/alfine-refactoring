@@ -1,5 +1,10 @@
 package org.alfine.refactoring.suppliers;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -10,9 +15,7 @@ import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.Workspace;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IPackageFragment;
-import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.ltk.core.refactoring.Refactoring;
 
@@ -53,10 +56,9 @@ public abstract class RefactoringSupplier
 	}
 
 	/** Return sorted list of source roots. (The resulting list should be deterministic.)*/
-	protected List<IPackageFragmentRoot> getSortedVariableSourceRoots() {
-		return getWorkspace().getVariableSourceRoots()
-				.stream()
-				.sorted(Comparator.comparing(IPackageFragmentRoot::getHandleIdentifier))
+	protected List<IPackageFragment> getSortedVariableSourceFragments() {
+		return getWorkspace().getVariableSourceFragments().stream()
+				.sorted(Comparator.comparing(IPackageFragment::getHandleIdentifier))
 				.collect(Collectors.toList());
 	}
 
@@ -106,25 +108,15 @@ public abstract class RefactoringSupplier
 
 	protected void visitCompilationUnits(Consumer<? super ICompilationUnit> action) {
 
-		List<IPackageFragmentRoot> roots = getSortedVariableSourceRoots();
-
+		List<IPackageFragment> roots = getSortedVariableSourceFragments();
+		
 		System.out.println("visitCompilationUnits(), roots = ");
 
-		for (IPackageFragmentRoot root : roots) {
+		for (IPackageFragment root : roots) {
 			System.out.println("\t" + root.getHandleIdentifier());
 		}
 
-		roots.stream()
-		.flatMap(r -> {
-			try {
-				return Arrays.asList(r.getChildren()).stream();
-			} catch (JavaModelException e) {
-				e.printStackTrace();
-			}
-			return java.util.stream.Stream.empty();
-		})
-		.filter (e -> e.getElementType() == IJavaElement.PACKAGE_FRAGMENT)
-		.map   (e -> (IPackageFragment)e)
+		List<ICompilationUnit> units = roots.stream()
 		.sorted((x,y) -> x.getElementName().compareTo(y.getElementName()))
 		.flatMap(f -> {
 			try {
@@ -132,7 +124,28 @@ public abstract class RefactoringSupplier
 			} catch (JavaModelException e) {}
 			return java.util.stream.Stream.empty();
 		})
-		.forEach(action);
+		.collect(Collectors.toList());
+		
+		String path = "visited-classes.txt";
+
+		try (BufferedWriter out =
+				Files.newBufferedWriter(
+					Paths.get(path),
+					StandardCharsets.UTF_8,
+					java.nio.file.StandardOpenOption.CREATE)) {
+			units.forEach(u -> {
+				try {
+					out.write(u.toString());
+					out.newLine();
+				} catch (IOException e1) {
+						e1.printStackTrace();
+				}
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		units.forEach(action);
 	}
 
 /*	

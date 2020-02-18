@@ -58,13 +58,17 @@ public class Main implements IApplication {
 		Path outFolderPath   = locationPath.resolve(outputFolder);
 		Path cacheFolderPath = locationPath.resolve(cacheFolder);
 
+		// The `packages.config` is a Java properties file mapping project
+		// names to list of package names open for transformation.
+		
 		Workspace workspace = new Workspace(
 			new WorkspaceConfiguration(
 				locationPath,
 				srcFolderPath,
 				libFolderPath,
 				srcFolderPath.resolve("workspace.config"),
-				srcFolderPath.resolve("variable.config")
+				srcFolderPath.resolve("variable.config"),
+				srcFolderPath.resolve("packages.config")
 			),
 			srcFolderPath,
 			libFolderPath,
