@@ -179,53 +179,60 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 
 		return descriptor;
 	}
+	
+//	private Refactoring createRefactoring() {
+//		
+//		JavaRefactoringDescriptor descriptor = getDescriptor();
+//
+//		RefactoringStatus status = descriptor.validateDescriptor();
+//
+//		setValidationStatus(status);
+//		
+//// TODO: Move print into refactoring class to be processed before the refactoring is applied.
+////
+////		for (RefactoringStatusEntry entry : status.getEntries()) {
+////			System.out.println("RefactoringStatusEntry from `validateDescriptor()':\n" + entry.toString());
+////		}
+//
+//		if (status.hasError()) {
+//			System.err.println("Invalid refactoring descriptor.");
+//			return wrapper;
+//		}
+//
+//		Refactoring refactoring = null;
+//
+//		try {
+//			RefactoringContext ctx    = null;
+//
+//			status = new RefactoringStatus();
+//
+//			ctx = descriptor.createRefactoringContext(status);
+//
+//			setContextStatus(status);
+//
+////    TODO: Move to be processed before the refactoring is applied.
+////			for (RefactoringStatusEntry entry : status.getEntries()) {
+////				System.out.println("RefactoringStatusEntry:\n" + entry.toString());
+////			}
+//
+//			if (status.hasError()) {
+//				System.out.println("Invalid refactoring context.");
+//				return wrapper;
+//			}
+//
+//			refactoring = ctx.getRefactoring();
+//
+//		} catch (CoreException e) {
+//			e.printStackTrace();
+//		}
+//
+//		wrapper.setRefactoring(refactoring);
+//
+//		return wrapper;
+//	}
 
-	/** Create refactoring from descriptor. (Override this method
-	 *  to create a refactoring without using the descriptor.)*/
-	protected Refactoring createRefactoring() {
-
-		JavaRefactoringDescriptor descriptor = getDescriptor();
-
-		RefactoringStatus status = descriptor.validateDescriptor();
-
-		for (RefactoringStatusEntry entry : status.getEntries()) {
-			System.out.println("RefactoringStatusEntry from `validateDescriptor()':\n" + entry.toString());
-		}
-
-		if (status.hasFatalError()) {
-			System.err.println("Invalid descriptor (FATAL).\n" + status);
-			return null;
-		}
-
-		Refactoring refactoring = null;
-
-		try {
-			RefactoringContext ctx    = null;
-
-			status = new RefactoringStatus();
-
-			ctx = descriptor.createRefactoringContext(status);
-
-			for (RefactoringStatusEntry entry : status.getEntries()) {
-				System.out.println("RefactoringStatusEntry:\n" + entry.toString());
-			}
-
-			if (status.hasError()) {
-				System.out.println("Status has errors. Refactoring can not be created.");
-				return null;
-			}
-
-			refactoring = ctx.getRefactoring();
-
-		} catch (CoreException e) {
-			e.printStackTrace();
-		}
-
-		return refactoring;
-	}
-
-	public Refactoring getRefactoring() {
-		return createRefactoring();
+	public org.alfine.refactoring.suppliers.Refactoring getRefactoring() {
+		return new org.alfine.refactoring.suppliers.Refactoring(this);
 	}
 
 	@Override

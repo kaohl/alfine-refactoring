@@ -16,6 +16,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 
 import org.alfine.utils.Pair;
 
@@ -118,9 +119,15 @@ public class WorkspaceConfiguration {
 	}
 
 	public static List<String> getIncludedPackagesNamesForProject(String name) {
-		return Arrays.asList(includedPackagesNames.getProperty(name, "").split(" "));
+		// TODO: Should we split on newline?
+		return Arrays.asList(includedPackagesNames.getProperty(name, "").split(" "))
+				.parallelStream()
+				.map(String::trim)
+				.collect(Collectors.toList());
 	}
 
+	/* Note: If no `packages.config` file exists (or is effectively empty of package fragments),
+	 *       the scope of the refactoring framework is empty and no opportunities will be found. */
 	private static Properties parseIncludedPackagesNames(Path path) {
 		Properties ps = new Properties();
 		try (InputStream in = Files.newInputStream(path)){
@@ -233,7 +240,7 @@ public class WorkspaceConfiguration {
 		// ((lib, src),    export?)
 		
 		
-		// We do not configure variable sources here. They specified as part of the refactoring configuration.
+		// We do not configure variable sources here, they are specified as part of the refactoring configuration.
 
 		// # single line comment
 		// exp bin src
@@ -263,6 +270,10 @@ public class WorkspaceConfiguration {
 
 		String format = "Parse error while parsing configuration for project `%s':\n\t%s";
 
+		// Once `hasErrors` has been set it will not be unset.
+		// We always go through the whole configuration file
+		// and propagate the flag into the corresponding
+		// project configuration.
 		boolean hasErrors = false;
 
 		for (Iterator<String> it = tokens.iterator(); it.hasNext();) {

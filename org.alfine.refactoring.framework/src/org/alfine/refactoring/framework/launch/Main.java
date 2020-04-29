@@ -7,6 +7,7 @@ import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
 import org.alfine.refactoring.processors.RefactoringProcessor;
+import org.alfine.refactoring.processors.ResultTracker;
 import org.alfine.refactoring.suppliers.RandomExtractConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
@@ -37,6 +38,7 @@ public class Main implements IApplication {
 		String  srcFolder        = arguments.getSrcFolder();    // Location of source archives to be imported.
 		String  libFolder        = arguments.getLibFolder();    // Location of binary archives to be imported.
 		String  outputFolder     = arguments.getOutputFolder(); // Output folder for source archives on success.
+		String  refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder(); // Folder into which we write refactoring report files.
 		//boolean verbose          = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
 		int     drop             = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
 		int     limit            = arguments.getLimit();        // Number of refactoring attempts before we give up.
@@ -76,7 +78,13 @@ public class Main implements IApplication {
 			prepareWorkspace, /* If true, workspace is set up and refactoring opportunities written to file. */
 			cacheFolderPath /* `RefactoringDescriptor` cache in workspace. */
 		);
+		
+		// Write a helper `packages.config` to the source directory.
+		String packagesConfigHelperFileName = "packages.config.helper";
+		Path   packagesConfigHelperPath     = srcFolderPath.resolve(packagesConfigHelperFileName);
 
+		workspace.writePackagesConfigHelper(packagesConfigHelperPath);
+		
 		if (prepareWorkspace) {
 			new RandomRenameSupplier(workspace).cacheOpportunities();
 			new RandomInlineMethodSupplier(workspace).cacheOpportunities();
@@ -125,7 +133,17 @@ public class Main implements IApplication {
 		supplier.setShuffleSeed(shuffleSeed);
 		supplier.setSelectSeed(selectSeed);
 
-		boolean success = new RefactoringProcessor(supplier).processSupply(drop, limit);
+		// `reportFolder` is an independent folder into which we write refactoring
+		// output reports and keep track of which refactorings have succeeded and
+		// which have failed.
+		
+		Path reportFolder = Paths.get(refactoringOutputReportFolder);
+		Path successTrackerFile = reportFolder.resolve("successTrackerFile.txt");
+		Path failureTrackerFile = reportFolder.resolve("failureTrackerFile.txt");
+
+		ResultTracker resultTracker = new ResultTracker(successTrackerFile, failureTrackerFile);
+		
+		boolean success = new RefactoringProcessor(supplier, resultTracker, reportFolder).processSupply(drop, limit);
 
 		workspace.close(success);
 

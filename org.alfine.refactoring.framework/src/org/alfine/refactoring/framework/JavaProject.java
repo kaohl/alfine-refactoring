@@ -272,7 +272,7 @@ public class JavaProject {
 			IPackageFragmentRoot packageFragmentRoot = 
 				getIJavaProject().getPackageFragmentRoot(targetFolder);
 
-			getWorkspace().addVariableSourceRoot(packageFragmentRoot, this.includedPackagesNames);
+			getWorkspace().addVariableSourceRoot(project.getName(), packageFragmentRoot, this.includedPackagesNames);
 		}
 	}
 

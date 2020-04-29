@@ -1,14 +1,21 @@
 package org.alfine.refactoring.framework;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Vector;
+import java.util.function.Predicate;
+import java.util.logging.LogManager;
 import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.resources.Source;
@@ -27,7 +34,6 @@ import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
-import org.slf4j.LoggerFactory;
 
 public class Workspace {
 
@@ -44,24 +50,30 @@ public class Workspace {
 	private Map<String, JavaProject>         projects;
 
 	private class VariablePackageFragments {
+		private String               projectName;
 		private IPackageFragmentRoot root;
 		private Set<String>          includedPackagesNames;
-
-		public VariablePackageFragments(IPackageFragmentRoot root, Set<String> includedPackagesNames) {
+		
+		public VariablePackageFragments(String projectName, IPackageFragmentRoot root, Set<String> includedPackagesNames) {
+			this.projectName           = projectName;
 			this.root                  = root;
 			this.includedPackagesNames = includedPackagesNames;
 		}
+		
+		public String getProjectName() {
+			return this.projectName;
+		}
 
-		public Set<IPackageFragment> getVariablePackageFragments() {
+		private Set<IPackageFragment> getPackageFragments(Predicate<IPackageFragment> filter) {
 			Set<IPackageFragment> fragments = new HashSet<>();
 			try {
 				Arrays.asList(root.getChildren()).stream()
 				.filter(c -> c instanceof IPackageFragment)
 				.map(IPackageFragment.class::cast)
-				.filter(c -> checkIncludeFragment(c, this.includedPackagesNames))
+				.filter(filter)
 				.forEach(f -> {
 					fragments.add(f);
-					getVariablePackageFragmentsRec(f, fragments, this.includedPackagesNames);
+					getPackageFragmentsRec(f, fragments, filter);
 				});
 			} catch (JavaModelException e) {
 				e.printStackTrace();
@@ -69,29 +81,38 @@ public class Workspace {
 			return fragments;
 		}
 		
-		private void getVariablePackageFragmentsRec(IPackageFragment fragment, Set<IPackageFragment> set, Set<String> names) {
+		private void getPackageFragmentsRec(IPackageFragment fragment, Set<IPackageFragment> set, Predicate<IPackageFragment> filter) {
 			try {
 
 				Arrays.asList(fragment.getChildren()).stream()
 				.filter(c -> c instanceof IPackageFragment)
 				.map(IPackageFragment.class::cast)
-				.filter(c -> checkIncludeFragment(c, names))
+				.filter(filter)
 				.forEach(f -> {
-					set.add(f);
-					getVariablePackageFragmentsRec(f, set, names);
+					set.add((IPackageFragment) f);
+					getPackageFragmentsRec((IPackageFragment)f, set, filter);
 				});
 			} catch (JavaModelException e) {
 				e.printStackTrace();
 			}
 		}
 		
-		private boolean checkIncludeFragment(IPackageFragment fragment, Set<String> names) {
-			boolean result = names.contains(fragment.getElementName());
-			LoggerFactory.getLogger(getClass()).debug("[" + (result ? "T" : "F") + "] Fragment `" + fragment.getElementName() + "`");
-			return result;
+		public Set<IPackageFragment> getVariablePackageFragments() {
+			return getPackageFragments(fragment -> {
+				return fragment instanceof IPackageFragment
+					&& this.includedPackagesNames.contains(((IPackageFragment)fragment).getElementName());
+			});
+		}
+		
+		public Set<IPackageFragment> getNonVariablePackageFragments() {
+			return getPackageFragments(fragment -> {
+				return fragment instanceof IPackageFragment
+					&& !this.includedPackagesNames.contains(((IPackageFragment)fragment).getElementName());
+			});
 		}
 	}
-	/* Source roots to be considered variable in the workspace. */
+	
+	/* Source roots to be considered variable in the workspace (depending on workspace configuration). */
 	private Set<VariablePackageFragments> variableSourceRootFolders;
 	
 	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath, boolean fresh, Path cachePath) {
@@ -109,6 +130,111 @@ public class Workspace {
 
 		this.cache = new Cache(cachePath);
 	}
+
+	private Map<String, List<IPackageFragment>> mapVariableFragments() {
+		Map<String, List<IPackageFragment>> result = new HashMap<>();
+		
+		this.variableSourceRootFolders.stream().forEach(vsf -> {
+			result.computeIfAbsent(vsf.getProjectName(), (key) -> {
+				return new ArrayList<IPackageFragment>();});
+			result.computeIfPresent(vsf.getProjectName(), (k,v) -> {
+				v.addAll(vsf.getVariablePackageFragments());
+				return v; });
+		});
+
+		return result;
+	}
+
+	private Map<String, List<IPackageFragment>> mapNonVariableFragments() {
+		Map<String, List<IPackageFragment>> result = new HashMap<>();
+		
+		this.variableSourceRootFolders.stream().forEach(vsf -> {
+			result.computeIfAbsent(vsf.getProjectName(), (key) -> {
+				return new ArrayList<IPackageFragment>();});
+			result.computeIfPresent(vsf.getProjectName(), (k,v) -> {
+				v.addAll(vsf.getNonVariablePackageFragments());
+				return v; });
+		});
+		
+		return result;
+	}
+
+	/** Collect all variable fragments on a project-to-project basis and write them to file.*/
+	public void writePackagesConfigHelper(Path packagesConfigHelperPath) {
+		
+		final Map<String, List<IPackageFragment>> variableFragments =
+			mapVariableFragments();
+		
+		final Map<String, List<IPackageFragment>> nonVariableFragments =
+				mapNonVariableFragments();
+		
+		try (BufferedWriter out =
+				Files.newBufferedWriter(
+					packagesConfigHelperPath,
+					StandardCharsets.UTF_8,
+					java.nio.file.StandardOpenOption.CREATE)) {
+			
+			Set<String> keys = new HashSet<>();
+			keys.addAll(variableFragments.keySet());
+			keys.addAll(nonVariableFragments.keySet());
+
+			// Output variable and non-variable fragments so that the
+			// user can move package lines between the two variables
+			// `<project-name>.include` and `<project-name>.exclude`
+			// in `packages.config` to vary the scope in which the
+			// refactoring framework search for refactoring
+			// opportunities.
+			
+			keys.forEach(projectName -> {
+				try {
+					
+					final String INDENT = "    ";
+					
+					out.write(projectName + ".include=");
+					Optional.ofNullable(variableFragments.get(projectName)).ifPresent(pFrags -> {
+						pFrags.forEach(u -> {
+							try {
+								out.write("\\");
+								out.newLine();
+								out.write(INDENT + u.getElementName());
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						});
+						try {
+							out.newLine();
+							out.newLine();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					});
+
+					out.write(projectName + ".exclude=");
+					Optional.ofNullable(nonVariableFragments.get(projectName)).ifPresent(pFrags -> {
+						pFrags.forEach(u -> {
+							try {
+								out.write("\\");
+								out.newLine();
+								out.write(INDENT + u.getElementName());
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						});
+						try {
+							out.newLine();
+							out.newLine();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					});
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	
 	/** Return set of all registered variable source folders within the workspace. */
 	public Set<IPackageFragment> getVariableSourceFragments() {
@@ -118,10 +244,18 @@ public class Workspace {
 				.collect(Collectors.toSet());
 	}
 
+	/** Return set of all registered variable source folders within the workspace. */
+	public Set<IPackageFragment> getNonVariableSourceFragments() {
+		return this.variableSourceRootFolders.stream()
+				.map(vsr -> vsr.getNonVariablePackageFragments())
+				.flatMap(set -> set.stream())
+				.collect(Collectors.toSet());
+	}
+
 	/** Register `root' as a variable source root from packages whose names are in
 	 * `includedPackagesNames` should be open for transformation. */
-	public void addVariableSourceRoot(IPackageFragmentRoot root, Set<String> includedPackagesNames) {
-		variableSourceRootFolders.add(new VariablePackageFragments(root, includedPackagesNames));
+	public void addVariableSourceRoot(String projectName, IPackageFragmentRoot root, Set<String> includedPackagesNames) {
+		variableSourceRootFolders.add(new VariablePackageFragments(projectName, root, includedPackagesNames));
 	}
 
 	/** Return workspace folder. */

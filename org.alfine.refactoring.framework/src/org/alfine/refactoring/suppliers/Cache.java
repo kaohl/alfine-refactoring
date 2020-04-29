@@ -56,6 +56,7 @@ public final class Cache {
 
 	/** Return lazily populated cache line stream associated with specified ID. */
 	public Stream<String> getCacheLines(String refactoringID) {
+		// Duplicate. See IOUtils.
 		Path path = getCacheFilePath(refactoringID);
 		try {
 			return Files.newBufferedReader(path).lines();
@@ -75,11 +76,13 @@ public final class Cache {
 	}
 
 	public void write(RefactoringDescriptor descriptor) {
+		// TODO: Use IOUtils.appendLineToFile(...) instead of `write`.
 		write(getCacheFilePath(descriptor.getRefactoringID()), descriptor.getCacheLine());
 	}
 
 	/** Write opportunity to cache. */
 	private static void write(Path path, String line) {
+		// Duplicate. See IOUtils.appendLineToFile.
 		try (BufferedWriter bw =
 				Files.newBufferedWriter(
 					path,

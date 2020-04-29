@@ -53,6 +53,10 @@ public class CommandLineArguments {
 	public String getOutputFolder() {
 	    return cmd.getOptionValue("out");
 	}
+	
+	public String getRefactoringOutputReportFolder() {
+		return cmd.getOptionValue("report");
+	}
 
 	public boolean getPrepare() {
 		return cmd.hasOption("prepare");
@@ -129,6 +133,10 @@ public class CommandLineArguments {
         Option outputFolder = new Option("u", "out", true, "output (jar) source archives folder");
         outputFolder.setRequired(true);
         options.addOption(outputFolder);
+        
+        Option reportFolder = new Option("r", "report", true, "refactoring report output folder");
+        reportFolder.setRequired(true);
+        options.addOption(reportFolder);
 
         Option refactoring = new Option("t", "type", true, "refactoring type");
         refactoring.setRequired(true);

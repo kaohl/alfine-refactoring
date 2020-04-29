@@ -19,7 +19,7 @@ import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 
-class InlineMethodVisitor extends ASTVisitor {
+public class InlineMethodVisitor extends ASTVisitor {
 
 	/** Cache for refactoring descriptors.*/
 	private Cache            cache;
@@ -62,17 +62,17 @@ class InlineMethodVisitor extends ASTVisitor {
 
 				// Source is not available...
 				// (This happens for standard library and binary
-				//  dependencies that does not ship with sources.)
+				//  dependencies for which source is unavailable.)
 
 				System.err.println("Unable to resolve method binding for invoked method.");
 
 			} else {
 
 				int modifierFlags = 
-						org.eclipse.jdt.core.dom.Modifier.PRIVATE |
-						org.eclipse.jdt.core.dom.Modifier.STATIC;
+					org.eclipse.jdt.core.dom.Modifier.PRIVATE |
+					org.eclipse.jdt.core.dom.Modifier.STATIC;
 
-				int modifiers = mb.getModifiers();
+				int modifiers = mb.getModifiers(); // Bitwise or of modifier constants.
 				
 				boolean isConstructor     = mb.isConstructor();
 				boolean isPrivateOrStatic = (modifiers & modifierFlags) != 0;
@@ -94,80 +94,91 @@ class InlineMethodVisitor extends ASTVisitor {
 		}
 	}
 
-	@Override
-	public boolean visit(Assignment a) {
-		tryAddNode(a.getRightHandSide());
-		return true;
-	}
-
-	@Override
-	@SuppressWarnings("unchecked")
-	public boolean visit(VariableDeclarationStatement decl) {
-		((List<VariableDeclarationFragment>)decl.fragments()).stream().forEach(f -> {
-			tryAddNode(f.getInitializer());
-		});
-		return true;
-	}
-
-	@Override
-	@SuppressWarnings("unchecked")
-	public boolean visit(VariableDeclarationExpression decl) {
-		((List<VariableDeclarationFragment>)decl.fragments()).stream().forEach(f -> {
-			tryAddNode(f.getInitializer());
-		});
-		return true;
-	}
-	
-	@Override
-	public boolean visit(SingleVariableDeclaration decl) {
-		tryAddNode(decl.getInitializer());
-		return true;
-	}
-
-	@Override
-	public boolean visit(ExpressionStatement exprStat) {
-		System.out.println("ExpressionStatement: " + exprStat);
-		return true;
-	}
+//	@Override
+//	public boolean visit(Assignment a) {
+//		tryAddNode(a.getRightHandSide());
+//		return true;
+//	}
+//
+//	@Override
+//	@SuppressWarnings("unchecked")
+//	public boolean visit(VariableDeclarationStatement decl) {
+//		((List<VariableDeclarationFragment>)decl.fragments()).stream().forEach(f -> {
+//			tryAddNode(f.getInitializer());
+//		});
+//		return true;
+//	}
+//
+//	@Override
+//	@SuppressWarnings("unchecked")
+//	public boolean visit(VariableDeclarationExpression decl) {
+//		((List<VariableDeclarationFragment>)decl.fragments()).stream().forEach(f -> {
+//			tryAddNode(f.getInitializer());
+//		});
+//		return true;
+//	}
+//	
+//	@Override
+//	public boolean visit(SingleVariableDeclaration decl) {
+//		tryAddNode(decl.getInitializer());
+//		return true;
+//	}
+//	
+//	@Override
+//	public boolean visit(ExpressionStatement exprStat) {
+//		// Visit children by returning true.
+//		
+//		
+//		for (int i = 1 + f(); i < 19; i++) {
+//			System.out.println("i = " + i);
+//		}
+//		
+//		return true;
+//	}
 
 	@Override
 	public boolean visit(MethodInvocation mi) {
-
-		
-		// org.eclipse.jdt.core.dom.rewrite.ASTRewrite; // See documentation string for this entry.
-		
-		IMethodBinding mb = mi.resolveMethodBinding();
-
-		int modifierFlags = 
-			org.eclipse.jdt.core.dom.Modifier.PRIVATE |
-			org.eclipse.jdt.core.dom.Modifier.STATIC;
-
-		if (mb != null) {
-
-			boolean isConstructor     = mb.isConstructor();
-			boolean isPrivateOrStatic = (mb.getModifiers() & modifierFlags) != 0;
-
-			// Note: We only consider private or static non-constructor methods for inlining.
-
-			if (!isConstructor && isPrivateOrStatic) {
-				InlineMethodVisitor.nInvocations += 1;
-			}
-
-			// Note:
-			//     The purpose is to count total number of invocations in each
-			//     compilation unit so that we can determine how many that are
-			//     unavailable for transformation and how many we cannot inline
-			//     without first extracting the call into a temporary variable:
-			//
-			//     int x = 1 + f();
-			// -->
-			//     int tmp = f();      // We can only inline function calls that are directly assigned to a variable.
-			//     int x   = 1 + tmp;
-		}
-
-		// This method gives an example of how to use the InlineMethodDescriptor!
-		// https://android.wekeepcoding.com/article/20191382/How+to+execute+inline+refactoring+programmatically+using+JDT+LTK%3F
-
+		tryAddNode(mi);
 		return true;
 	}
+	
+//	@Override
+//	public boolean visit(MethodInvocation mi) {
+//
+//		// org.eclipse.jdt.core.dom.rewrite.ASTRewrite; // See documentation string for this entry.
+//		
+//		IMethodBinding mb = mi.resolveMethodBinding();
+//
+//		int modifierFlags = 
+//			org.eclipse.jdt.core.dom.Modifier.PRIVATE |
+//			org.eclipse.jdt.core.dom.Modifier.STATIC;
+//
+//		if (mb != null) {
+//
+//			boolean isConstructor     = mb.isConstructor();
+//			boolean isPrivateOrStatic = (mb.getModifiers() & modifierFlags) != 0;
+//
+//			// Note: We only consider private or static non-constructor methods for inlining.
+//
+//			if (!isConstructor && isPrivateOrStatic) {
+//				InlineMethodVisitor.nInvocations += 1;
+//			}
+//
+//			// Note:
+//			//     The purpose is to count total number of invocations in each
+//			//     compilation unit so that we can determine how many that are
+//			//     unavailable for transformation and how many we cannot inline
+//			//     without first extracting the call into a temporary variable:
+//			//
+//			//     int x = 1 + f();
+//			// -->
+//			//     int tmp = f();      // We can only inline function calls that are directly assigned to a variable.
+//			//     int x   = 1 + tmp;
+//		}
+//
+//		// This method gives an example of how to use the InlineMethodDescriptor!
+//		// https://android.wekeepcoding.com/article/20191382/How+to+execute+inline+refactoring+programmatically+using+JDT+LTK%3F
+//
+//		return true;
+//	}
 }
