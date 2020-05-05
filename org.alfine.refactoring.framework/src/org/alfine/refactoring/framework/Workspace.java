@@ -292,13 +292,13 @@ public class Workspace {
 	public ProjectConfiguration getProjectConfiguration(String name) {
 		return this.projectMap.get(name);
 	}
-
+	
 	/** Initializes the workspace by loading configured projects and resources. */
 	private void initialize(boolean fresh) {
 
 		System.out.println("Initializing workspace ...");
-
-		if (fresh) {			
+		
+		if (fresh) {
 
 			boolean validConfig = true;
 

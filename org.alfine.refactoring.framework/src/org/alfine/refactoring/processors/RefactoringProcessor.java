@@ -2,7 +2,10 @@ package org.alfine.refactoring.processors;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.function.Supplier;
 
 import org.alfine.refactoring.suppliers.Refactoring;
@@ -77,6 +80,15 @@ public class RefactoringProcessor {
 						logger.error("");
 					}
 					resultTracker.put(cacheLine, success);
+					
+					if (success) {
+						try (OutputStream out = Files.newOutputStream(Paths.get("cache-line.txt"))) {
+							out.write(cacheLine.getBytes());
+							out.write(System.getProperties().get("line.separator").toString().getBytes());
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
 				}				
 			} else {
 

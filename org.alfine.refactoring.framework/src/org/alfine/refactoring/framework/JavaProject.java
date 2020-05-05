@@ -1,6 +1,7 @@
 package org.alfine.refactoring.framework;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.WorkspaceConfiguration.LibEntry;
 import org.alfine.refactoring.framework.WorkspaceConfiguration.SrcEntry;
+import org.alfine.refactoring.framework.launch.Main;
 import org.alfine.refactoring.framework.resources.Library;
 import org.alfine.refactoring.framework.resources.Source;
 import org.eclipse.core.resources.IFolder;
@@ -31,12 +33,67 @@ import org.eclipse.jdt.core.JavaModelException;
 
 public class JavaProject {
 
+	// Environment variable used to point out a valid `rt.jar`
+	// which will be used as the workspace default JRE.
+	public static final String ALFINE_RT = "ALFINE_RT";
+	
 	/* Source archives shared between projects (containing multiple source roots). */
 
 	private static Map<Path, Source> parents = new HashMap<>();
 
 	public static Map<Path, Source> getSharedSourceArchives() {
 		return JavaProject.parents;
+	}
+	
+//	private static boolean defaultJDKInitialized = false;
+//	
+//	public static void initializeDefaultWorkspaceJRE() {
+//		if (defaultJDKInitialized)
+//			return;
+//		
+//		defaultJDKInitialized = true;
+//		
+//		String                        jdkPathString = System.getProperties().getProperty("JAVA_HOME");
+//		org.eclipse.core.runtime.Path jdkIPath        = new org.eclipse.core.runtime.Path(jdkPathString);
+//		
+//		org.eclipse.jdt.ui.PreferenceConstants.encodeJRELibrary(
+//			"Alfine Default JDK (JAVA_HOME)", new IClasspathEntry[] { JavaCore.newLibraryEntry(jdkIPath, null, null, false) });
+//	}
+//
+//	// We should not need this but keep it to know where to fetch it from.
+//	private static IClasspathEntry[] getDefaultWorkspaceJRE() {
+//		return org.eclipse.jdt.ui.PreferenceConstants.getDefaultJRELibrary();
+//	}
+//	
+	public static IClasspathEntry getCustomDefaultWorkspaceJRE() {
+		// https://help.eclipse.org/2019-09/index.jsp
+		// JDT Plug-in Developers Guide
+		//  - Programmer's Guide
+		//   - JDT Core
+		//    - Setting the Java build path
+		
+		// ALFINE_RT must point to a `rt.jar` file.
+		
+		
+		// https://stackoverflow.com/questions/1773060/programmatically-configure-eclipse-installed-jres
+		
+		String jdkPathString = Main.RT;// System.getProperties().getProperty(ALFINE_RT);
+		
+		System.out.println(ALFINE_RT + "= " + jdkPathString);
+		
+		if (jdkPathString == null || !Files.exists(Paths.get(jdkPathString))) {
+			StringBuilder err = new StringBuilder();
+			err.append("Invalid path to rt.jar: ");
+			err.append(jdkPathString == null ? "" : jdkPathString);
+			err.append(System.getProperty("line.separator"));
+			err.append("Please verify that ALFINE_RT points to a valid `rt.jar`.");
+			throw new RuntimeException(err.toString());
+		}
+
+		org.eclipse.core.runtime.Path jdkIPath =
+			new org.eclipse.core.runtime.Path(jdkPathString);
+
+		return JavaCore.newLibraryEntry(jdkIPath, null, null, false);
 	}
 
 	private Workspace           workspace;
@@ -121,11 +178,15 @@ public class JavaProject {
 
 		this.project     = getWorkspace().getProject(projectName);
 		this.javaProject = getWorkspace().newJavaProject(projectName, fresh);
+		
+		// https://help.eclipse.org/2019-09/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_api_options.htm&anchor=builder
+		// Not sure this has any effect at all...
+		this.javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, "1.8");
 
 		// Load sources and libraries and populate classpath.
 
 		if (fresh) {
-			setRawClasspath(new IClasspathEntry[] {});
+			setRawClasspath(new IClasspathEntry[] { getCustomDefaultWorkspaceJRE() });
 		}
 
 		for (String d : getConfig().getDeps()) {
@@ -204,7 +265,6 @@ public class JavaProject {
 		}
 	}
 
-	/** */
 	private boolean addDependency(String dep, boolean fresh) {
 		this.dependencies.add(dep);
 
@@ -225,7 +285,7 @@ public class JavaProject {
 			IClasspathEntry      entry = JavaCore.newSourceEntry(root.getPath());
 			return entry;
 		} else {
-			System.err.println("Error: asSourceClasspathEntry(): Resource `" + resource.getFullPath() + "'does not exist.");
+			System.err.println("Error: asSourceEntry(): Resource `" + resource.getFullPath() + "'does not exist.");
 		}
 		return null;
 	}

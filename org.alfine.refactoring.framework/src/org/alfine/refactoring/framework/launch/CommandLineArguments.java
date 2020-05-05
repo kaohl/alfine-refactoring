@@ -58,6 +58,10 @@ public class CommandLineArguments {
 		return cmd.getOptionValue("report");
 	}
 
+	public String getAlfineRT() {
+		return cmd.hasOption("runtime") ? cmd.getOptionValue("runtime") : "rt.jar";
+	}
+	
 	public boolean getPrepare() {
 		return cmd.hasOption("prepare");
 	}
@@ -138,6 +142,10 @@ public class CommandLineArguments {
         reportFolder.setRequired(true);
         options.addOption(reportFolder);
 
+        Option alfineRTPath = new Option("n", "runtime", true, "Default workspace Java JRE.");
+        alfineRTPath.setRequired(false);
+        options.addOption(alfineRTPath);
+        
         Option refactoring = new Option("t", "type", true, "refactoring type");
         refactoring.setRequired(true);
         options.addOption(refactoring);

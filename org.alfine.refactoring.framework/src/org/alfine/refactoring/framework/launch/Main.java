@@ -2,6 +2,7 @@ package org.alfine.refactoring.framework.launch;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Hashtable;
 
 import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
@@ -17,11 +18,14 @@ import org.alfine.refactoring.suppliers.RefactoringSupplier;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
+import org.eclipse.jdt.core.JavaCore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Main implements IApplication {
 
+	public static String RT = null;
+	
 	@Override
 	public Object start(IApplicationContext context) throws Exception {
 
@@ -39,7 +43,22 @@ public class Main implements IApplication {
 		String  libFolder        = arguments.getLibFolder();    // Location of binary archives to be imported.
 		String  outputFolder     = arguments.getOutputFolder(); // Output folder for source archives on success.
 		String  refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder(); // Folder into which we write refactoring report files.
+		
+		String alfineRT           = arguments.getAlfineRT();
+		RT = alfineRT;
+		// System.getProperties().putIfAbsent(org.alfine.refactoring.framework.JavaProject.ALFINE_RT, alfineRT);
+		
 		//boolean verbose          = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
+
+		// https://help.eclipse.org/2019-09/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_api_options.htm&anchor=builder
+//		JavaCore.getDefaultOptions().put(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, "1.8");
+//		JavaCore.getDefaultOptions().put(JavaCore.COMPILER_COMPLIANCE, "1.8");
+//		JavaCore.getDefaultOptions().put(JavaCore.compli.COMPILER_COMPLIANCE, "1.8");
+		
+		Hashtable<String, String> options = JavaCore.getDefaultOptions();
+		JavaCore.setComplianceOptions("1.8", options);
+		JavaCore.setOptions(options);
+		
 		int     drop             = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
 		int     limit            = arguments.getLimit();        // Number of refactoring attempts before we give up.
 		long    shuffleSeed        = arguments.getShuffleSeed();    // Seed passed to Random instance used for shuffling opportunities.
