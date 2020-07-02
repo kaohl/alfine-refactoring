@@ -81,15 +81,17 @@ public class WorkspaceConfiguration {
 	private Vector<ProjectConfiguration>      projects;   /* Project order as they appear in configuration file. */
 
 	private static Properties includedPackagesNames;
-
-	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config, Path variableConfig, Path includePackageConfig) {
+	private static Properties includedCompilationUnitsNames;
+	
+	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config, Path variableConfig, Path includePackageConfig, Path includeCompilationUnitsConfig) {
 		this.location  = location;
 		this.srcPath   = srcPath;
 		this.libPath   = libPath;
 		this.config     = config;
 		
 		includedPackagesNames = parseIncludedPackagesNames(includePackageConfig);
-
+		includedCompilationUnitsNames = parseIncludedCompilationUnitsNames(includeCompilationUnitsConfig);
+		
 		Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> p;
 
 		p = parseConfig(config, srcPath, libPath, parseVariables(variableConfig));
@@ -116,6 +118,37 @@ public class WorkspaceConfiguration {
 	/** Return `Path' to workspace configuration file. */
 	public Path getConfigPath() {
 		return this.config;
+	}
+	
+	public List<String> getIncludedCompilationUnitsNames() {
+		List<String> result = new ArrayList<String>();
+		Properties ps = includedCompilationUnitsNames;
+		for (String name : ps.keySet().stream().map(Object::toString).collect(Collectors.toList())) {
+			result.addAll(
+				Arrays.asList(includedCompilationUnitsNames.getProperty(name, "").split(" "))
+				.parallelStream()
+				.map(String::trim)
+				.collect(Collectors.toList())
+			);
+		}
+		return result;
+	}
+	
+	public static List<String> getIncludedCompilationUnitsNamesForProject(String name) {
+		return Arrays.asList(includedCompilationUnitsNames.getProperty(name, "").split(" "))
+				.parallelStream()
+				.map(String::trim)
+				.collect(Collectors.toList());
+	}
+
+	private static Properties parseIncludedCompilationUnitsNames(Path path) {
+		Properties ps = new Properties();
+		try (InputStream in = Files.newInputStream(path)){
+			ps.load(in);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return ps;
 	}
 
 	public static List<String> getIncludedPackagesNamesForProject(String name) {

@@ -89,7 +89,8 @@ public class Main implements IApplication {
 				libFolderPath,
 				srcFolderPath.resolve("workspace.config"),
 				srcFolderPath.resolve("variable.config"),
-				srcFolderPath.resolve("packages.config")
+				srcFolderPath.resolve("packages.config"),
+				srcFolderPath.resolve("units.config")
 			),
 			srcFolderPath,
 			libFolderPath,

@@ -78,16 +78,4 @@ public class ResultTracker {
 	public void put(String cacheLine, boolean success) {
 		(success ? this.newSuccesses : this.newFailures).add(cacheLine);
 	}
-	
-	public void f() {
-		System.out.println("");
-		System.out.println("");
-		System.out.println("");
-	}
-	
-	public void g() {
-		System.out.println("");
-		System.out.println("");
-		System.out.println("");
-	}
 }

@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Vector;
 import java.util.function.Predicate;
-import java.util.logging.LogManager;
 import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.resources.Source;
@@ -115,12 +114,15 @@ public class Workspace {
 	/* Source roots to be considered variable in the workspace (depending on workspace configuration). */
 	private Set<VariablePackageFragments> variableSourceRootFolders;
 	
+	private List<String> compilationUnitsFilterList = new ArrayList<String>();
+	
 	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath, boolean fresh, Path cachePath) {
 		this.location                  = config.getLocation();
 		this.projectVec                = config.getProjects();
 		this.projectMap                = config.getProjectMap();
 		this.variableSourceRootFolders = new HashSet<>();
 		this.projects                  = new HashMap<>();
+		this.compilationUnitsFilterList = config.getIncludedCompilationUnitsNames();
 
 		this.srcPath   = srcPath;
 		this.libPath   = libPath;
@@ -256,6 +258,28 @@ public class Workspace {
 	 * `includedPackagesNames` should be open for transformation. */
 	public void addVariableSourceRoot(String projectName, IPackageFragmentRoot root, Set<String> includedPackagesNames) {
 		variableSourceRootFolders.add(new VariablePackageFragments(projectName, root, includedPackagesNames));
+	}
+	
+	public void writeUnitConfigHelper(List<String> units) {
+		Path path = getSrcPath().resolve("units.config.helper");
+		if (!Files.exists(path)) {
+			try (BufferedWriter out =
+					Files.newBufferedWriter(
+						path,
+						StandardCharsets.UTF_8,
+						java.nio.file.StandardOpenOption.CREATE)) {
+				units.forEach(u -> {
+					try {
+						out.write(u);
+						out.newLine();
+					} catch (IOException e1) {
+							e1.printStackTrace();
+					}
+				});
+			} catch (Exception e) {
+				e.printStackTrace();
+			}	
+		}
 	}
 
 	/** Return workspace folder. */
@@ -493,5 +517,9 @@ public class Workspace {
 		if (exportToOutput) {
 			exportSource();
 		}
+	}
+
+	public List<String> getCompilationUnitFilterSet() {
+		return this.compilationUnitsFilterList;
 	}
 }

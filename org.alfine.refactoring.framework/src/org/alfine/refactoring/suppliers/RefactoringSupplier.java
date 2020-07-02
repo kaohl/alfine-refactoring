@@ -1,15 +1,13 @@
 package org.alfine.refactoring.suppliers;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -69,6 +67,8 @@ public abstract class RefactoringSupplier
 
 		System.out.println("RefactoringSupplier::getSupplier()");
 
+//		TODO: Make sure cache and refactoring supplier does not sort opportunities; just pick an index from the file.
+		
 		Iterator<RefactoringDescriptor> iter = iterator();
 
 		return new Supplier<Refactoring>() {
@@ -140,7 +140,13 @@ public abstract class RefactoringSupplier
 //		})
 		.collect(Collectors.toList());
 		
-		String path = "visited-classes.txt";
+		getWorkspace().writeUnitConfigHelper(units.stream().map(RefactoringSupplier::getPackageNameFromUnit).collect(Collectors.toList()));
+		
+		units = units.stream().filter(getCompilationUnitFilter()).collect(Collectors.toList());
+		
+		// We don't need this printout now that we have `unit.config.helper`.
+		/*
+		String path = "visited-compilation-units.txt";
 
 		try (BufferedWriter out =
 				Files.newBufferedWriter(
@@ -158,7 +164,34 @@ public abstract class RefactoringSupplier
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
+		*/
 		units.forEach(action);
+	}
+	
+	private static String getPackageNameFromUnit(ICompilationUnit unit) {
+		return unit.getPath().removeFirstSegments(2).toString();
+	}
+	
+	private Predicate<? super ICompilationUnit> getCompilationUnitFilter() {
+		Set<String> acceptedUnits = new HashSet<String>(getWorkspace().getCompilationUnitFilterSet());
+		if (acceptedUnits != null && acceptedUnits.size() > 0) {
+			return new Predicate<ICompilationUnit>() {
+				@Override
+				public boolean test(ICompilationUnit u) {
+					String path = RefactoringSupplier.getPackageNameFromUnit(u);
+					boolean result = acceptedUnits.contains(path);
+					System.out.println("unit filter path = " + path + ", accept = " + result);
+					return result;
+				}
+			};
+		} else {
+			System.out.println("Using default unit filter (accept all).");
+			return new Predicate<ICompilationUnit>() {
+				@Override
+				public boolean test(ICompilationUnit u) {
+					return true;
+				}
+			};
+		}
 	}
 }
