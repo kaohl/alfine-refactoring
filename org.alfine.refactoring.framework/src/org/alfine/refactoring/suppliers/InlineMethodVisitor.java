@@ -36,18 +36,22 @@ public class InlineMethodVisitor extends ASTVisitor {
 	}
 
 	private void addOpportunity(RefactoringDescriptor descriptor, int start) {
-		if (!oppStartSet.contains(start)) {
+		if (descriptor != null && !oppStartSet.contains(start)) {
 			oppStartSet.add(start);
 			cache.write(descriptor);
 		}
 	}
 
 	private InlineMethodDescriptor createInlineMethodDescriptor(IJavaElement element, int start, int length) {
-		Map<String, String> args = new TreeMap<>();
-		args.put("input", this.unit.getHandleIdentifier());
-		args.put("element", element.getHandleIdentifier());
-		args.put("selection", "" + start + " " + length);
-		return new InlineMethodDescriptor(args);
+		if (element.getHandleIdentifier().contains("rt.jar")) {
+			return null;
+		} else {
+			Map<String, String> args = new TreeMap<>();
+			args.put("input", this.unit.getHandleIdentifier());
+			args.put("element", element.getHandleIdentifier());
+			args.put("selection", "" + start + " " + length);
+			return new InlineMethodDescriptor(args);
+		}
 	}
 
 	/** Check if `node` is a `MethodInvocation` in which case it is added as an opportunity. */

@@ -19,18 +19,22 @@ public class ListSupply implements Supply {
 
 	@Override
 	public void shuffle(Random random) {
-		Supply.shuffle(this.opportunities, random);
+		// Supply.shuffle(this.opportunities, random);
 	}
 
 	@Override
 	public Iterator<RefactoringDescriptor> iterator() {
-		return this.opportunities.iterator();
+		// return this.opportunities.iterator();
+		return iterator(new Random(0));
 	}
 
 	@Override
 	public Iterator<RefactoringDescriptor> iterator(Random random) {
-		shuffle(random);
-		return this.opportunities.iterator();
+		// shuffle(random);
+		// return this.opportunities.iterator();
+		List<List<RefactoringDescriptor>> bins = new ArrayList<>();
+		bins.add(this.opportunities);
+		return new SupplyIterator(bins, random);
 	}
 
 	@Override

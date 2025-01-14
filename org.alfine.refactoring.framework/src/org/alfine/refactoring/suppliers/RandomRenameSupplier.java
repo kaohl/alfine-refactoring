@@ -41,12 +41,12 @@ public class RandomRenameSupplier extends RefactoringSupplier {
 
 	/** Set max length of generated names. */
 	public void setMaxLength(int length) {
-		this.generator.setMaxLength(length);
+		RandomRenameSupplier.generator.setMaxLength(length);
 	}
 
 	/** Fix length of generated names to set length. */
 	public void setLengthFixed(boolean fixed) {
-		this.generator.setLengthFixed(fixed);
+		RandomRenameSupplier.generator.setLengthFixed(fixed);
 	}
 
 	@Override
@@ -56,7 +56,42 @@ public class RandomRenameSupplier extends RefactoringSupplier {
 			cu.accept(new RenameVisitor(getCache(), icu));
 		});
 	}
+/*
+	public class CacheIterator implements Iterator<RefactoringDescriptor> {
 
+		private List<List<RefactoringDescriptor>> columns;
+		private Random                            random;
+
+		public CacheIterator() {
+			this(0);
+		}
+
+		public CacheIterator(long seed) {
+			this.random  = new Random(seed);
+			this.columns = new ArrayList<>();
+		}
+
+		public CacheIterator(List<List<RefactoringDescriptor>> columns) {
+			this.columns = columns;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return true;
+		}
+
+		@Override
+		public RefactoringDescriptor next() {
+			List<RefactoringDescriptor> descriptors = this.columns.get(this.random.nextInt() % this.columns.size());
+			return descriptors.get(this.random.nextInt() % descriptors.size());
+		}
+	}
+	
+	@FunctionalInterface
+	interface DescriptorFromCacheLineConstructor {
+		public RefactoringDescriptor create(String cacheLine);
+	}
+*/	
 	@Override
 	public Iterator<RefactoringDescriptor> iterator() {
 		return getCache().makeSupplier((Cache cache) -> {

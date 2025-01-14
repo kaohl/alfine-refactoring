@@ -5,9 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Random;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
@@ -43,16 +41,19 @@ public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
 
 	@Override
 	public void shuffle(Random random) {
+/*
 		this.matrix.entrySet().parallelStream()
 		.forEach(entry -> {
 			Supply.shuffle(entry.getValue(), random);
 		});
+		*/
 	}
 
 	@Override
 	public Iterator<RefactoringDescriptor> iterator(Random random) {
-		shuffle(random);
-		return new HistSupplyIterator(this, random);
+		// shuffle(random);
+		// return new HistSupplyIterator(this, random);
+		return new SupplyIterator(this.matrix.values().stream().collect(Collectors.toList()), random);
 	}
 
 	@Override
@@ -60,6 +61,7 @@ public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
 		return iterator(new Random(0));
 	}
 
+	/*
 	private static class HistSupplyIterator implements Iterator<RefactoringDescriptor> {
 
 		private final HistSupply  supply;
@@ -105,4 +107,5 @@ public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
 			return null;
 		}
 	}
+	*/
 }
