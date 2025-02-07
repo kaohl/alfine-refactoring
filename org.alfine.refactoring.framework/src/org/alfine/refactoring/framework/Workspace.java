@@ -7,8 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +38,8 @@ import org.eclipse.jdt.core.JavaModelException;
 
 public class Workspace {
 
+	public static String RT = null;
+
 	private Path location;  /* Workspace folder. */
 	private Path srcPath;   /* Folder containing source archives. */
 	private Path libPath;   /* Folder containing binary archives. */
@@ -46,7 +50,7 @@ public class Workspace {
 	/* Project configuration from configuration file. */
 	private Map<String, ProjectConfiguration> projectMap;
 	private Vector<ProjectConfiguration>      projectVec;
-	private Map<String, JavaProject>         projects;
+	private Map<String, JavaProject>          projects;
 
 	private class VariablePackageFragments {
 		private String               projectName;
@@ -131,6 +135,28 @@ public class Workspace {
 		initialize(fresh);
 
 		this.cache = new Cache(cachePath);
+	}
+
+	public Collection<IPackageFragment> getFragments(Predicate<IPackageFragment> filter) {
+		List<IPackageFragment> fragments = new LinkedList<>();
+		for (JavaProject jp : this.projects.values()) {
+			try {
+				fragments.addAll(Arrays.asList(jp.getIJavaProject().getPackageFragments()).stream().filter(filter).collect(Collectors.toList()));
+			} catch (JavaModelException e) {
+				e.printStackTrace();
+			}
+			/*
+			for (IPackageFragmentRoot root : jp.getPackageFragmentRoots()) {
+				fragments.addAll(new Helpers.Fragments(root).getFilteredFragments(filter));
+			}
+			*/
+		}
+		System.out.println("Found fragments " + fragments.size());
+		return fragments;
+	}
+
+	public JavaProject getJavaProject(String name) {
+		return this.projects.get(name);
 	}
 
 	private Map<String, List<IPackageFragment>> mapVariableFragments() {

@@ -44,7 +44,7 @@ public class JavaProject {
 	public static Map<Path, Source> getSharedSourceArchives() {
 		return JavaProject.parents;
 	}
-	
+
 //	private static boolean defaultJDKInitialized = false;
 //	
 //	public static void initializeDefaultWorkspaceJRE() {
@@ -65,6 +65,7 @@ public class JavaProject {
 //		return org.eclipse.jdt.ui.PreferenceConstants.getDefaultJRELibrary();
 //	}
 //	
+
 	public static IClasspathEntry getCustomDefaultWorkspaceJRE() {
 		// https://help.eclipse.org/2019-09/index.jsp
 		// JDT Plug-in Developers Guide
@@ -76,8 +77,8 @@ public class JavaProject {
 		
 		
 		// https://stackoverflow.com/questions/1773060/programmatically-configure-eclipse-installed-jres
-		
-		String jdkPathString = Main.RT;// System.getProperties().getProperty(ALFINE_RT);
+
+		String jdkPathString = Workspace.RT;// System.getProperties().getProperty(ALFINE_RT);
 		
 		System.out.println(ALFINE_RT + "= " + jdkPathString);
 		
@@ -335,6 +336,29 @@ public class JavaProject {
 			getWorkspace().addVariableSourceRoot(project.getName(), packageFragmentRoot, this.includedPackagesNames);
 		}
 	}
+
+	/*
+	public List<IPackageFragmentRoot> getPackageFragmentRoots() {
+		List<IPackageFragmentRoot> roots = new LinkedList<>();
+		Path location = Paths.get(Platform.getInstanceLocation().getURL().getFile());
+		for (Source src : this.sources) {
+//			System.out.println("LOC = " + location.toString());
+//			System.out.println("PATH = " + src.getTarget().toString());
+//			System.out.println("PATH = " + location.relativize(src.getTarget()).toString());
+			
+			TODO
+			//https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_api_classpath.htm
+			
+			String p = "/" + location.relativize(src.getTarget()).toString();
+			String p2 = src.getTarget().toString();
+			IFolder              targetFolder        = project.getFolder(p2);
+			IPackageFragmentRoot packageFragmentRoot = getIJavaProject().getPackageFragmentRoot(targetFolder);
+
+			roots.add(packageFragmentRoot);
+		}
+		return roots;
+	}
+	*/
 
 	/** Return an IClasspath entry representing the specified library with optional source attachment. */
 	private IClasspathEntry asLibEntry(IPath lib, IPath src, boolean doExport) {

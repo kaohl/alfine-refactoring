@@ -9,7 +9,10 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.ltk.core.refactoring,
  org.eclipse.jdt.core.manipulation,
  org.eclipse.jdt.ui;bundle-version="3.18.0",
- org.slf4j.api;bundle-version="1.7.2"
+ org.slf4j.api;bundle-version="1.7.2",
+ org.junit,
+ org.junit.jupiter.api,
+ org.apache.commons.io;bundle-version="2.6.0"
 Automatic-Module-Name: org.alfine.refactoring.framework
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ClassPath: lib/commons-cli-1.2.jar,

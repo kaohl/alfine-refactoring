@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -80,18 +81,29 @@ public class WorkspaceConfiguration {
 	private Map<String, ProjectConfiguration> projectMap; /* Projects loaded from configuration file. */
 	private Vector<ProjectConfiguration>      projects;   /* Project order as they appear in configuration file. */
 
-	private static Properties includedPackagesNames;
-	private static Properties includedCompilationUnitsNames;
+	private static Properties   includedPackagesNames;
+	private static Properties   includedCompilationUnitsNames;
+	private static List<String> includedMethodNames;
 	
-	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config, Path variableConfig, Path includePackageConfig, Path includeCompilationUnitsConfig) {
-		this.location  = location;
-		this.srcPath   = srcPath;
-		this.libPath   = libPath;
-		this.config     = config;
-		
-		includedPackagesNames = parseIncludedPackagesNames(includePackageConfig);
+	public WorkspaceConfiguration(
+		Path location,
+		Path srcPath,
+		Path libPath,
+		Path config,
+		Path variableConfig,
+		Path includePackageConfig,
+		Path includeCompilationUnitsConfig,
+		Path includeMethodConfig
+	) {
+		this.location = location;
+		this.srcPath  = srcPath;
+		this.libPath  = libPath;
+		this.config   = config;
+
+		includedPackagesNames         = parseIncludedPackagesNames(includePackageConfig);
 		includedCompilationUnitsNames = parseIncludedCompilationUnitsNames(includeCompilationUnitsConfig);
-		
+		includedMethodNames           = parseIncludedMethodNames(includeMethodConfig);
+
 		Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> p;
 
 		p = parseConfig(config, srcPath, libPath, parseVariables(variableConfig));
@@ -169,6 +181,19 @@ public class WorkspaceConfiguration {
 			e.printStackTrace();
 		}
 		return ps;
+	}
+
+	public static List<String> getIncludedMethodNames() {
+		return includedMethodNames;
+	}
+
+	private List<String> parseIncludedMethodNames(Path includeMethodConfig) {
+		try {
+			return new ArrayList<String>(Files.lines(includeMethodConfig).collect(Collectors.toList()));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return new ArrayList<>(0);
 	}
 
 	/** Return names of all source archives that are to be considered variable. */

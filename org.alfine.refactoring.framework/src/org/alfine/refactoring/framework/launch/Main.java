@@ -23,9 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Main implements IApplication {
-
-	public static String RT = null;
-	
 	@Override
 	public Object start(IApplicationContext context) throws Exception {
 
@@ -44,8 +41,8 @@ public class Main implements IApplication {
 		String  outputFolder     = arguments.getOutputFolder(); // Output folder for source archives on success.
 		String  refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder(); // Folder into which we write refactoring report files.
 		
-		String alfineRT           = arguments.getAlfineRT();
-		RT = alfineRT;
+		String alfineRT = arguments.getAlfineRT();
+		Workspace.RT    = alfineRT;
 		// System.getProperties().putIfAbsent(org.alfine.refactoring.framework.JavaProject.ALFINE_RT, alfineRT);
 		
 		//boolean verbose          = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
@@ -90,7 +87,8 @@ public class Main implements IApplication {
 				srcFolderPath.resolve("workspace.config"),
 				srcFolderPath.resolve("variable.config"),
 				srcFolderPath.resolve("packages.config"),
-				srcFolderPath.resolve("units.config")
+				srcFolderPath.resolve("units.config"),
+				srcFolderPath.resolve("methods.config")
 			),
 			srcFolderPath,
 			libFolderPath,

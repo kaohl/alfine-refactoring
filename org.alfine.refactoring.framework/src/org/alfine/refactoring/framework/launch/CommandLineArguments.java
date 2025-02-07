@@ -147,7 +147,7 @@ public class CommandLineArguments {
         options.addOption(alfineRTPath);
         
         Option refactoring = new Option("t", "type", true, "refactoring type");
-        refactoring.setRequired(true);
+        refactoring.setRequired(false);
         options.addOption(refactoring);
 
         Option seed = new Option("s", "seed", true, "seed for pseudo random number generator");
