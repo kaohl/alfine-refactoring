@@ -1,14 +1,10 @@
 package org.alfine.refactoring.suppliers;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -58,17 +54,12 @@ public class HotMethodRefactoringSupplier implements Iterable<RefactoringDescrip
 	}
 
 	private final Workspace workspace;
+	private final MethodSet methods;
 	private long            shuffleSeed;
 	private long            selectSeed;
-	private Set<String>     methodQNameAndPList;
-	private Set<String>     methods;
-	private Set<String>     includedFragments;
 	
 	public HotMethodRefactoringSupplier(Workspace workspace) {
 		this.workspace = workspace;
-		this.methodQNameAndPList = new HashSet<>();
-		this.methods   = new HashSet<>();
-		this.includedFragments = new HashSet<>();
 
 		Cache.installCachePath(new ExtractConstantFieldDescriptor().getRefactoringID(), "hot.extract.field.txt");
 		Cache.installCachePath(new InlineConstantFieldDescriptor().getRefactoringID(), "hot.inline.field.txt");
@@ -81,46 +72,13 @@ public class HotMethodRefactoringSupplier implements Iterable<RefactoringDescrip
 		Cache.installCachePath(new RenameLocalVariableDescriptor().getRefactoringID(), "hot.rename.local.variable.txt");
 		Cache.installCachePath(new RenameTypeParameterDescriptor().getRefactoringID(), "hot.rename.type.parameter.txt");
 
-		try {
-			List<String> methods = Files.readAllLines(getWorkspace().getSrcPath().resolve("methods.config"));
-			for (String s : methods) {
-				s = s.trim();
-				if (s != "") {
-					System.out.println("Method String: '" + s + "'");
-					String   qname = s.substring(0, s.indexOf('('));
-					String[] parts = qname.split("\\.");
-					String   method = parts[parts.length - 1];
-					List<String> classes = new ArrayList<>(1); // TODO
-					StringBuilder pkg = new StringBuilder();
-					for (int i = 0; i < parts.length - 1; ++i) {
-						if (Character.isUpperCase(parts[i].charAt(0))) {
-							for (int j = i + 1; j < parts.length - 1; ++j) {
-								classes.add(parts[j]);
-							}
-							break;
-						}
-						if (i > 0) {
-							pkg.append(".");
-						}
-						pkg.append(parts[i]);
-					}
-					System.out.println("HOT METHOD");
-					System.out.println("  q" + qname);
-					System.out.println("  p" + pkg.toString());
-					System.out.println("  c" + String.join(".", classes));
-					System.out.println("  m" + method);
+		Path methodsFile = getWorkspace().getSrcPath().resolve("methods.config");
+		this.methods = new MethodSet(methodsFile);
 
-					this.methods.add(qname);
-					this.includedFragments.add(pkg.toString());
-					this.methodQNameAndPList.add(s);
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
 		if (this.methods.size() == 0) {
-			throw new RuntimeException("Perhaps you forgot to add a 'methods.txt' file in the assets/src folder?");
+			throw new RuntimeException(
+				"Bad hot methods configuration: " + methodsFile
+			);
 		}
 	}
 
@@ -222,7 +180,7 @@ public class HotMethodRefactoringSupplier implements Iterable<RefactoringDescrip
 			public boolean test(IPackageFragment fragment) {
 				if (fragment instanceof IPackageFragment) {
 					String  name   = ((IPackageFragment) fragment).getElementName();
-					boolean result = includedFragments.contains(name);
+					boolean result = methods.hasFragment(name);
 					if (result) {
 						System.out.println(String.format("INCLUDE (%s): %s", result ? "Y" : "N", name));
 					}
@@ -245,12 +203,7 @@ public class HotMethodRefactoringSupplier implements Iterable<RefactoringDescrip
 	public void cacheOpportunities() {
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = HotMethodRefactoringSupplier.getCompilationUnit(icu);
-			cu.accept(new HotMethodVisitor(getCache(), icu, new Predicate<String>() {
-				@Override
-				public boolean test(String t) {
-					return methodQNameAndPList.contains(t);// methods.contains(t);
-				}
-			}));
+			cu.accept(new HotMethodVisitor(getCache(), icu, this.methods));
 		});
 	}
 

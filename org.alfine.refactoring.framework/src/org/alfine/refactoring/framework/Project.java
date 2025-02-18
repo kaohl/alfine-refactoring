@@ -31,6 +31,7 @@ import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.launching.JavaRuntime;
 
 
 // https://help.eclipse.org/kepler/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fcore%2Fresources%2FIProjectDescription.html
@@ -410,7 +411,9 @@ public class Project {
 
 		// Reset classpath.
 
-		javaProject.setRawClasspath(new IClasspathEntry[] {}, null);
+		javaProject.setRawClasspath(new IClasspathEntry[] {
+				JavaRuntime.getDefaultJREContainerEntry()
+		}, null);
 
 		resources.forEach((Resource resource) -> {
 			resource.importResource();

@@ -7,10 +7,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.function.Predicate;
 
+import org.alfine.refactoring.utils.ASTHelper;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.ILocalVariable;
 import org.eclipse.jdt.core.IMethod;
@@ -23,7 +22,6 @@ import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.CharacterLiteral;
 import org.eclipse.jdt.core.dom.FieldAccess;
-import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
@@ -31,7 +29,6 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.NumberLiteral;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
-import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
@@ -110,7 +107,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	/** Cache for refactoring descriptors.*/
 	private Cache             cache;
 	private ICompilationUnit  unit;
-	private Predicate<String> isHot;
+	private MethodSet         methods;
 	private List<String>      trace;
 	private boolean           isCapture;
 
@@ -120,7 +117,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	// the associated compilation unit.
 	private List<String>      expansion;
 
-	// Inline constant state. (TODO: Can't remember why this is needed.)
+	// Inline constant state. (TODO: Can't remember why this is needed. It produced duplicates, but how?)
 	private Set<Integer>     inlineConstantOppStartSet;   // Source start position for all found opportunities.
 	private Set<Integer>     inlineMethodOppStartSet;
 
@@ -131,10 +128,10 @@ public class HotMethodVisitor  extends ASTVisitor {
 	private static final boolean isCaptureExtractMethod        = false;
 	private static final boolean isCaptureRename               = true;
 
-	public HotMethodVisitor(Cache cache, ICompilationUnit unit, Predicate<String> isHot) {
+	public HotMethodVisitor(Cache cache, ICompilationUnit unit, MethodSet methods) {
 		this.cache        = cache;
 		this.unit         = unit;
-		this.isHot        = isHot;
+		this.methods      = methods;
 		this.trace        = new LinkedList<>();
 		this.expansion    = new LinkedList<>();
 		this.isCapture    = false;
@@ -200,20 +197,19 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 		String qNameAndPList = String.format("%s(%s)", getFullyQualifiedName(),  String.join(", ", paramTypes));
 
-		if (!isHot.test(qNameAndPList)) {
+		if (!this.methods.hasMethod(qNameAndPList)) {
 			return false; // Skip body.
 		}
 
 		System.out.println(String.format("Visit HOT method declaration %s", qNameAndPList));
 
+		this.isCapture = true; // Enable opportunity capture.
+
 		// Apply renaming to type declarations in context.
 		for (TypeDeclaration decl : this.enclosingTypeDecls) {
 			visit_rename(decl);
 		}
-
 		visit_rename(node);
-		
-		this.isCapture = true; // Enable opportunity capture.
 		return true;           // Enter body.
 	}
 
@@ -482,13 +478,21 @@ public class HotMethodVisitor  extends ASTVisitor {
 		return new RenameLocalVariableDescriptor(defaultArguments(element));
 	}
 
+	private Set<String> typeRenamings = new HashSet<>();
+
 	@SuppressWarnings("unchecked")
 	public boolean visit_rename(TypeDeclaration decl) {
-		String name = decl.getName().getIdentifier();
 		Optional.ofNullable(decl.getName().resolveBinding())
 		.map  (b -> (IJavaElement)b.getJavaElement())
 		.filter(e -> e instanceof IType)
 		.ifPresent(element -> {
+			String name = ASTHelper.getFullyQualifiedName(decl);
+			if (typeRenamings.contains(name)) {
+				// Don't add multiple times.
+				// Happens when there are multiple hot methods in the same type.
+				return;
+			}
+			typeRenamings.add(name);
 			System.out.println("TypeDeclaration"
 				+ "\n\tname   = " + name
 				+ "\n\tstart  = " + decl.getStartPosition()
@@ -503,7 +507,6 @@ public class HotMethodVisitor  extends ASTVisitor {
 				addRenameOpportunity(createRenameTypeParameterDescriptor(element));
 			}
 		});
-
 		return true;
 	}
 

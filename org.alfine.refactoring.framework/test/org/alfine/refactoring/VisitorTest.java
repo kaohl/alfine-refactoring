@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 	1) Pre-populate the workspace folder with an assets folder, or
 	2) generate required files as part of a test.
 
-	Preferrably, we can set up multiple assets folders (one per bm)
+	Preferably, we can set up multiple assets folders (one per bm)
 	and then specify which one to use before each test. This way,
 	we can explore the benchmark projects using unit tests while
 	building the framework.
@@ -149,6 +149,7 @@ class VisitorTest {
 	private Workspace getWorkspace() {
 		Hashtable<String, String> options = JavaCore.getDefaultOptions();
 		JavaCore.setComplianceOptions("1.8", options);
+		//JavaCore.setComplianceOptions("17", options); // TODO: Need to create a new eclipse workspace for plugin development in newer eclipse version. Don't upgrade old version. Create a new or copy old!!!
 		JavaCore.setOptions(options);
 
 		// ATTENTION: Projects won't compile without 'rt.jar' on the classpath.
@@ -159,6 +160,19 @@ class VisitorTest {
 		// Maybe have a look at classpath containers here:
 		//
 		//     https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_int.htm
+
+		// This is what is added to the .classpath when configuring using eclipse, see action below:
+		// 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+		//
+		// project -> Properties
+		//         -> Java Build Path
+		//         -> Libraries
+		//         -> Add Library
+		//         -> JRE System Library
+		//         -> Next
+		//         -> Workspace default JRE
+		//         -> Finish
+		// This should make eclipse use the one set by sdkman when starting, I believe.
 
 		Workspace.RT = "/home/pddp/.sdkman/candidates/java/8.0.432-tem/jre/lib/rt.jar";
 

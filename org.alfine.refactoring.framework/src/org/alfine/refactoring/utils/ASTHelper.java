@@ -2,11 +2,13 @@ package org.alfine.refactoring.utils;
 
 import org.alfine.refactoring.framework.Project;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.ISourceRange;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 public class ASTHelper {
 	
@@ -35,5 +37,20 @@ public class ASTHelper {
 
 	public static ASTNode findASTNode(CompilationUnit unit, ISourceRange range) {
 		return findASTNode(unit, range.getOffset(), range.getLength());
+	}
+
+	public static String getFullyQualifiedName(ASTNode node) {
+		ASTNode parent = node.getParent();
+		if (node instanceof TypeDeclaration) {
+			TypeDeclaration type = (TypeDeclaration) node;
+			if (parent instanceof CompilationUnit) {
+				StringBuilder name = new StringBuilder();
+				name.append(((CompilationUnit)parent).getPackage().getName().getFullyQualifiedName());
+				name.append(".");
+				name.append(type.getName().getFullyQualifiedName());
+				return name.toString();
+			}
+		}
+		throw new RuntimeException("Unable to resolve fully qualified name of: " + node);
 	}
 }
