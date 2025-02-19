@@ -189,7 +189,7 @@ class VisitorTest {
 			src,
 			lib,
 			out,
-			false,  /* If true, workspace is set up and refactoring opportunities written to file. */
+			true,  /* If true, workspace is set up and refactoring opportunities written to file. */
 			cache  /* `RefactoringDescriptor` cache in workspace. */
 		);
 		return workspace;
