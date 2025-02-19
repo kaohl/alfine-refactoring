@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -19,6 +18,7 @@ import java.util.Vector;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
+import org.alfine.refactoring.framework.launch.CommandLineArguments;
 import org.alfine.utils.Pair;
 
 public class WorkspaceConfiguration {
@@ -73,10 +73,12 @@ public class WorkspaceConfiguration {
 		}
 	}
 
+	private CommandLineArguments args;
+
 	private Path location; /* Workspace folder. */
 	private Path srcPath;  /* Folder containing source archives. */
 	private Path libPath;  /* Folder containing binary archives. */
-	private Path config;    /* Project configuration file. */
+	private Path config;   /* Project configuration file. */
 
 	private Map<String, ProjectConfiguration> projectMap; /* Projects loaded from configuration file. */
 	private Vector<ProjectConfiguration>      projects;   /* Project order as they appear in configuration file. */
@@ -86,20 +88,22 @@ public class WorkspaceConfiguration {
 	private static List<String> includedMethodNames;
 	
 	public WorkspaceConfiguration(
-		Path location,
-		Path srcPath,
-		Path libPath,
-		Path config,
-		Path variableConfig,
-		Path includePackageConfig,
-		Path includeCompilationUnitsConfig,
-		Path includeMethodConfig
+		CommandLineArguments args,
+		Path                 location,
+		Path                 srcPath,
+		Path                 libPath
 	) {
+		this.args     = args;
 		this.location = location;
 		this.srcPath  = srcPath;
 		this.libPath  = libPath;
-		this.config   = config;
+		this.config   = srcPath.resolve("workspace.config");
 
+		Path variableConfig                = srcPath.resolve("variable.config");
+		Path includePackageConfig          = srcPath.resolve("packages.config");
+		Path includeCompilationUnitsConfig = srcPath.resolve("units.config");
+		Path includeMethodConfig           = srcPath.resolve("methods.config");
+		
 		includedPackagesNames         = parseIncludedPackagesNames(includePackageConfig);
 		includedCompilationUnitsNames = parseIncludedCompilationUnitsNames(includeCompilationUnitsConfig);
 		includedMethodNames           = parseIncludedMethodNames(includeMethodConfig);
@@ -110,6 +114,10 @@ public class WorkspaceConfiguration {
 
 		this.projects   = p.getFirst();
 		this.projectMap = p.getSecond();
+	}
+
+	public CommandLineArguments getArguments() {
+		return this.args;
 	}
 
 	/** Return `Path' to workspace folder. */

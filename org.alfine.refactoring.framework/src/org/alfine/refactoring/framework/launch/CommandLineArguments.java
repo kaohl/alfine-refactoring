@@ -53,15 +53,16 @@ public class CommandLineArguments {
 	public String getOutputFolder() {
 	    return cmd.getOptionValue("out");
 	}
-	
+
 	public String getRefactoringOutputReportFolder() {
 		return cmd.getOptionValue("report");
 	}
 
-	public String getAlfineRT() {
-		return cmd.hasOption("runtime") ? cmd.getOptionValue("runtime") : "rt.jar";
+	/** Get the specified compiler compliance version, or return the default version. */
+	public String getCompilerComplianceVersion() {
+		return cmd.getOptionValue("compliance"); //cmd.hasOption("compliance") ? cmd.getOptionValue("compliance") : JavaCore.VERSION_21;
 	}
-	
+
 	public boolean getPrepare() {
 		return cmd.hasOption("prepare");
 	}
@@ -181,6 +182,10 @@ public class CommandLineArguments {
         Option select = new Option("y", "select", true, "seed passed to random number generator used for selecting refactoring opportunities.");
         select.setRequired(false); // Default to zero.
         options.addOption(select);
+
+        Option compliance = new Option("k", "compliance", true, "Compiler compliance of created java projects (see JavaCore.VERSION_<version>).");
+        compliance.setRequired(true);
+        options.addOption(compliance);
 
         try {
             CommandLineParser parser = new BasicParser();

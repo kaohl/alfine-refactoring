@@ -40,9 +40,10 @@ public class Main implements IApplication {
 		String  libFolder        = arguments.getLibFolder();    // Location of binary archives to be imported.
 		String  outputFolder     = arguments.getOutputFolder(); // Output folder for source archives on success.
 		String  refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder(); // Folder into which we write refactoring report files.
-		
-		String alfineRT = arguments.getAlfineRT();
-		Workspace.RT    = alfineRT;
+
+		//String alfineRT = arguments.getAlfineRT();
+		//Workspace.RT    = alfineRT;
+
 		// System.getProperties().putIfAbsent(org.alfine.refactoring.framework.JavaProject.ALFINE_RT, alfineRT);
 		
 		//boolean verbose          = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
@@ -53,19 +54,19 @@ public class Main implements IApplication {
 //		JavaCore.getDefaultOptions().put(JavaCore.compli.COMPILER_COMPLIANCE, "1.8");
 		
 		Hashtable<String, String> options = JavaCore.getDefaultOptions();
-		JavaCore.setComplianceOptions("1.8", options);
+		JavaCore.setComplianceOptions(arguments.getCompilerComplianceVersion(), options); // "1.8"
 		JavaCore.setOptions(options);
 		
 		int     drop             = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
 		int     limit            = arguments.getLimit();        // Number of refactoring attempts before we give up.
-		long    shuffleSeed        = arguments.getShuffleSeed();    // Seed passed to Random instance used for shuffling opportunities.
+		long    shuffleSeed      = arguments.getShuffleSeed();    // Seed passed to Random instance used for shuffling opportunities.
 		long    selectSeed       = arguments.getSelectSeed();   // Seed passed to supply iterator used for selecting next opportunity.
 
 		RefactoringType type     = arguments.getRefactoring(); // Refactoring type.
 		long            seed     = arguments.getSeed();        // Number generator seed.
-		int             offset    = arguments.getOffset();       // Number generator initial offset.
+		int             offset   = arguments.getOffset();       // Number generator initial offset.
 		int             length   = arguments.getLength();      // Rename symbol max length. (In case of a rename refactoring.)
-		boolean         fixed     = arguments.getFixed();       // Whether length of generated symbols is fixed or random.
+		boolean         fixed    = arguments.getFixed();       // Whether length of generated symbols is fixed or random.
 
 		String location = Platform.getInstanceLocation().getURL().getFile();
 		logger.info("Location: {}", location);
@@ -81,14 +82,16 @@ public class Main implements IApplication {
 		
 		Workspace workspace = new Workspace(
 			new WorkspaceConfiguration(
+				arguments,
 				locationPath,
 				srcFolderPath,
-				libFolderPath,
-				srcFolderPath.resolve("workspace.config"),
-				srcFolderPath.resolve("variable.config"),
-				srcFolderPath.resolve("packages.config"),
-				srcFolderPath.resolve("units.config"),
-				srcFolderPath.resolve("methods.config")
+				libFolderPath
+//				,
+//				srcFolderPath.resolve("workspace.config"),
+//				srcFolderPath.resolve("variable.config"),
+//				srcFolderPath.resolve("packages.config"),
+//				srcFolderPath.resolve("units.config"),
+//				srcFolderPath.resolve("methods.config")
 			),
 			srcFolderPath,
 			libFolderPath,

@@ -117,7 +117,8 @@ public class HotMethodVisitor  extends ASTVisitor {
 	// the associated compilation unit.
 	private List<String>      expansion;
 
-	// Inline constant state. (TODO: Can't remember why this is needed. It produced duplicates, but how?)
+	// Track start offsets to avoid duplicatations.
+	// Not 100% sure this is relevant anymore.
 	private Set<Integer>     inlineConstantOppStartSet;   // Source start position for all found opportunities.
 	private Set<Integer>     inlineMethodOppStartSet;
 
@@ -354,7 +355,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 				// (This happens for standard library and binary
 				//  dependencies for which source is unavailable.)
 
-				System.err.println("Unable to resolve method binding for invoked method.");
+				System.err.println("Unable to resolve method binding for invoked method: " + String.valueOf(node));
 
 			} else {
 				

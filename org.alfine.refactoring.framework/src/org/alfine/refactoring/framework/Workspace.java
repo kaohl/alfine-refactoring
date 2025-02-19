@@ -19,6 +19,7 @@ import java.util.Vector;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.alfine.refactoring.framework.launch.CommandLineArguments;
 import org.alfine.refactoring.framework.resources.Source;
 import org.alfine.refactoring.suppliers.Cache;
 import org.eclipse.core.resources.IProject;
@@ -114,12 +115,14 @@ public class Workspace {
 			});
 		}
 	}
-	
+
+	private WorkspaceConfiguration config;
+
 	/* Source roots to be considered variable in the workspace (depending on workspace configuration). */
 	private Set<VariablePackageFragments> variableSourceRootFolders;
-	
+
 	private List<String> compilationUnitsFilterList = new ArrayList<String>();
-	
+
 	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath, boolean fresh, Path cachePath) {
 		this.location                  = config.getLocation();
 		this.projectVec                = config.getProjects();
@@ -132,9 +135,15 @@ public class Workspace {
 		this.libPath   = libPath;
 		this.outPath   = outPath;
 
+		this.config = config;
+
 		initialize(fresh);
 
-		this.cache = new Cache(cachePath);
+		this.cache  = new Cache(cachePath);
+	}
+
+	public WorkspaceConfiguration getConfiguration() {
+		return this.config;
 	}
 
 	public Collection<IPackageFragment> getFragments(Predicate<IPackageFragment> filter) {
