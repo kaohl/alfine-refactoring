@@ -19,7 +19,6 @@ import java.util.Vector;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.alfine.refactoring.framework.launch.CommandLineArguments;
 import org.alfine.refactoring.framework.resources.Source;
 import org.alfine.refactoring.suppliers.Cache;
 import org.eclipse.core.resources.IProject;

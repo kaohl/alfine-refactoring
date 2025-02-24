@@ -2,7 +2,6 @@ package org.alfine.refactoring.utils;
 
 import org.alfine.refactoring.framework.Project;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.ISourceRange;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
