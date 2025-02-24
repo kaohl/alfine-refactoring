@@ -9,6 +9,7 @@ import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
 import org.alfine.refactoring.processors.RefactoringProcessor;
 import org.alfine.refactoring.processors.ResultTracker;
+import org.alfine.refactoring.suppliers.HotMethodRefactoringSupplier;
 import org.alfine.refactoring.suppliers.RandomExtractConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
@@ -112,6 +113,10 @@ public class Main implements IApplication {
 		    new RandomExtractMethodSupplier(workspace).cacheOpportunities();
 		    new RandomInlineConstantFieldSupplier(workspace).cacheOpportunities();
 			new RandomExtractConstantFieldSupplier(workspace).cacheOpportunities();
+
+			if (WorkspaceConfiguration.hasMethodsConfig()) {
+				new HotMethodRefactoringSupplier(workspace).cacheOpportunities();
+			}
 
 			return IApplication.EXIT_OK;
 		}

@@ -86,7 +86,11 @@ public class WorkspaceConfiguration {
 	private static Properties   includedPackagesNames;
 	private static Properties   includedCompilationUnitsNames;
 	private static List<String> includedMethodNames;
-	
+
+	public static boolean hasMethodsConfig() {
+		return includedMethodNames.size() > 0;
+	}
+
 	public WorkspaceConfiguration(
 		CommandLineArguments args,
 		Path                 location,
