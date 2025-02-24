@@ -123,7 +123,7 @@ public class Workspace {
 
 	private List<String> compilationUnitsFilterList = new ArrayList<String>();
 
-	public Workspace(WorkspaceConfiguration config, Path srcPath, Path libPath, Path outPath, boolean fresh, Path cachePath) {
+	public Workspace(WorkspaceConfiguration config, boolean fresh) {
 		this.location                  = config.getLocation();
 		this.projectVec                = config.getProjects();
 		this.projectMap                = config.getProjectMap();
@@ -131,15 +131,15 @@ public class Workspace {
 		this.projects                  = new HashMap<>();
 		this.compilationUnitsFilterList = config.getIncludedCompilationUnitsNames();
 
-		this.srcPath   = srcPath;
-		this.libPath   = libPath;
-		this.outPath   = outPath;
+		this.srcPath   = config.getSrcPath();
+		this.libPath   = config.getLibPath();
+		this.outPath   = config.getOutPath();
 
 		this.config = config;
 
 		initialize(fresh);
 
-		this.cache  = new Cache(cachePath);
+		this.cache  = new Cache(config.getCachePath());
 	}
 
 	public WorkspaceConfiguration getConfiguration() {

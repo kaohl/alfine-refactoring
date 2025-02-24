@@ -15,8 +15,9 @@ import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomRenameSupplier;
+import org.alfine.refactoring.suppliers.RefactoringDescriptorFactory;
 import org.alfine.refactoring.suppliers.RefactoringSupplier;
-import org.eclipse.core.runtime.Platform;
+import org.alfine.refactoring.suppliers.SingleRefactoringSupplier;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.jdt.core.JavaCore;
@@ -35,68 +36,31 @@ public class Main implements IApplication {
 		args      = (String [])context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
 		arguments = new CommandLineArguments(args);
 
-		boolean prepareWorkspace = arguments.getPrepare();      // Setup workspace and cache opportunities then exit if true.
-		String  cacheFolder      = arguments.getCacheFolder();  // Location of project specific cache files.
-		String  srcFolder        = arguments.getSrcFolder();    // Location of source archives to be imported.
-		String  libFolder        = arguments.getLibFolder();    // Location of binary archives to be imported.
-		String  outputFolder     = arguments.getOutputFolder(); // Output folder for source archives on success.
-
-		String  refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder(); // Folder into which we write refactoring report files.
+		boolean prepareWorkspaceAndCacheOpportunities = arguments.getPrepare();
 		
 		Hashtable<String, String> options = JavaCore.getDefaultOptions();
-		JavaCore.setComplianceOptions(arguments.getCompilerComplianceVersion(), options); // "1.8"
+		JavaCore.setComplianceOptions(arguments.getCompilerComplianceVersion(), options);
 		JavaCore.setOptions(options);
-		
-		int     drop             = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
-		int     limit            = arguments.getLimit();        // Number of refactoring attempts before we give up.
-		long    shuffleSeed      = arguments.getShuffleSeed();    // Seed passed to Random instance used for shuffling opportunities.
-		long    selectSeed       = arguments.getSelectSeed();   // Seed passed to supply iterator used for selecting next opportunity.
 
-		RefactoringType type     = arguments.getRefactoring(); // Refactoring type.
-		long            seed     = arguments.getSeed();        // Number generator seed.
-		int             offset   = arguments.getOffset();       // Number generator initial offset.
-		int             length   = arguments.getLength();      // Rename symbol max length. (In case of a rename refactoring.)
-		boolean         fixed    = arguments.getFixed();       // Whether length of generated symbols is fixed or random.
-
-		String location = Platform.getInstanceLocation().getURL().getFile();
-		logger.info("Location: {}", location);
-
-		Path locationPath    = Paths.get(location);
-		Path srcFolderPath   = locationPath.resolve(srcFolder);
-		Path libFolderPath   = locationPath.resolve(libFolder);
-		Path outFolderPath   = locationPath.resolve(outputFolder);
-		Path cacheFolderPath = locationPath.resolve(cacheFolder);
-
-		// The `packages.config` is a Java properties file mapping project
-		// names to list of package names open for transformation.
-		
 		Workspace workspace = new Workspace(
-			new WorkspaceConfiguration(
-				arguments,
-				locationPath,
-				srcFolderPath,
-				libFolderPath
-//				,
-//				srcFolderPath.resolve("workspace.config"),
-//				srcFolderPath.resolve("variable.config"),
-//				srcFolderPath.resolve("packages.config"),
-//				srcFolderPath.resolve("units.config"),
-//				srcFolderPath.resolve("methods.config")
-			),
-			srcFolderPath,
-			libFolderPath,
-			outFolderPath,
-			prepareWorkspace, /* If true, workspace is set up and refactoring opportunities written to file. */
-			cacheFolderPath /* `RefactoringDescriptor` cache in workspace. */
+			new WorkspaceConfiguration(arguments),
+			prepareWorkspaceAndCacheOpportunities /* If true, workspace is set up and refactoring opportunities written to file. */
 		);
-		
-		// Write a helper `packages.config` to the source directory.
-		String packagesConfigHelperFileName = "packages.config.helper";
-		Path   packagesConfigHelperPath     = srcFolderPath.resolve(packagesConfigHelperFileName);
+
+		// The `packages.config` is a Java properties file where each key in
+		// the map is a project name and where the value is a list of package
+		// names that should be open for transformation.
+		//
+		// The `packages.config.helper` file written here is for showing
+		// the user what package fragment options are available.
+		//
+		// The user is expected to update the `packages.config' file to
+		// whatever is appropriate for the intended experiment.
+		Path packagesConfigHelperPath = workspace.getConfiguration().getSrcPath().resolve("packages.config.helper");
 
 		workspace.writePackagesConfigHelper(packagesConfigHelperPath);
 
-		if (prepareWorkspace) {
+		if (prepareWorkspaceAndCacheOpportunities) {
 			new RandomRenameSupplier(workspace).cacheOpportunities();
 			new RandomInlineMethodSupplier(workspace).cacheOpportunities();
 		    new RandomExtractMethodSupplier(workspace).cacheOpportunities();
@@ -110,10 +74,28 @@ public class Main implements IApplication {
 			return IApplication.EXIT_OK;
 		}
 
+		int     drop             = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
+		int     limit            = arguments.getLimit();        // Number of refactoring attempts before we give up.
+		long    shuffleSeed      = arguments.getShuffleSeed();    // Seed passed to Random instance used for shuffling opportunities.
+		long    selectSeed       = arguments.getSelectSeed();   // Seed passed to supply iterator used for selecting next opportunity.
+
+		RefactoringType type     = arguments.getRefactoring(); // Refactoring type.
+		long            seed     = arguments.getSeed();        // Number generator seed.
+		int             offset   = arguments.getOffset();       // Number generator initial offset.
+		int             length   = arguments.getLength();      // Rename symbol max length. (In case of a rename refactoring.)
+		boolean         fixed    = arguments.getFixed();       // Whether length of generated symbols is fixed or random.
+
 		RefactoringSupplier supplier  = null;
 
 		switch (type) {
 		case NONE:
+
+			// NOTE: The user is supplying a specific refactoring descriptor.
+
+			final String descriptor = arguments.getRefactoringDescriptor();
+			if (descriptor != null) {
+				supplier = new SingleRefactoringSupplier(RefactoringDescriptorFactory.get(descriptor));
+			}
 			break;
 		case INLINE_CONSTANT:
 			supplier = new RandomInlineConstantFieldSupplier(workspace);
@@ -130,7 +112,7 @@ public class Main implements IApplication {
 		case RENAME:
 
 			if (!arguments.hasOption("length")) {
-				System.out.println("Missing command-line option 'length' (-l) for rename refactorings.");
+				logger.error("Missing command-line option 'length' (-l) for rename refactorings.");
 			}
 
 			RandomRenameSupplier renameSupplier =
@@ -142,7 +124,7 @@ public class Main implements IApplication {
 			supplier = renameSupplier;
 			break;
 		default:
-			System.out.println("Unknown refactoring type.");
+			logger.error("Unknown refactoring type.");
 		}
 
 		supplier.setShuffleSeed(shuffleSeed);
@@ -151,8 +133,10 @@ public class Main implements IApplication {
 		// `reportFolder` is an independent folder into which we write refactoring
 		// output reports and keep track of which refactorings have succeeded and
 		// which have failed.
-		
-		Path reportFolder = Paths.get(refactoringOutputReportFolder);
+
+		String refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder();
+
+		Path reportFolder       = Paths.get(refactoringOutputReportFolder);
 		Path successTrackerFile = reportFolder.resolve("successTrackerFile.txt");
 		Path failureTrackerFile = reportFolder.resolve("failureTrackerFile.txt");
 

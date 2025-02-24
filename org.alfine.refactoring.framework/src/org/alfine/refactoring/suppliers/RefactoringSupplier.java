@@ -20,8 +20,8 @@ public abstract class RefactoringSupplier
 	implements Iterable<RefactoringDescriptor> {
 
 	private final Workspace workspace;
-	private long           shuffleSeed;
-	private long           selectSeed;
+	private long            shuffleSeed;
+	private long            selectSeed;
 
 	public RefactoringSupplier() {
 		this.workspace = null;

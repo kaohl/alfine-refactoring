@@ -67,6 +67,10 @@ public class CommandLineArguments {
 		return cmd.hasOption("prepare");
 	}
 
+	public String getRefactoringDescriptor() {
+		return cmd.hasOption("descriptor") ? cmd.getOptionValue("descriptor") : null;
+	}
+
 	public RefactoringType getRefactoring() {
 		return typeStringToType(cmd.hasOption("type") ? cmd.getOptionValue("type") : "none");
 	}
@@ -187,7 +191,7 @@ public class CommandLineArguments {
         compliance.setRequired(true);
         options.addOption(compliance);
 
-        Option line = new Option("q", "line", true, "Refactoring opportunity cache line");
+        Option line = new Option("q", "descriptor", true, "Refactoring opportunity cache line");
         line.setRequired(false);
         options.addOption(line);
 

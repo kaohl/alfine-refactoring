@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +21,9 @@ import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.launch.CommandLineArguments;
 import org.alfine.utils.Pair;
+import org.eclipse.core.runtime.Platform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WorkspaceConfiguration {
 
@@ -92,16 +96,16 @@ public class WorkspaceConfiguration {
 	}
 
 	public WorkspaceConfiguration(
-		CommandLineArguments args,
-		Path                 location,
-		Path                 srcPath,
-		Path                 libPath
+		CommandLineArguments arguments
 	) {
-		this.args     = args;
-		this.location = location;
-		this.srcPath  = srcPath;
-		this.libPath  = libPath;
+		this.args     = arguments;
+		this.location = Paths.get(Platform.getInstanceLocation().getURL().getFile());
+		this.srcPath  = this.location.resolve(arguments.getSrcFolder());
+		this.libPath  = this.location.resolve(arguments.getLibFolder());
 		this.config   = srcPath.resolve("workspace.config");
+
+		Logger logger = LoggerFactory.getLogger(WorkspaceConfiguration.class);
+		logger.info("Location: {}", location);
 
 		Path variableConfig                = srcPath.resolve("variable.config");
 		Path includePackageConfig          = srcPath.resolve("packages.config");
@@ -137,6 +141,16 @@ public class WorkspaceConfiguration {
 	/** Return `Path' to folder with binary archives. */
 	public Path getLibPath() {
 		return this.libPath;
+	}
+
+	/** Return `Path' to folder for source archives on success. */
+	public Path getOutPath() {
+		return this.location.resolve(getArguments().getOutputFolder());
+	}
+
+	/** Return `Path' to refactoring opportunity cache folder. */
+	public Path getCachePath() {
+		return this.location.resolve(getArguments().getCacheFolder());
 	}
 
 	/** Return `Path' to workspace configuration file. */

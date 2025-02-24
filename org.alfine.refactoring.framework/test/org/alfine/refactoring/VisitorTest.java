@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Stream;
@@ -21,6 +22,7 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.JavaCore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,21 +40,17 @@ import org.slf4j.LoggerFactory;
 	1) Pre-populate the workspace folder with an assets folder, or
 	2) generate required files as part of a test.
 
-	Preferably, we can set up multiple assets folders (one per bm)
-	and then specify which one to use before each test. This way,
-	we can explore the benchmark projects using unit tests while
-	building the framework.
-
  	A test starts with only the assets folder as input and then deploy
  	a set of java projects based on assets files. Java projects generated
- 	as part of a test are deleted afterwards so that the next test can
- 	start from clean slate.
- 	
- 	ATTENTION
+ 	as part of a test are deleted before or after each run so that each
+ 	project start from an empty workspace.
+
+	TIP:
  	Generate a workspace with the fresh=true flag. Then comment
  	out the beforeEach and beforeAfter methods to not clean, and
  	set the fresh flag to false to not have to recreate the
- 	workspace from zip files on every run.
+ 	workspace from zip files on every run when iterating on the
+ 	same test.
  */
 
 class VisitorTest {
@@ -75,40 +73,13 @@ class VisitorTest {
 		JavaCore.setComplianceOptions(arguments.getCompilerComplianceVersion(), options);
 		JavaCore.setOptions(options);
 
-		Path location = getLocation();
-		Path src      = location.resolve("assets/" + bm + "/src");
-		Path lib      = location.resolve("assets/" + bm + "/lib");
-		return new WorkspaceConfiguration(
-			arguments,
-			getLocation(),
-			src,
-			lib
-		);
+		return new WorkspaceConfiguration(arguments);
 	}
 
 	private static void configureMethods(String bm, List<String> methods) throws IOException {
 		Files.deleteIfExists(getMethodsConfigPath(bm));
 		Files.write(getMethodsConfigPath(bm), methods, StandardOpenOption.CREATE_NEW);
 	}
-
-	/*
-	@BeforeEach
-	void setup() throws Exception {
-		Path loc = getLocation();
-		Path src = loc.resolve("assets/src");
-		Path lib = loc.resolve("assets/lib");
-		String newline = System.getProperty("line.sep");
-		try (OutputStream out = Files.newOutputStream(src.resolve("workspace.config"), StandardOpenOption.CREATE)) {
-			StringBuilder sb = new StringBuilder();
-			sb.append("test {" + newline);
-			sb.append("  exp test.jar");
-			sb.append("}" + newline);
-			sb.append(b);
-		} catch (Exception e) {
-			
-		}
-	}
-	*/
 
 	@BeforeEach
 	void beforeEach() {
@@ -150,33 +121,27 @@ class VisitorTest {
 		}
 	}
 
+	// Debug
+	private void showFragments(Workspace workspace) {
+		Collection<IPackageFragment> fragments = workspace.getFragments(fragment -> true);
+		for (IPackageFragment fragment : fragments) {
+			System.out.println("FRAGMENT " + fragment.getElementName());
+		}
+	}
+
 	private Workspace getWorkspace(String bm, String compliance) {
 		String[] args = new String[] {
 			"--cache"     , "oppcache",
 			"--compliance", compliance,
 			"--src"       , "assets/" + bm + "/src",
 			"--lib"       , "assets/" + bm + "/lib",
-			"--out"       , "output",     // Not used here (yet).
-			"--report"    , "report"      // Not used here (yet).
+			"--out"       , "output",
+			"--report"    , "report"
 		};
-
-		// TODO: This path will always be the top-level folder of the eclipse data folder.
-		Path location = getLocation();
-		logger.info("Location: {}", location);
-
-		// TODO: These should be derived from WorkspaceConfiguration.
-		Path src   = location.resolve("assets/" + bm + "/src");
-		Path lib   = location.resolve("assets/" + bm + "/lib");
-		Path out   = location.resolve("output");
-		Path cache = location.resolve("oppcache");
 
 		Workspace workspace = new Workspace(
 			getDefaultWorkspaceConfiguration(bm, args),
-			src,
-			lib,
-			out,
-			true,  /* If true, workspace is set up and refactoring opportunities written to file. */
-			cache  /* `RefactoringDescriptor` cache in workspace. */
+			true  /* Create projects and cache opportunities. */
 		);
 		return workspace;
 	}
@@ -394,15 +359,8 @@ class VisitorTest {
 
 		Workspace workspace = getWorkspace("batik", "1.8");
 
-//		Collection<IPackageFragment> fragments = workspace.getFragments(fragment -> true);
-//		for (IPackageFragment fragment : fragments) {
-//			System.out.println("FRAGMENT " + fragment.getElementName());
-//		}
-
 		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
 		supplier.cacheOpportunities();
-//		assertEquals(1, supplier.getHotMethods().size());
-		// supplier.cacheOpportunities();
 	}
 
 	@Test
