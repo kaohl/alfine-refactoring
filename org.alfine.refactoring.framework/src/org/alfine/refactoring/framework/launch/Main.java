@@ -95,7 +95,7 @@ public class Main implements IApplication {
 		Path   packagesConfigHelperPath     = srcFolderPath.resolve(packagesConfigHelperFileName);
 
 		workspace.writePackagesConfigHelper(packagesConfigHelperPath);
-		
+
 		if (prepareWorkspace) {
 			new RandomRenameSupplier(workspace).cacheOpportunities();
 			new RandomInlineMethodSupplier(workspace).cacheOpportunities();

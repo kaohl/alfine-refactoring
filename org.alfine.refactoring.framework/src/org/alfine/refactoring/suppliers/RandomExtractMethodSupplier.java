@@ -11,7 +11,7 @@ public class RandomExtractMethodSupplier extends RefactoringSupplier {
 
 	public RandomExtractMethodSupplier(Workspace workspace) {
 		super(workspace);
-		Cache.installCachePath(new ExtractMethodDescriptor().getRefactoringID(), "extract.method.txt");
+		Cache.installCachePath(ExtractMethodDescriptor.ID, "extract.method.txt");
 	}
 
 	@Override
@@ -30,8 +30,8 @@ public class RandomExtractMethodSupplier extends RefactoringSupplier {
 				new org.alfine.refactoring.suppliers.HistSupply();
 
 			cache
-			.getCacheLines(new ExtractMethodDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new ExtractMethodDescriptor(line)));
+			.getCacheLines(ExtractMethodDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			Random shuffle  = new Random(getShuffleSeed());
 			Random select = new Random(getSelectSeed());

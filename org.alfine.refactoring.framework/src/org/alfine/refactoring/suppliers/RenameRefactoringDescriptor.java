@@ -11,15 +11,8 @@ import org.slf4j.LoggerFactory;
 
 public abstract class RenameRefactoringDescriptor extends RefactoringDescriptor {
 
-	public RenameRefactoringDescriptor() {
-	}
-
 	public RenameRefactoringDescriptor(Map<String, String> args) {
 		super(args);
-	}
-
-	public RenameRefactoringDescriptor(String cacheLine) {
-		super(cacheLine);
 	}
 
 	/** Generate a random name argument for a rename descriptor. */

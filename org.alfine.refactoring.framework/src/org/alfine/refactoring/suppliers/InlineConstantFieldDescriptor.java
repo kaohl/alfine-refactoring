@@ -1,5 +1,6 @@
 package org.alfine.refactoring.suppliers;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
@@ -7,20 +8,19 @@ import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 
 public class InlineConstantFieldDescriptor extends RefactoringDescriptor {
 
+	public static final String ID = IJavaRefactorings.INLINE_CONSTANT;
+
 	public InlineConstantFieldDescriptor() {
+		this(Collections.emptyMap());
 	}
 
 	public InlineConstantFieldDescriptor(Map<String, String> args) {
 		super(args);
 	}
 
-	public InlineConstantFieldDescriptor(String cacheLine) {
-		super(cacheLine);
-	}
-
 	@Override
 	public String getRefactoringID() {
-		return IJavaRefactorings.INLINE_CONSTANT;
+		return ID;
 	}
 
 	@Override

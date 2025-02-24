@@ -17,6 +17,8 @@ Require-Bundle: org.eclipse.core.runtime,
 Automatic-Module-Name: org.alfine.refactoring.framework
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ClassPath: lib/commons-cli-1.2.jar,
+ lib/jakarta.json-api-2.1.3.jar,
+ lib/parsson-1.1.7.jar,
  lib/pup.jar,
  .
 Export-Package: org.alfine.refactoring.framework,

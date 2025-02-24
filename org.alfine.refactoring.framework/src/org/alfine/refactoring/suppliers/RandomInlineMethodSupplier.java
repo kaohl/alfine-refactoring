@@ -13,7 +13,7 @@ public class RandomInlineMethodSupplier extends RefactoringSupplier {
 
 	public RandomInlineMethodSupplier(Workspace workspace) {
 		super(workspace);
-		Cache.installCachePath(new InlineMethodDescriptor().getRefactoringID(), "inline.method.txt");
+		Cache.installCachePath(InlineMethodDescriptor.ID, "inline.method.txt");
 	}
 
 	@Override
@@ -34,8 +34,8 @@ public class RandomInlineMethodSupplier extends RefactoringSupplier {
 				new org.alfine.refactoring.suppliers.ListSupply();
 
 			cache
-			.getCacheLines(new InlineMethodDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new InlineMethodDescriptor(line)));
+			.getCacheLines(InlineMethodDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			Random shuffle  = new Random(getShuffleSeed());
 			Random select = new Random(getSelectSeed());

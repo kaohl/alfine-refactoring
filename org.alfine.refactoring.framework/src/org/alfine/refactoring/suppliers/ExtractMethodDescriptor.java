@@ -1,5 +1,6 @@
 package org.alfine.refactoring.suppliers;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
@@ -7,20 +8,19 @@ import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 
 public class ExtractMethodDescriptor extends RefactoringDescriptor {
 
+	public static final String ID = IJavaRefactorings.EXTRACT_METHOD;
+
 	public ExtractMethodDescriptor() {
+		this(Collections.emptyMap());
 	}
 
 	public ExtractMethodDescriptor(Map<String, String> args) {
 		super(args);
 	}
 
-	public ExtractMethodDescriptor(String cacheLine) {
-		super(cacheLine);
-	}
-
 	@Override
 	public String getRefactoringID() {
-		return IJavaRefactorings.EXTRACT_METHOD;
+		return ID;
 	}
 
 	/*

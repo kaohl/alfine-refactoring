@@ -146,7 +146,7 @@ public class CommandLineArguments {
         Option alfineRTPath = new Option("n", "runtime", true, "Default workspace Java JRE.");
         alfineRTPath.setRequired(false);
         options.addOption(alfineRTPath);
-        
+
         Option refactoring = new Option("t", "type", true, "refactoring type");
         refactoring.setRequired(false);
         options.addOption(refactoring);
@@ -186,6 +186,10 @@ public class CommandLineArguments {
         Option compliance = new Option("k", "compliance", true, "Compiler compliance of created java projects (see JavaCore.VERSION_<version>).");
         compliance.setRequired(true);
         options.addOption(compliance);
+
+        Option line = new Option("q", "line", true, "Refactoring opportunity cache line");
+        line.setRequired(false);
+        options.addOption(line);
 
         try {
             CommandLineParser parser = new BasicParser();

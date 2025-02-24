@@ -11,7 +11,7 @@ public class RandomInlineConstantFieldSupplier extends RefactoringSupplier {
 
 	public RandomInlineConstantFieldSupplier(Workspace workspace) {
 		super(workspace);
-		Cache.installCachePath(new InlineConstantFieldDescriptor().getRefactoringID(), "inline.field.txt");
+		Cache.installCachePath(InlineConstantFieldDescriptor.ID, "inline.field.txt");
 	}
 
 	@Override
@@ -30,8 +30,8 @@ public class RandomInlineConstantFieldSupplier extends RefactoringSupplier {
 					new org.alfine.refactoring.suppliers.ListSupply();
 
 			cache
-			.getCacheLines(new InlineConstantFieldDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new InlineConstantFieldDescriptor(line)));
+			.getCacheLines(InlineConstantFieldDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			Random shuffle  = new Random(getShuffleSeed());
 			Random select = new Random(getSelectSeed());

@@ -1,0 +1,44 @@
+package org.alfine.refactoring.suppliers;
+
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
+
+import jakarta.json.Json;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonString;
+
+public class RefactoringDescriptorFactory {
+
+	private static Map<String, Function<Map<String, String>, RefactoringDescriptor>> factories = new HashMap<>();
+
+	static {
+		factories.put(IJavaRefactorings.INLINE_CONSTANT , InlineConstantFieldDescriptor::new);
+		factories.put(IJavaRefactorings.EXTRACT_CONSTANT, ExtractConstantFieldDescriptor::new);
+
+		factories.put(IJavaRefactorings.INLINE_METHOD   , InlineMethodDescriptor::new);
+		factories.put(IJavaRefactorings.EXTRACT_METHOD  , ExtractMethodDescriptor::new);
+
+		factories.put(IJavaRefactorings.RENAME_FIELD         , RenameFieldDescriptor::new);
+		factories.put(IJavaRefactorings.RENAME_METHOD        , RenameMethodDescriptor::new);
+		factories.put(IJavaRefactorings.RENAME_LOCAL_VARIABLE, RenameLocalVariableDescriptor::new);
+		factories.put(IJavaRefactorings.RENAME_TYPE          , RenameTypeDescriptor::new);
+		factories.put(IJavaRefactorings.RENAME_TYPE_PARAMETER, RenameTypeParameterDescriptor::new);
+	}
+
+	public static RefactoringDescriptor get(String descriptor) {
+		JsonReader          jsonReader = Json.createReader(new StringReader(descriptor));
+		Map<String, String> map        = jsonReader.readObject().entrySet().stream().collect(
+			Collectors.toMap(
+				Entry::getKey,
+				e -> ((JsonString)e.getValue()).getString()
+			)
+		);
+		return factories.get(map.get(RefactoringDescriptor.ID_NAME)).apply(map);
+	}
+}

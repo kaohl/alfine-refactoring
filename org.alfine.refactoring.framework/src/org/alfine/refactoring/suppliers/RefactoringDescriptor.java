@@ -5,18 +5,18 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
-import org.eclipse.ltk.core.refactoring.Refactoring;
-import org.eclipse.ltk.core.refactoring.RefactoringContext;
 import org.eclipse.ltk.core.refactoring.RefactoringContribution;
 import org.eclipse.ltk.core.refactoring.RefactoringCore;
-import org.eclipse.ltk.core.refactoring.RefactoringStatus;
-import org.eclipse.ltk.core.refactoring.RefactoringStatusEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.json.Json;
+import jakarta.json.JsonObjectBuilder;
+
 public abstract class RefactoringDescriptor implements Comparable<RefactoringDescriptor> {
+
+	public static final String ID_NAME = "id";
 
 	/** Sorted Map to get a predictable order of entries which we
 	 *  use to produce a comparable string for refactoring descriptors. */
@@ -30,50 +30,13 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 		"bin";
 
 	public RefactoringDescriptor() {
+		this.args.put(ID_NAME, getRefactoringID());
 	}
 
 	/** Create a new descriptor with empty argument map. */
 	public RefactoringDescriptor(Map<String, String> args) {
-		for (Entry<String,String> kv : args.entrySet()) {
-			this.args.put(kv.getKey(), kv.getValue());
-		}
-	}
-
-	/** Populate map from line of key-value pairs. */
-	public RefactoringDescriptor(String line) {
-
-		String key = null;
-		String val = null;
-
-		for (String kv : line.split(" ")) {
-
-			// Ignore leading space in cache line.
-
-			if ("".equals(kv)) {
-				continue;
-			}
-
-			int i = kv.indexOf('=');
-
-			if (i != -1) {
-				if (key != null) {
-					this.args.put(key, val);
-					key = val = null;
-				}
-
-				key = kv.substring(0, i).trim();
-				val = kv.substring(i + 1).trim();
-			} else {
-				if (val == null) {
-					val = "";
-				}
-				val += " " + kv; 
-			}
-		}
-
-		if (key != null) {
-			this.args.put(key, val);
-		}
+		this();
+		this.args.putAll(args);
 	}
 
 	/** Return refactoring descriptor ID. */
@@ -108,24 +71,18 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 		return this.args;
 	}
 
-	/** Create and return cache file entry which is a concatenation of argument map entries. */
-	public String getCacheLine() {
-
-		// TODO: Consider caching the cache line internally
-		//       if this method gets called a lot (update if
-		//       `put()` has been called since last call).
-
-		StringBuilder sb = new StringBuilder();
-
-		// We do not need to store the id because all opportunities
-		// in the same file have the same id which we can hardcode in
-		// the cache loading routine for in a given supplier.
-
+	@Override
+	public String toString() {
+		JsonObjectBuilder json = Json.createObjectBuilder();
 		for (Entry<String, String> entry: this.args.entrySet()) {
-			sb.append(" " + entry.getKey() + "=" + entry.getValue());
+			json.add(entry.getKey(), entry.getValue());
 		}
+		return json.build().toString();
+	}
 
-		return sb.toString();
+	/** Return a string representation of this descriptor. */
+	public String getCacheLine() {
+		return toString();
 	}
 
 	protected RefactoringContribution getRefactoringContribution() {

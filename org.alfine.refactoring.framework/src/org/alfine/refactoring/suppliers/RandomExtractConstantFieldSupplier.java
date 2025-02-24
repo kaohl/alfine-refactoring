@@ -11,7 +11,7 @@ public class RandomExtractConstantFieldSupplier extends RefactoringSupplier {
 
 	public RandomExtractConstantFieldSupplier(Workspace workspace) {
 		super(workspace);
-		Cache.installCachePath(new ExtractConstantFieldDescriptor().getRefactoringID(), "extract.field.txt");
+		Cache.installCachePath(ExtractConstantFieldDescriptor.ID, "extract.field.txt");
 	}
 
 	@Override
@@ -30,8 +30,8 @@ public class RandomExtractConstantFieldSupplier extends RefactoringSupplier {
 					new org.alfine.refactoring.suppliers.ListSupply();
 
 			cache
-			.getCacheLines(new ExtractConstantFieldDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new ExtractConstantFieldDescriptor(line)));
+			.getCacheLines(ExtractConstantFieldDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			Random shuffle  = new Random(getShuffleSeed());
 			Random select = new Random(getSelectSeed());

@@ -27,11 +27,11 @@ public class RandomRenameSupplier extends RefactoringSupplier {
 			RandomRenameSupplier.generator = new Generator(seed, offset);
 		}
 
-		Cache.installCachePath(new RenameTypeDescriptor().getRefactoringID(),          "rename.type.txt");
-		Cache.installCachePath(new RenameMethodDescriptor().getRefactoringID(),        "rename.method.txt");
-		Cache.installCachePath(new RenameFieldDescriptor().getRefactoringID(),         "rename.field.txt");
-		Cache.installCachePath(new RenameLocalVariableDescriptor().getRefactoringID(), "rename.local.variable.txt");
-		Cache.installCachePath(new RenameTypeParameterDescriptor().getRefactoringID(), "rename.type.parameter.txt");
+		Cache.installCachePath(RenameTypeDescriptor.ID,          "rename.type.txt");
+		Cache.installCachePath(RenameMethodDescriptor.ID,        "rename.method.txt");
+		Cache.installCachePath(RenameFieldDescriptor.ID,         "rename.field.txt");
+		Cache.installCachePath(RenameLocalVariableDescriptor.ID, "rename.local.variable.txt");
+		Cache.installCachePath(RenameTypeParameterDescriptor.ID, "rename.type.parameter.txt");
 	}
 
 	/** Equivalent to RandomRenameSupplier(workspace, 0, 0). */
@@ -100,24 +100,24 @@ public class RandomRenameSupplier extends RefactoringSupplier {
 				new org.alfine.refactoring.suppliers.ListSupply();
 
 			cache
-			.getCacheLines(new RenameTypeDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new RenameTypeDescriptor(line)));
+			.getCacheLines(RenameTypeDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			cache
-			.getCacheLines(new RenameMethodDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new RenameMethodDescriptor(line)));
+			.getCacheLines(RenameMethodDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			cache
-			.getCacheLines(new RenameFieldDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new RenameFieldDescriptor(line)));
+			.getCacheLines(RenameFieldDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			cache
-			.getCacheLines(new RenameLocalVariableDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new RenameLocalVariableDescriptor(line)));
+			.getCacheLines(RenameLocalVariableDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			cache
-			.getCacheLines(new RenameTypeParameterDescriptor().getRefactoringID())
-			.forEach(line -> supply.add(new RenameTypeParameterDescriptor(line)));
+			.getCacheLines(RenameTypeParameterDescriptor.ID)
+			.forEach(line -> supply.add(RefactoringDescriptorFactory.get(line)));
 
 			Random shuffle  = new Random(getShuffleSeed());
 			Random select = new Random(getSelectSeed());
