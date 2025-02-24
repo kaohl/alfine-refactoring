@@ -40,19 +40,8 @@ public class Main implements IApplication {
 		String  srcFolder        = arguments.getSrcFolder();    // Location of source archives to be imported.
 		String  libFolder        = arguments.getLibFolder();    // Location of binary archives to be imported.
 		String  outputFolder     = arguments.getOutputFolder(); // Output folder for source archives on success.
+
 		String  refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder(); // Folder into which we write refactoring report files.
-
-		//String alfineRT = arguments.getAlfineRT();
-		//Workspace.RT    = alfineRT;
-
-		// System.getProperties().putIfAbsent(org.alfine.refactoring.framework.JavaProject.ALFINE_RT, alfineRT);
-		
-		//boolean verbose          = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
-
-		// https://help.eclipse.org/2019-09/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_api_options.htm&anchor=builder
-//		JavaCore.getDefaultOptions().put(JavaCore.COMPILER_CODEGEN_TARGET_PLATFORM, "1.8");
-//		JavaCore.getDefaultOptions().put(JavaCore.COMPILER_COMPLIANCE, "1.8");
-//		JavaCore.getDefaultOptions().put(JavaCore.compli.COMPILER_COMPLIANCE, "1.8");
 		
 		Hashtable<String, String> options = JavaCore.getDefaultOptions();
 		JavaCore.setComplianceOptions(arguments.getCompilerComplianceVersion(), options); // "1.8"
