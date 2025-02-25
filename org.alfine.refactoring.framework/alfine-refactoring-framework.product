@@ -20,52 +20,41 @@
    </launcher>
 
    <vm>
+      <linux include="true">org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21</linux>
    </vm>
 
    <plugins>
       <plugin id="bcpg"/>
       <plugin id="bcprov"/>
       <plugin id="bcutil"/>
-      <plugin id="ch.qos.logback.classic"/>
-      <plugin id="ch.qos.logback.core"/>
-      <plugin id="com.google.gson"/>
-      <plugin id="com.google.guava"/>
-      <plugin id="com.google.guava.failureaccess"/>
       <plugin id="com.ibm.icu"/>
       <plugin id="com.sun.el.javax.el"/>
       <plugin id="com.sun.jna"/>
       <plugin id="com.sun.jna.platform"/>
       <plugin id="jakarta.annotation-api"/>
       <plugin id="jakarta.inject.jakarta.inject-api"/>
-      <plugin id="javax.xml"/>
-      <plugin id="jaxen"/>
       <plugin id="junit-jupiter-api"/>
       <plugin id="junit-jupiter-engine"/>
       <plugin id="junit-platform-commons"/>
       <plugin id="junit-platform-engine"/>
       <plugin id="junit-platform-launcher"/>
-      <plugin id="org.alfine.refactoring.framework" version="1.0.0"/>
+      <plugin id="org.alfine.refactoring.framework"/>
       <plugin id="org.apache.aries.spifly.dynamic.bundle"/>
       <plugin id="org.apache.batik.constants"/>
       <plugin id="org.apache.batik.css"/>
       <plugin id="org.apache.batik.i18n"/>
       <plugin id="org.apache.batik.util"/>
-      <plugin id="org.apache.commons.cli"/>
       <plugin id="org.apache.commons.collections"/>
       <plugin id="org.apache.commons.commons-beanutils"/>
-      <plugin id="org.apache.commons.commons-codec"/>
       <plugin id="org.apache.commons.commons-io"/>
       <plugin id="org.apache.commons.jxpath"/>
-      <plugin id="org.apache.commons.lang"/>
       <plugin id="org.apache.commons.logging"/>
       <plugin id="org.apache.felix.gogo.command"/>
       <plugin id="org.apache.felix.gogo.runtime"/>
       <plugin id="org.apache.felix.gogo.shell"/>
       <plugin id="org.apache.felix.scr"/>
-      <plugin id="org.apache.xerces"/>
-      <plugin id="org.apache.xml.resolver"/>
-      <plugin id="org.apache.xml.serializer"/>
       <plugin id="org.apache.xmlgraphics"/>
+      <plugin id="org.apiguardian.api"/>
       <plugin id="org.commonmark"/>
       <plugin id="org.commonmark-gfm-tables"/>
       <plugin id="org.eclipse.ant.core"/>
@@ -113,9 +102,7 @@
       <plugin id="org.eclipse.emf.common"/>
       <plugin id="org.eclipse.emf.ecore"/>
       <plugin id="org.eclipse.emf.ecore.change"/>
-      <plugin id="org.eclipse.emf.ecore.edit"/>
       <plugin id="org.eclipse.emf.ecore.xmi"/>
-      <plugin id="org.eclipse.emf.edit"/>
       <plugin id="org.eclipse.equinox.app"/>
       <plugin id="org.eclipse.equinox.bidi"/>
       <plugin id="org.eclipse.equinox.common"/>
@@ -139,7 +126,6 @@
       <plugin id="org.eclipse.jdt.debug"/>
       <plugin id="org.eclipse.jdt.launching"/>
       <plugin id="org.eclipse.jdt.ui"/>
-      <plugin id="org.eclipse.jem.util"/>
       <plugin id="org.eclipse.jetty.servlet-api"/>
       <plugin id="org.eclipse.jface"/>
       <plugin id="org.eclipse.jface.databinding"/>
@@ -147,20 +133,9 @@
       <plugin id="org.eclipse.jface.text"/>
       <plugin id="org.eclipse.ltk.core.refactoring"/>
       <plugin id="org.eclipse.ltk.ui.refactoring"/>
-      <plugin id="org.eclipse.m2e.archetype.catalog"/>
-      <plugin id="org.eclipse.m2e.archetype.common"/>
-      <plugin id="org.eclipse.m2e.archetype.descriptor"/>
-      <plugin id="org.eclipse.m2e.archetype.maven-artifact-transfer"/>
-      <plugin id="org.eclipse.m2e.core"/>
-      <plugin id="org.eclipse.m2e.core.ui"/>
-      <plugin id="org.eclipse.m2e.logback"/>
-      <plugin id="org.eclipse.m2e.maven.runtime"/>
-      <plugin id="org.eclipse.m2e.model.edit"/>
-      <plugin id="org.eclipse.m2e.workspace.cli"/>
       <plugin id="org.eclipse.orbit.xml-apis-ext"/>
       <plugin id="org.eclipse.osgi"/>
       <plugin id="org.eclipse.osgi.compatibility.state"/>
-      <plugin id="org.eclipse.osgi.util"/>
       <plugin id="org.eclipse.search"/>
       <plugin id="org.eclipse.search.core"/>
       <plugin id="org.eclipse.swt"/>
@@ -172,7 +147,6 @@
       <plugin id="org.eclipse.ui.console"/>
       <plugin id="org.eclipse.ui.editors"/>
       <plugin id="org.eclipse.ui.forms"/>
-      <plugin id="org.eclipse.ui.genericeditor"/>
       <plugin id="org.eclipse.ui.ide"/>
       <plugin id="org.eclipse.ui.navigator"/>
       <plugin id="org.eclipse.ui.navigator.resources"/>
@@ -181,19 +155,8 @@
       <plugin id="org.eclipse.ui.workbench"/>
       <plugin id="org.eclipse.ui.workbench.texteditor"/>
       <plugin id="org.eclipse.urischeme"/>
-      <plugin id="org.eclipse.wst.common.core"/>
-      <plugin id="org.eclipse.wst.common.emf"/>
-      <plugin id="org.eclipse.wst.common.emfworkbench.integration"/>
-      <plugin id="org.eclipse.wst.common.environment"/>
-      <plugin id="org.eclipse.wst.common.frameworks"/>
-      <plugin id="org.eclipse.wst.common.project.facet.core"/>
-      <plugin id="org.eclipse.wst.common.uriresolver"/>
-      <plugin id="org.eclipse.wst.sse.core"/>
-      <plugin id="org.eclipse.wst.validation"/>
-      <plugin id="org.eclipse.wst.xml.core"/>
       <plugin id="org.hamcrest"/>
       <plugin id="org.jdom"/>
-      <plugin id="org.jdom2"/>
       <plugin id="org.junit"/>
       <plugin id="org.mortbay.jasper.apache-el"/>
       <plugin id="org.mortbay.jasper.apache-jsp"/>
@@ -203,14 +166,13 @@
       <plugin id="org.objectweb.asm.tree.analysis"/>
       <plugin id="org.objectweb.asm.util"/>
       <plugin id="org.opentest4j"/>
+      <plugin id="org.osgi.service.cm"/>
       <plugin id="org.osgi.service.component"/>
       <plugin id="org.osgi.service.event"/>
+      <plugin id="org.osgi.service.metatype"/>
       <plugin id="org.osgi.service.prefs"/>
       <plugin id="org.osgi.util.function"/>
-      <plugin id="org.osgi.util.measurement"/>
-      <plugin id="org.osgi.util.position"/>
       <plugin id="org.osgi.util.promise"/>
-      <plugin id="org.osgi.util.xml"/>
       <plugin id="org.tukaani.xz"/>
       <plugin id="slf4j.api"/>
       <plugin id="slf4j.simple"/>
