@@ -144,7 +144,7 @@ public class CommandLineArguments {
         options.addOption(outputFolder);
         
         Option reportFolder = new Option("r", "report", true, "refactoring report output folder");
-        reportFolder.setRequired(true);
+        reportFolder.setRequired(false);
         options.addOption(reportFolder);
 
         Option alfineRTPath = new Option("n", "runtime", true, "Default workspace Java JRE.");
