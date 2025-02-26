@@ -188,7 +188,7 @@ public class CommandLineArguments {
         options.addOption(select);
 
         Option compliance = new Option("k", "compliance", true, "Compiler compliance of created java projects (see JavaCore.VERSION_<version>).");
-        compliance.setRequired(true);
+        compliance.setRequired(false);
         options.addOption(compliance);
 
         Option line = new Option("q", "descriptor", true, "Refactoring opportunity cache line");

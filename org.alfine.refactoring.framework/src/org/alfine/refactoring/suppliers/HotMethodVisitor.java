@@ -123,10 +123,10 @@ public class HotMethodVisitor  extends ASTVisitor {
 	private Set<Integer>     inlineMethodOppStartSet;
 
 	// Toggle to control which opportunities are captured.
-	private static final boolean isCaptureInlineConstantField  = false;
-	private static final boolean isCaptureExtractConstantField = false;
-	private static final boolean isCaptureInlineMethod         = false;
-	private static final boolean isCaptureExtractMethod        = false;
+	private static final boolean isCaptureInlineConstantField  = true;
+	private static final boolean isCaptureExtractConstantField = true;
+	private static final boolean isCaptureInlineMethod         = true;
+	private static final boolean isCaptureExtractMethod        = true;
 	private static final boolean isCaptureRename               = true;
 
 	public HotMethodVisitor(Cache cache, ICompilationUnit unit, MethodSet methods) {

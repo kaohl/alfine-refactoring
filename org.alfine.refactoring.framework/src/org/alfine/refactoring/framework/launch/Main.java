@@ -37,10 +37,16 @@ public class Main implements IApplication {
 		arguments = new CommandLineArguments(args);
 
 		boolean prepareWorkspaceAndCacheOpportunities = arguments.getPrepare();
-		
-		Hashtable<String, String> options = JavaCore.getDefaultOptions();
-		JavaCore.setComplianceOptions(arguments.getCompilerComplianceVersion(), options);
-		JavaCore.setOptions(options);
+
+		if (prepareWorkspaceAndCacheOpportunities) {
+			final String compliance = arguments.getCompilerComplianceVersion();
+			if (compliance == null) {
+				throw new Exception("Please specify compiler compliance using the appropriate command line switch.");
+			}
+			Hashtable<String, String> options = JavaCore.getDefaultOptions();
+			JavaCore.setComplianceOptions(arguments.getCompilerComplianceVersion(), options);
+			JavaCore.setOptions(options);
+		}
 
 		Workspace workspace = new Workspace(
 			new WorkspaceConfiguration(arguments),
