@@ -186,7 +186,7 @@ public class WorkspaceConfiguration {
 		try (InputStream in = Files.newInputStream(path)){
 			ps.load(in);
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println("Failed to load: " + e.getMessage());
 		}
 		return ps;
 	}
@@ -206,7 +206,7 @@ public class WorkspaceConfiguration {
 		try (InputStream in = Files.newInputStream(path)){
 			ps.load(in);
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println("Failed to load: " + e.getMessage());
 		}
 		return ps;
 	}
@@ -219,7 +219,7 @@ public class WorkspaceConfiguration {
 		try {
 			return new ArrayList<String>(Files.lines(includeMethodConfig).collect(Collectors.toList()));
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.println("Failed to load: " + e.getMessage());
 		}
 		return new ArrayList<>(0);
 	}

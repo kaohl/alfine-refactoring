@@ -75,14 +75,24 @@ public final class Cache {
 		return fn.apply(this);
 	}
 
-	public void write(RefactoringDescriptor descriptor) {
+	public void write(RefactoringOpportunityContext context, RefactoringDescriptor descriptor) {
 		// TODO: Use IOUtils.appendLineToFile(...) instead of `write`.
-		write(getCacheFilePath(descriptor.getRefactoringID()), descriptor.getCacheLine());
+		// write(getCacheFilePath(descriptor.getRefactoringID()), descriptor.getCacheLine());
+
+		Path descriptors = this.location.resolve(context.getContextPath()).resolve("descriptors.txt");
+		write(descriptors, descriptor.getCacheLine());
 	}
 
 	/** Write opportunity to cache. */
 	private static void write(Path path, String line) {
 		// Duplicate. See IOUtils.appendLineToFile.
+		if (!Files.exists(path)) {
+			try {
+				Files.createDirectories(path.getParent());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		try (BufferedWriter bw =
 				Files.newBufferedWriter(
 					path,

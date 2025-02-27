@@ -91,7 +91,56 @@ import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 	2. Inline methods called from hot method
 	3. Inline methods called from methods called directly from hot method
 
+
+
+    Expansions:
+    - Callers of hot methods (include methods calling into hot methods; note that there could be many paths into a hot method and in worst case, only one is used by the benchmark. The same is true going out of a hot method.)
+    - Called from hot methods
+    - Superclass of hot method class (rename)
+    - Interfaces of hot method class (rename)
  */
+
+/*
+The point of this organization is to make it possible to vary the
+scope of the selection, i.e., a broad vs. narrow selection, based
+on interest.
+
+In a random selection, each <>-segment is a random choice between all available folders,
+where in the last folder we find a list of descriptors from which we select a random entry.
+
+In a targeted selection the user specify pre-made choices as a list of tuples.
+We then make random selections from descriptor lists available given those constraints.
+Constraint formats: (<pkg>) or (<pkg>, <class>), or (<pkg>, <class>, <method>)
+
+If the user wants to select more refactorings than are available of a given type,
+all refactorings are selected.
+
+If the number of refactorings is more than 50% of those available, we instead make the
+equivalent choice of deciding which should not be included rather than the opposite.
+
+If we name the <pgk> folder using the full package fragment name, then we can
+later filter opportunities base on package prefix.
+
+Note(Possible Extension):
+  We could generate argument files for "to-method" of extract refactorings
+  to do extraction into random existing class.
+
+	inline_constant          = <cachetop>/i-constant/<pkg>/<class>/<to-method>/descriptors.txt
+	extract_constant         = <cachetop>/x-constant/<pkg>/<class>/<from-method>/descriptors.txt         // Assumes to == from
+
+	inline_method            = <cachetop>/i-method/<pkg>/<class>/<to-method>/descriptors.txt
+	extract_method           = <cachetop>/x-method/<pkg>/<class>/<from-method>/<nstmts>/descriptors.txt  // Assumes to == from
+
+	rename_type              = <cachetop>/rename/type/descriptors.txt
+	rename_fields            = <cachetop>/rename/field/<pkg>/<class>/descriptors.txt
+	rename_method            = <cachetop>/rename/method/<pkg>/<class>/descriptors.txt
+
+	rename_type_type_param   = <cachetop>/rename/class-type-param/<pkg>/<class>/descriptors.txt
+	rename_method_type_param = <cachetop>/rename/method-type-param/<pkg>/<class>/<method>/descriptors.txt
+
+	rename_local             = <cachetop>/rename/local/<pkg>/<class>/<method>/descriptors.txt
+	rename_param             = <cachetop>/rename/param/<pkg>/<class>/<method>/descriptors.txt
+*/
 
 // TODO: The recursive exploration will require a depth limit and
 //       it is probably a good idea to track which methods has been
@@ -147,15 +196,15 @@ public class HotMethodVisitor  extends ASTVisitor {
 		return this.expansion;
 	}
 
-	private String getFullyQualifiedName() {
-		// There seems to be no straight forward way to get the
-		// fully qualified name of method declaration nodes.
-		// The getFullyQualifiedName() don't do that for SimpleName
-		// which is what getName() returns for MethodDeclaration.
-		// I tried to get the name via the binding as well, but that
-		// also only gave me unqualified names.
-		return String.join(".", trace);
-	}
+//	private String getFullyQualifiedName() {
+//		// There seems to be no straight forward way to get the
+//		// fully qualified name of method declaration nodes.
+//		// The getFullyQualifiedName() don't do that for SimpleName
+//		// which is what getName() returns for MethodDeclaration.
+//		// I tried to get the name via the binding as well, but that
+//		// also only gave me unqualified names.
+//		return String.join(".", trace);
+//	}
 
 	private void enter(String name) {
 		trace.add(name);
@@ -189,14 +238,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	public boolean visit(MethodDeclaration node) {
 		enter(node.getName().getFullyQualifiedName());
 
-		List<String> paramTypes = new LinkedList<>();
-		for (Object p : node.parameters()) {
-			String param    = p.toString();
-			String typeOnly = param.substring(0, param.lastIndexOf(" ")).trim();
-			paramTypes.add(typeOnly);
-		}
-
-		String qNameAndPList = String.format("%s(%s)", getFullyQualifiedName(),  String.join(", ", paramTypes));
+		final String qNameAndPList = ASTHelper.getMethodSignature(node);
 
 		if (!this.methods.hasMethod(qNameAndPList)) {
 			return false; // Skip body.
@@ -221,19 +263,18 @@ public class HotMethodVisitor  extends ASTVisitor {
 	}
 
 	
-	private void addOpportunity(RefactoringDescriptor descriptor) {
+	private void addOpportunity(RefactoringOpportunityContext context, RefactoringDescriptor descriptor) {
 		if (!this.isCapture) {
 			return;
 		}
-		System.out.println("ADD OPPORUNITY: " + descriptor);
-		this.cache.write(descriptor);
+		this.cache.write(context, descriptor);
 	}
 
-	private void addExtractConstantFieldOpportunity(ExtractConstantFieldDescriptor descriptor) {
+	private void addExtractConstantFieldOpportunity(ExtractConstantFieldContext context, ExtractConstantFieldDescriptor descriptor) {
 		if (!isCaptureExtractConstantField) {
 			return;
 		}
-		addOpportunity(descriptor);
+		addOpportunity(context, descriptor);
 	}
 
 	private ExtractConstantFieldDescriptor createExtractConstantFieldDescriptor(int start, int length) {
@@ -247,41 +288,41 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 	@Override
 	public boolean visit(BooleanLiteral literal) {
-		addExtractConstantFieldOpportunity(createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
 		return false;
 	}
 
 	@Override
 	public boolean visit(CharacterLiteral literal) {
-		addExtractConstantFieldOpportunity(createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
 		return false;
 	}
 
 	@Override
 	public boolean visit(NumberLiteral literal) {
-		addExtractConstantFieldOpportunity(createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
 		return false;
 	}
 
 	@Override
 	public boolean visit(StringLiteral literal) {
-		addExtractConstantFieldOpportunity(createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
 		return false;
 	}
 
 	@Override
 	public boolean visit(ArrayInitializer node) {
-		addExtractConstantFieldOpportunity(createExtractConstantFieldDescriptor(node.getStartPosition(), node.getLength()));
+		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(node), createExtractConstantFieldDescriptor(node.getStartPosition(), node.getLength()));
 		return true;
 	}
 
-	private void addInlineConstantOpportunity(InlineConstantFieldDescriptor descriptor, int start) {
+	private void addInlineConstantOpportunity(InlineConstantFieldContext context, InlineConstantFieldDescriptor descriptor, int start) {
 		if (!isCaptureInlineConstantField) {
 			return;
 		}
 		if (!inlineConstantOppStartSet.contains(start)) {
 			inlineConstantOppStartSet.add(start);
-			addOpportunity(descriptor);
+			addOpportunity(context, descriptor);
 		}
 	}
 
@@ -303,11 +344,12 @@ public class HotMethodVisitor  extends ASTVisitor {
 		if (b != null && !name.isDeclaration()) {
 
 			int     modifiers = b.getModifiers();
-			boolean isFinal  = (modifiers & org.eclipse.jdt.core.dom.Modifier.FINAL)  > 0;
-			boolean isStatic = (modifiers & org.eclipse.jdt.core.dom.Modifier.STATIC) > 0;
+			boolean isFinal   = (modifiers & org.eclipse.jdt.core.dom.Modifier.FINAL)  > 0;
+			boolean isStatic  = (modifiers & org.eclipse.jdt.core.dom.Modifier.STATIC) > 0;
 
 			if (isFinal && isStatic) {
 				addInlineConstantOpportunity(
+					new InlineConstantFieldContext(name),
 					createInlineConstantFieldDescriptor(
 						name.getStartPosition(),
 						name.getLength()
@@ -319,13 +361,13 @@ public class HotMethodVisitor  extends ASTVisitor {
 		return true;
 	}
 
-	private void addInlineMethodOpportunity(RefactoringDescriptor descriptor, int start) {
+	private void addInlineMethodOpportunity(InlineMethodContext context, RefactoringDescriptor descriptor, int start) {
 		if (!isCaptureInlineMethod) {
 			return;
 		}
 		if (descriptor != null && !inlineMethodOppStartSet.contains(start)) {
 			inlineMethodOppStartSet.add(start);
-			addOpportunity(descriptor);
+			addOpportunity(context, descriptor);
 		}
 	}
 
@@ -341,60 +383,44 @@ public class HotMethodVisitor  extends ASTVisitor {
 		}
 	}
 
-	/** Check if `node` is a `MethodInvocation` in which case it is added as an opportunity. */
-	private void tryAddNode(ASTNode node) {
-
-		if (node instanceof MethodInvocation) {
-
-			MethodInvocation mi = (MethodInvocation)node;
-			IMethodBinding   mb = mi.resolveMethodBinding();
-
-			if (mb == null) {
-
-				// Source is not available...
-				// (This happens for standard library and binary
-				//  dependencies for which source is unavailable.)
-
-				System.err.println("Unable to resolve method binding for invoked method: " + String.valueOf(node));
-
-			} else {
-				
-				// TODO: Why limit to private static methods?
-
-				int modifierFlags = 
-					//org.eclipse.jdt.core.dom.Modifier.PRIVATE |
-					org.eclipse.jdt.core.dom.Modifier.STATIC;
-
-				int modifiers = mb.getModifiers(); // Bitwise or of modifier constants.
-				
-				boolean isConstructor = mb.isConstructor();
-				boolean isApplicable  = (modifiers & modifierFlags) != 0;
-
-				if (!isConstructor && isApplicable) {
-					addInlineMethodOpportunity(
-						createInlineMethodDescriptor(
-							mb.getJavaElement(),
-							mi.getStartPosition(),
-							mi.getLength()
-						),
-						mi.getStartPosition()
-					);
-				}
-			}
-		}
-	}
-
 	@Override
-	public boolean visit(MethodInvocation mi) {
-		tryAddNode(mi);
+	public boolean visit(MethodInvocation node) {
+		if (node.resolveMethodBinding() instanceof IMethodBinding binding) {
+
+			int modifierFlags = 
+				//org.eclipse.jdt.core.dom.Modifier.PRIVATE |
+				org.eclipse.jdt.core.dom.Modifier.STATIC;
+
+			int modifiers = binding.getModifiers(); // Bitwise or of modifier constants.
+
+			boolean isConstructor = binding.isConstructor();
+			boolean isApplicable  = (modifiers & modifierFlags) != 0;
+
+			if (!isConstructor && isApplicable) {
+				addInlineMethodOpportunity(
+					new InlineMethodContext(node),
+					createInlineMethodDescriptor(
+						binding.getJavaElement(),
+						node.getStartPosition(),
+						node.getLength()
+					),
+					node.getStartPosition()
+				);
+			}			
+		} else {
+			// Source is not available...
+			// (This happens for standard library and binary
+			//  dependencies for which source is unavailable.)
+			System.err.println("Unable to resolve method binding for method invocation: " + String.valueOf(node));			
+		}
 		return true;
 	}
 
-	private void addExtractMethodOpportunity(ExtractMethodDescriptor descriptor) {
+	private void addExtractMethodOpportunity(ExtractMethodContext context, ExtractMethodDescriptor descriptor) {
 		if (!isCaptureExtractMethod) {
 			return;
 		}
-		addOpportunity(descriptor);
+		addOpportunity(context, descriptor);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -419,7 +445,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 		// This "argument" is only for mapping the opportunity
 		// to the correct location in the histogram supply.
 
-		args.put(RefactoringDescriptor.KEY_HIST_BIN, "" + (end - start + 1));
+		// args.put(RefactoringDescriptor.KEY_HIST_BIN, "" + (end - start + 1)); // TODO: Remove. We now have a file system layout that communicate number of statements.
 
 		return new ExtractMethodDescriptor(args);
 	}
@@ -434,7 +460,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 		if (nbrStmts > 0) {
 			for (int start = 0; start < nbrStmts; ++start) {
 				for (int end = start; end < nbrStmts; ++end) {
-					addExtractMethodOpportunity(createExtractMethodDescriptor(block, start, end));
+					addExtractMethodOpportunity(new ExtractMethodContext(block, end - start + 1), createExtractMethodDescriptor(block, start, end));
 				}
 			}
 		}
@@ -442,11 +468,11 @@ public class HotMethodVisitor  extends ASTVisitor {
 		return true;
 	}
 
-	private void addRenameOpportunity(RefactoringDescriptor descriptor) {
+	private void addRenameOpportunity(RefactoringOpportunityContext context, RefactoringDescriptor descriptor) {
 		if (!isCaptureRename) {
 			return;
 		}
-		addOpportunity(descriptor);
+		addOpportunity(context, descriptor);
 	}
 
 	private Map<String, String> defaultArguments(IJavaElement element) {
@@ -482,11 +508,11 @@ public class HotMethodVisitor  extends ASTVisitor {
 	private Set<String> typeRenamings = new HashSet<>();
 
 	@SuppressWarnings("unchecked")
-	public boolean visit_rename(TypeDeclaration decl) {
-		Optional.ofNullable(decl.getName().resolveBinding())
-		.map  (b -> (IJavaElement)b.getJavaElement())
-		.filter(e -> e instanceof IType)
-		.ifPresent(element -> {
+	public void visit_rename(TypeDeclaration decl) {
+		if (
+			decl.getName().resolveBinding() instanceof IBinding binding &&
+			binding.getJavaElement()        instanceof IType    element
+		) {
 			String name = ASTHelper.getFullyQualifiedName(decl);
 			if (typeRenamings.contains(name)) {
 				// Don't add multiple times.
@@ -494,21 +520,8 @@ public class HotMethodVisitor  extends ASTVisitor {
 				return;
 			}
 			typeRenamings.add(name);
-			System.out.println("TypeDeclaration"
-				+ "\n\tname   = " + name
-				+ "\n\tstart  = " + decl.getStartPosition()
-				+ "\n\tlength = " + decl.getLength());
-			addRenameOpportunity(createRenameTypeDescriptor((IType) element));
-			for (TypeParameter tp : (List<TypeParameter>)decl.typeParameters()) {
-				element = tp.getName().resolveBinding().getJavaElement();
-				System.out.println("TypeParameter (TypeDeclaration)"
-						+ "\n\tname   = " + tp.getName()
-						+ "\n\tstart  = " + tp.getStartPosition()
-						+ "\n\tlength = " + tp.getLength());
-				addRenameOpportunity(createRenameTypeParameterDescriptor(element));
-			}
-		});
-		return true;
+			addRenameOpportunity(new RenameTypeContext(decl), createRenameTypeDescriptor((IType) element));
+		}
 	}
 
 //	@Override
@@ -524,11 +537,12 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 	@Override
 	public boolean visit(FieldAccess node) {
-		Optional.ofNullable(node.resolveFieldBinding())
-		.map(IVariableBinding::getJavaElement)
-		.ifPresent(e -> {
-			addRenameOpportunity(createRenameFieldDescriptor(e));
-		});
+		if (
+			node.resolveFieldBinding() instanceof IVariableBinding binding &&
+			binding.getJavaElement()   instanceof IJavaElement     element
+		) {
+			addRenameOpportunity(new RenameFieldAccessContext(node), createRenameFieldDescriptor(element));
+		}
 		return true;
 	}
 
@@ -551,13 +565,10 @@ public class HotMethodVisitor  extends ASTVisitor {
 //	}
 
 	@SuppressWarnings("unchecked")
-	public boolean visit_rename(MethodDeclaration decl) {
-		Optional.ofNullable(decl.resolveBinding())
-		.map  (b -> (IJavaElement)b.getJavaElement())
-		.filter(e -> e instanceof IMethod)
-		.ifPresent(element -> {
-			IMethod method = (IMethod)element;
-			String  tag    = "";
+	public void visit_rename(MethodDeclaration decl) {
+		if (decl.resolveBinding() instanceof IMethodBinding binding &&
+			binding.getJavaElement()  instanceof IMethod    method
+		) {
 			boolean skip   = false;
 			boolean isMain = false;
 			boolean isCtor = false;
@@ -566,86 +577,73 @@ public class HotMethodVisitor  extends ASTVisitor {
 				isCtor = method.isConstructor();
 			} catch (Exception e) {
 				e.printStackTrace();
-				tag  = "<unknown>";
 				skip = true;
 			}
-			tag = isMain ? " (main)"        : tag;
-			tag = isCtor ? " (constructor)" : tag;
-			System.out.println("MethodDeclaration" + tag
-					+ "\n\tname   = " + decl.resolveBinding().getName() // We have already checked that binding is present.
-					+ "\n\tstart  = " + decl.getStartPosition()
-					+ "\n\tlength = " + decl.getLength());
 			if (skip) {
 				System.out.println("Skip MethodDeclaration: Unable to determine if method is `main' or a constructor.");
 				return;
 			}
 			if (!isMain && ! isCtor) {
-				addRenameOpportunity(createRenameMethodDescriptor(element));
+				addRenameOpportunity(new RenameMethodContext(decl), createRenameMethodDescriptor((IJavaElement)method));
 			}
-			for (TypeParameter tp : (List<TypeParameter>)decl.typeParameters()) {
-				Optional.ofNullable(tp.getName().resolveBinding())
-				.map  (b -> (IJavaElement)b.getJavaElement())
-				.filter(e -> e instanceof ITypeParameter)
-				.ifPresent(e -> {
-					System.out.println("TypeParameter (MethodDeclaration)"
-						+ "\n\tname   = " + tp.getName()
-						+ "\n\tstart  = " + tp.getStartPosition()
-						+ "\n\tlength = " + tp.getLength());
-					addRenameOpportunity(createRenameTypeParameterDescriptor(e));
-				});
-			}
-		});
-		return true;
+		}
 	}
 
 	public boolean visit(SingleVariableDeclaration svd) {
-		System.out.println("SingleVariableDeclaration: " + svd);
-		Optional.ofNullable(svd.resolveBinding())
-		.map  (b -> (IJavaElement)b.getJavaElement())
-		.filter(e -> e instanceof ILocalVariable)
-		.ifPresent(ije -> {
-			IVariableBinding svb = svd.resolveBinding(); // We know it can be resolved now.
-			System.out.println("SingleVariableDeclaration"
-					+ "\n\tname   = " + svb.getName()
-					+ "\n\tstart  = " + svd.getStartPosition()
-					+ "\n\tlength = " + svd.getLength());
-			addRenameOpportunity(createRenameLocalVariableDescriptor(ije));
-		});
+		if (
+			svd.resolveBinding()     instanceof IVariableBinding binding  &&
+			binding.getJavaElement() instanceof ILocalVariable   variable
+		) {
+			if (ASTHelper.isMethodParameter(svd)) {
+				// Note: A parameter is still a local variable descriptor, but we change the context to be able to distinguish between parameters and locals.
+				addRenameOpportunity(new RenameMethodParameterContext(svd), createRenameLocalVariableDescriptor(variable));
+			} else {
+				// Is this a real case?
+				new Exception("Unhandled case").printStackTrace();
+			}
+		}
 		return true;
 	}
 
 	@SuppressWarnings("unchecked")
 	public boolean visit(VariableDeclarationStatement decl) {
-		System.out.println("VariableDeclarationStatement: " + decl);
+		RenameLocalVariableContext context = new RenameLocalVariableContext(decl);
 		for (VariableDeclarationFragment frag : (List<VariableDeclarationFragment>)decl.fragments()) {
-			Optional.ofNullable(frag.getName().resolveBinding())
-			.map  (b -> (IJavaElement)b.getJavaElement())
-			.filter(e -> e instanceof ILocalVariable)
-			.ifPresent(e -> {
-				System.out.println("VariableDeclarationFragment in VariableDeclarationStatement"
-						+ "\n\tname   = " + frag.getName()
-						+ "\n\tstart  = " + frag.getStartPosition()
-						+ "\n\tlength = " + frag.getLength());
-				addRenameOpportunity(createRenameLocalVariableDescriptor(e));
-			});
+			if (
+				frag.getName().resolveBinding() instanceof IBinding       binding &&
+				binding.getJavaElement()        instanceof ILocalVariable element
+			) {
+				addRenameOpportunity(context, createRenameLocalVariableDescriptor(element));
+			}
 		}
 		return true;
 	}
 
 	@SuppressWarnings("unchecked")
 	public boolean visit(VariableDeclarationExpression decl) {
-		System.out.println("VariableDeclarationExpression: " + decl);
+		RenameLocalVariableContext context = new RenameLocalVariableContext(decl);
 		for (VariableDeclarationFragment frag : (List<VariableDeclarationFragment>)decl.fragments()) {
-			Optional.ofNullable(frag.getName().resolveBinding())
-			.map  (b -> (IJavaElement)b.getJavaElement())
-			.filter(e -> e instanceof ILocalVariable)
-			.ifPresent(e -> {				
-				System.out.println("VariableDeclarationFragment in VariableDeclarationExpression"
-					+ "\n\tname   = " + frag.getName()
-					+ "\n\tstart  = " + frag.getStartPosition()
-					+ "\n\tlength = " + frag.getLength());
-				addRenameOpportunity(createRenameLocalVariableDescriptor(e));
-			});
+			if (
+				frag.getName().resolveBinding() instanceof IBinding       binding &&
+				binding.getJavaElement()        instanceof ILocalVariable element
+			) {
+				addRenameOpportunity(context, createRenameLocalVariableDescriptor(element));
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean visit(TypeParameter typeParameter) {
+		if (
+			typeParameter.getName().resolveBinding() instanceof IBinding       binding &&
+			binding.getJavaElement()                 instanceof ITypeParameter element
+		) {
+			if (ASTHelper.isMethodTypeParameter(typeParameter)) {
+				addRenameOpportunity(new RenameMethodTypeParameterContext(typeParameter), createRenameTypeParameterDescriptor(element));
+			} else if (ASTHelper.isTypeTypeParameter(typeParameter)) {
+				addRenameOpportunity(new RenameTypeTypeParameterContext(typeParameter), createRenameTypeParameterDescriptor(element));
+			}
 		}
 		return true;
 	}

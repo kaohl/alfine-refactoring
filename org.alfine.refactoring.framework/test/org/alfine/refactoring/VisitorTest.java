@@ -65,7 +65,7 @@ class VisitorTest {
 		return getLocation().resolve("assets/" + bm + "/src/methods.config");
 	}
 
-	private static WorkspaceConfiguration getDefaultWorkspaceConfiguration(String bm, String[] args) {
+	private static WorkspaceConfiguration getDefaultWorkspaceConfiguration(String[] args) {
 		CommandLineArguments arguments = new CommandLineArguments(args);
 
 		// Set default JavaCore compiler compliance. (TODO: Evaluate whether this is needed now that we set the compiler compliance on all projects.)
@@ -140,7 +140,7 @@ class VisitorTest {
 		};
 
 		Workspace workspace = new Workspace(
-			getDefaultWorkspaceConfiguration(bm, args),
+			getDefaultWorkspaceConfiguration(args),
 			true  /* Create projects and cache opportunities. */
 		);
 		return workspace;
