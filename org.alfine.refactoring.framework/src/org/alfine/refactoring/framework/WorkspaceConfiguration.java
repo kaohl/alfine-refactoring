@@ -95,9 +95,11 @@ public class WorkspaceConfiguration {
 		return includedMethodNames.size() > 0;
 	}
 
-	public WorkspaceConfiguration(
-		CommandLineArguments arguments
-	) {
+	public static boolean hasPackagesConfig() {
+		return includedPackagesNames.size() > 0 && includedCompilationUnitsNames.size() > 0;
+	}
+
+	public WorkspaceConfiguration(CommandLineArguments arguments) {
 		this.args     = arguments;
 		this.location = Paths.get(Platform.getInstanceLocation().getURL().getFile());
 		this.srcPath  = this.location.resolve(arguments.getSrcFolder());
@@ -111,7 +113,7 @@ public class WorkspaceConfiguration {
 		Path includePackageConfig          = srcPath.resolve("packages.config");
 		Path includeCompilationUnitsConfig = srcPath.resolve("units.config");
 		Path includeMethodConfig           = srcPath.resolve("methods.config");
-		
+
 		includedPackagesNames         = parseIncludedPackagesNames(includePackageConfig);
 		includedCompilationUnitsNames = parseIncludedCompilationUnitsNames(includeCompilationUnitsConfig);
 		includedMethodNames           = parseIncludedMethodNames(includeMethodConfig);
