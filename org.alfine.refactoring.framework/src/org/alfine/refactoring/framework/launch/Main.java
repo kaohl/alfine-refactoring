@@ -62,7 +62,7 @@ public class Main implements IApplication {
 
 		ResultTracker resultTracker = new ResultTracker(successTrackerFile, failureTrackerFile);
 
-		boolean success = new RefactoringProcessor(supplier, resultTracker, reportFolder).processSupply(0, 0);
+		boolean success = new RefactoringProcessor(supplier, resultTracker, reportFolder).processSupply(0, 1);
 
 		workspace.close(success);
 	}
