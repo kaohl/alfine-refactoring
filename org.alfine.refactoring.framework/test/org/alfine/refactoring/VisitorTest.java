@@ -55,8 +55,8 @@ import org.slf4j.LoggerFactory;
 
 class VisitorTest {
 
-	Logger logger = LoggerFactory.getLogger(VisitorTest.class);
-	
+	private Logger logger = LoggerFactory.getLogger(VisitorTest.class);
+
 	private static Path getLocation() {
 		return Paths.get(Platform.getInstanceLocation().getURL().getFile());
 	}

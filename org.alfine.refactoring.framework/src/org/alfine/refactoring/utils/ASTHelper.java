@@ -1,12 +1,12 @@
 package org.alfine.refactoring.utils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.Project;
+import org.alfine.utils.DigestUtil;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.ISourceRange;
 import org.eclipse.jdt.core.dom.AST;
@@ -107,18 +107,32 @@ public class ASTHelper {
 		return String.join(".", parts);
 	}
 
-	/** Return a signature on the format used by the 'methods.config' file. */
-	public static String getMethodSignature(MethodDeclaration node) {
+	public static String getMethodSignatureParams(MethodDeclaration node) {
 		List<String> paramTypes = new LinkedList<>();
 		for (Object p : node.parameters()) {
 			String param    = p.toString();
 			String typeOnly = param.substring(0, param.lastIndexOf(" ")).trim();
 			paramTypes.add(typeOnly);
 		}
-		return String.format("%s(%s)", getFullyQualifiedName(node),  String.join(", ", paramTypes));
+		return String.format("(%s)", String.join(", ", paramTypes));
+	}
+
+	/** Return a signature on the format used by the 'methods.config' file. */
+	public static String getMethodSignature(MethodDeclaration node) {
+		return getFullyQualifiedName(node) + getMethodSignatureParams(node);
 	}
 
 	public static List<String> getDeclarationContext(ASTNode node) {
-		return Arrays.asList(getFullyQualifiedName(node).split("\\."));
+		List<String> parts = new LinkedList<>();
+		for (ASTNode n : getNodeHierarchy(node).stream().filter(n -> n instanceof CompilationUnit || n instanceof TypeDeclaration || n instanceof MethodDeclaration).collect(Collectors.toList())) {
+			if (n instanceof CompilationUnit unit) {
+				parts.add(unit.getPackage().getName().getFullyQualifiedName());
+			} else if (n instanceof TypeDeclaration type) {
+				parts.add(type.getName().getFullyQualifiedName());
+			} else if (n instanceof MethodDeclaration method) {
+				parts.add(method.getName().getFullyQualifiedName() + "-" + DigestUtil.md5(getMethodSignatureParams(method)));
+			}
+		}
+		return parts;
 	}
 }

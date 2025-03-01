@@ -16,6 +16,6 @@ public class RenameTypeTypeParameterContext extends RefactoringOpportunityContex
 
 	@Override
 	public Path getContextPath() {
-		return Paths.get("rename/method-type-param/", String.join("/", this.declContext));
+		return Paths.get("rename/type-type-param/", String.join("/", this.declContext));
 	}
 }

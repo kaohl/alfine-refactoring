@@ -4,12 +4,12 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.alfine.refactoring.utils.ASTHelper;
 import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.ILocalVariable;
 import org.eclipse.jdt.core.IMethod;
@@ -27,6 +27,7 @@ import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.NullLiteral;
 import org.eclipse.jdt.core.dom.NumberLiteral;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.SimpleName;
@@ -34,6 +35,7 @@ import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.TypeParameter;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -135,12 +137,50 @@ Note(Possible Extension):
 	rename_fields            = <cachetop>/rename/field/<pkg>/<class>/descriptors.txt
 	rename_method            = <cachetop>/rename/method/<pkg>/<class>/descriptors.txt
 
-	rename_type_type_param   = <cachetop>/rename/class-type-param/<pkg>/<class>/descriptors.txt
+	rename_type_type_param   = <cachetop>/rename/type-type-param/<pkg>/<class>/descriptors.txt
 	rename_method_type_param = <cachetop>/rename/method-type-param/<pkg>/<class>/<method>/descriptors.txt
 
 	rename_local             = <cachetop>/rename/local/<pkg>/<class>/<method>/descriptors.txt
 	rename_param             = <cachetop>/rename/param/<pkg>/<class>/<method>/descriptors.txt
+
+	*** We could also move declarations around in a file (perhaps it is possible to just permute their places using AST rewrite?)
+
+	NOTE: For extract method, we don't distinguish between different blocks in the method.
+	      Instead, we output all n-sized extractions into the folder named 'n'.
+	      One issue with this is that for blocks of size 1, all opportunities have equal
+	      chance of being selected. However, larger blocks generate more folders, and
+	      contribute to more folders, which means that the probability of extracting a
+	      sequence of statements from a larger block is higher than the probability of
+	      selecting a sequence of statements from a smaller block.
+
+	      It might be better if we used two indirections with a selection on block ID
+	      first, and then select on block size, and then select descriptor:
+
+	          <cachetop>/x-method/<method context>/<block ID 0>/{<size 1>, <size 2>, ..., <size n0>}/descriptors.txt
+  	          <cachetop>/x-method/<method context>/<block ID 1>/{<size 1>, <size 2>, ..., <size n1>}/descriptors.txt
+  	          ...
+
+		  This would distribute the selection fairly across all blocks.
+		  However, on the individual statement level, statements in the middle of blocks
+		  are part of more selections than statements closer to the edges, because there
+		  are more selections covering such statements.
 */
+// TODO: Instead of splitting static and instance fields and methods into different files,
+//       we could add meta data to the descriptor.
+//
+//       "__static"    : {"true"|"false"}
+//       "__visibility": {"public"|"protected"|"private"}
+//       "__length"    : <int>  // Original length of renamed symbol. (Could be used to experiment with different or same size identifiers.)
+//       "__init_type" : <type of initialiser; numeral, boolean, array initialiser...>
+//       "__selection_size" : <size of selection of the input parameter (when defined)>
+//       "__block_size": <extract|inline method block size>
+//       "__n_params"   : <number of parameters of renamed, inlined, or extracted method>
+//       "__n_type_params" : <number of type parameters> // >0 => generic
+//
+// We can use these to filter and categorize opportunities based on their attributes,
+// before or after an experiment, provided that we store the descriptor with the
+// refactoring patches (which we do anyway).
+//
 
 // TODO: The recursive exploration will require a depth limit and
 //       it is probably a good idea to track which methods has been
@@ -154,13 +194,11 @@ Note(Possible Extension):
  */
 public class HotMethodVisitor  extends ASTVisitor {
 	/** Cache for refactoring descriptors.*/
-	private Cache             cache;
-	private ICompilationUnit  unit;
-	private MethodSet         methods;
-	private List<String>      trace;
-	private boolean           isCapture;
-
-	private List<TypeDeclaration> enclosingTypeDecls;
+	private Cache               cache;
+	private ICompilationUnit    unit;
+	private MethodSet           methods;
+	private boolean             isCapture;
+	private final List<Boolean> isCaptureStack;
 
 	// A list of methods accessed from hot methods in
 	// the associated compilation unit.
@@ -179,14 +217,12 @@ public class HotMethodVisitor  extends ASTVisitor {
 	private static final boolean isCaptureRename               = true;
 
 	public HotMethodVisitor(Cache cache, ICompilationUnit unit, MethodSet methods) {
-		this.cache        = cache;
-		this.unit         = unit;
-		this.methods      = methods;
-		this.trace        = new LinkedList<>();
-		this.expansion    = new LinkedList<>();
-		this.isCapture    = false;
-
-		this.enclosingTypeDecls = new LinkedList<>();
+		this.cache          = cache;
+		this.unit           = unit;
+		this.methods        = methods;
+		this.expansion      = new LinkedList<>();
+		this.isCapture      = false;
+		this.isCaptureStack = new LinkedList<>();
 
 		this.inlineConstantOppStartSet  = new HashSet<Integer>();
 		this.inlineMethodOppStartSet    = new HashSet<Integer>();
@@ -196,73 +232,95 @@ public class HotMethodVisitor  extends ASTVisitor {
 		return this.expansion;
 	}
 
-//	private String getFullyQualifiedName() {
-//		// There seems to be no straight forward way to get the
-//		// fully qualified name of method declaration nodes.
-//		// The getFullyQualifiedName() don't do that for SimpleName
-//		// which is what getName() returns for MethodDeclaration.
-//		// I tried to get the name via the binding as well, but that
-//		// also only gave me unqualified names.
-//		return String.join(".", trace);
-//	}
-
-	private void enter(String name) {
-		trace.add(name);
-		//System.out.println(String.format("TRACE %s", String.join(".", trace)));
-	}
-
-	private void leave() {
-		trace.remove(trace.size() - 1);
-	}
-
 	@Override
 	public boolean visit(PackageDeclaration node) {
-		enter(node.getName().getFullyQualifiedName());
 		return true;
 	}
 
 	@Override
 	public boolean visit(TypeDeclaration node) {
-		enter(node.getName().getFullyQualifiedName());
-		this.enclosingTypeDecls.add(node);
 		return true;
 	}
 
 	@Override
 	public void endVisit(TypeDeclaration node) {
-		leave();
-		this.enclosingTypeDecls.remove(this.enclosingTypeDecls.size() - 1);
+		final boolean wasCapture = this.isCapture;
+		this.isCapture = true;
+		// Add hot context opportunities.
+		if (this.hotContext.contains(ASTHelper.getFullyQualifiedName(node))) {
+			if (
+				node.getName().resolveBinding() instanceof IBinding binding &&
+				binding.getJavaElement()        instanceof IType    element
+			) {
+				addRenameOpportunity(new RenameTypeContext(node), createRenameTypeDescriptor(element));
+			}
+			for (Object o : node.typeParameters()) {
+				if (o instanceof TypeParameter tp) {
+					tp.accept(this);
+				}
+			}
+		}
+		this.isCapture = wasCapture;
+	}
+
+	private final Set<String> hotContext = new HashSet<>();
+
+	@Override
+	public void preVisit(ASTNode node) {
+		if (node instanceof MethodDeclaration md) {
+			final String qNameAndPList = ASTHelper.getMethodSignature(md);
+			this.isCaptureStack.add(this.methods.hasMethod(qNameAndPList)); // Enable capture if hot.
+			this.isCapture = this.isCaptureStack.getLast();
+		}
+	}
+
+	@Override
+	public void postVisit(ASTNode node) {
+		if (node instanceof MethodDeclaration) {
+			this.isCaptureStack.removeLast();
+			this.isCapture = this.isCaptureStack.size() > 0 && this.isCaptureStack.getLast();
+		}
 	}
 
 	@Override
 	public boolean visit(MethodDeclaration node) {
-		enter(node.getName().getFullyQualifiedName());
-
-		final String qNameAndPList = ASTHelper.getMethodSignature(node);
-
-		if (!this.methods.hasMethod(qNameAndPList)) {
-			return false; // Skip body.
-		}
-
-		System.out.println(String.format("Visit HOT method declaration %s", qNameAndPList));
-
-		this.isCapture = true; // Enable opportunity capture.
-
 		// Apply renaming to type declarations in context.
-		for (TypeDeclaration decl : this.enclosingTypeDecls) {
-			visit_rename(decl);
+		if (this.isCapture) {
+			final String qNameAndPList = ASTHelper.getMethodSignature(node);
+			System.out.println(String.format("Visit HOT method declaration %s", qNameAndPList));
+			for (ASTNode n : ASTHelper.getNodeHierarchy(node)) {
+				if (n instanceof TypeDeclaration td) {
+					this.hotContext.add(ASTHelper.getFullyQualifiedName(td));
+				} else if (n instanceof MethodDeclaration md) {
+					this.hotContext.add(ASTHelper.getFullyQualifiedName(md));
+				} else if (n instanceof TypeDeclarationStatement tds) {
+					// TODO: getDeclaration() returns AbstractTypeDeclaration of which TypeDeclaration is one possibility.
+					if (tds.getDeclaration() instanceof TypeDeclaration td) {
+						this.hotContext.add(ASTHelper.getFullyQualifiedName(td));
+					}
+				}
+			}
+			visit_rename(node);
 		}
-		visit_rename(node);
-		return true;           // Enter body.
+		return true;
 	}
 
 	@Override
 	public void endVisit(MethodDeclaration node) {
-		leave();
-		this.isCapture = false; // Disable opportunity capture.
+		final boolean wasCapture = this.isCapture;
+		this.isCapture = true;
+		// Add hot context opportunities.
+		if (this.hotContext.contains(ASTHelper.getFullyQualifiedName(node))) {
+			visit_rename(node);
+			for (Object o : node.typeParameters()) {
+				if (o instanceof TypeParameter tp) {
+					tp.accept(this);
+				}
+			}
+		}
+		this.isCapture = wasCapture;
 	}
 
-	
 	private void addOpportunity(RefactoringOpportunityContext context, RefactoringDescriptor descriptor) {
 		if (!this.isCapture) {
 			return;
@@ -284,6 +342,12 @@ public class HotMethodVisitor  extends ASTVisitor {
 		args.put("element", this.unit.getHandleIdentifier());
 		args.put("selection", selection);
 		return new ExtractConstantFieldDescriptor(args);
+	}
+
+	@Override
+	public boolean visit(NullLiteral literal) {
+		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		return false;
 	}
 
 	@Override
@@ -347,6 +411,10 @@ public class HotMethodVisitor  extends ASTVisitor {
 			boolean isFinal   = (modifiers & org.eclipse.jdt.core.dom.Modifier.FINAL)  > 0;
 			boolean isStatic  = (modifiers & org.eclipse.jdt.core.dom.Modifier.STATIC) > 0;
 
+			if (b.getJavaElement() instanceof IField element) {
+				addRenameOpportunity(new RenameFieldAccessContext(name), createRenameFieldDescriptor(element));
+			}
+
 			if (isFinal && isStatic) {
 				addInlineConstantOpportunity(
 					new InlineConstantFieldContext(name),
@@ -387,11 +455,8 @@ public class HotMethodVisitor  extends ASTVisitor {
 	public boolean visit(MethodInvocation node) {
 		if (node.resolveMethodBinding() instanceof IMethodBinding binding) {
 
-			int modifierFlags = 
-				//org.eclipse.jdt.core.dom.Modifier.PRIVATE |
-				org.eclipse.jdt.core.dom.Modifier.STATIC;
-
-			int modifiers = binding.getModifiers(); // Bitwise or of modifier constants.
+			int modifierFlags = org.eclipse.jdt.core.dom.Modifier.STATIC;
+			int modifiers     = binding.getModifiers(); // Bitwise or of modifier constants.
 
 			boolean isConstructor = binding.isConstructor();
 			boolean isApplicable  = (modifiers & modifierFlags) != 0;
@@ -441,11 +506,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 		args.put("input", this.unit.getHandleIdentifier());
 		args.put("element", this.unit.getHandleIdentifier());
 		args.put("selection", "" + blockStart + " " + blockLength);
-
-		// This "argument" is only for mapping the opportunity
-		// to the correct location in the histogram supply.
-
-		// args.put(RefactoringDescriptor.KEY_HIST_BIN, "" + (end - start + 1)); // TODO: Remove. We now have a file system layout that communicate number of statements.
+		args.put("__block_size", String.valueOf(end - start + 1));
 
 		return new ExtractMethodDescriptor(args);
 	}
@@ -505,36 +566,6 @@ public class HotMethodVisitor  extends ASTVisitor {
 		return new RenameLocalVariableDescriptor(defaultArguments(element));
 	}
 
-	private Set<String> typeRenamings = new HashSet<>();
-
-	@SuppressWarnings("unchecked")
-	public void visit_rename(TypeDeclaration decl) {
-		if (
-			decl.getName().resolveBinding() instanceof IBinding binding &&
-			binding.getJavaElement()        instanceof IType    element
-		) {
-			String name = ASTHelper.getFullyQualifiedName(decl);
-			if (typeRenamings.contains(name)) {
-				// Don't add multiple times.
-				// Happens when there are multiple hot methods in the same type.
-				return;
-			}
-			typeRenamings.add(name);
-			addRenameOpportunity(new RenameTypeContext(decl), createRenameTypeDescriptor((IType) element));
-		}
-	}
-
-//	@Override
-//	public boolean visit(QualifiedName node) {
-//		Optional.ofNullable(node.resolveBinding())
-//		.map(IBinding::getJavaElement)
-//		.filter(e -> e instanceof IField)
-//		.ifPresent(e -> {
-//			addRenameOpportunity(createRenameFieldDescriptor(e));
-//		});
-//		return true;
-//	}
-
 	@Override
 	public boolean visit(FieldAccess node) {
 		if (
@@ -564,10 +595,10 @@ public class HotMethodVisitor  extends ASTVisitor {
 //		return true;
 //	}
 
-	@SuppressWarnings("unchecked")
 	public void visit_rename(MethodDeclaration decl) {
-		if (decl.resolveBinding() instanceof IMethodBinding binding &&
-			binding.getJavaElement()  instanceof IMethod    method
+		if (
+			decl.resolveBinding()     instanceof IMethodBinding binding &&
+			binding.getJavaElement()  instanceof IMethod        method
 		) {
 			boolean skip   = false;
 			boolean isMain = false;

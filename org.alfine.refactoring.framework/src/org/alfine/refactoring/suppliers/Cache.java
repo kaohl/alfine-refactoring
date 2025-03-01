@@ -5,8 +5,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -75,10 +77,17 @@ public final class Cache {
 		return fn.apply(this);
 	}
 
+	private final Set<String> opportunities = new HashSet<>();
+
 	public void write(RefactoringOpportunityContext context, RefactoringDescriptor descriptor) {
 		// TODO: Use IOUtils.appendLineToFile(...) instead of `write`.
 		// write(getCacheFilePath(descriptor.getRefactoringID()), descriptor.getCacheLine());
-
+		if (opportunities.contains(descriptor.getCacheLine())) {
+			// Some visiting patterns produce duplicates.
+			// For example, when a field is accessed multiple times in the same method body.
+			return; // Opportunity already exists.
+		}
+		opportunities.add(descriptor.getCacheLine());
 		Path descriptors = this.location.resolve(context.getContextPath()).resolve("descriptors.txt");
 		write(descriptors, descriptor.getCacheLine());
 	}
