@@ -61,17 +61,6 @@ public class HotMethodRefactoringSupplier implements Iterable<RefactoringDescrip
 	public HotMethodRefactoringSupplier(Workspace workspace) {
 		this.workspace = workspace;
 
-		Cache.installCachePath(ExtractConstantFieldDescriptor.ID, "hot.extract.field.txt");
-		Cache.installCachePath(InlineConstantFieldDescriptor.ID , "hot.inline.field.txt");
-		Cache.installCachePath(InlineMethodDescriptor.ID        , "hot.inline.method.txt");
-		Cache.installCachePath(ExtractMethodDescriptor.ID       , "hot.extract.method.txt");
-		
-		Cache.installCachePath(RenameTypeDescriptor.ID         , "hot.rename.type.txt");
-		Cache.installCachePath(RenameMethodDescriptor.ID       , "hot.rename.method.txt");
-		Cache.installCachePath(RenameFieldDescriptor.ID        , "hot.rename.field.txt");
-		Cache.installCachePath(RenameLocalVariableDescriptor.ID, "hot.rename.local.variable.txt");
-		Cache.installCachePath(RenameTypeParameterDescriptor.ID, "hot.rename.type.parameter.txt");
-
 		Path methodsFile = getWorkspace().getSrcPath().resolve("methods.config");
 		this.methods = new MethodSet(methodsFile);
 

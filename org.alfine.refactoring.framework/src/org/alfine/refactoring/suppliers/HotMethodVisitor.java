@@ -239,86 +239,107 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 	@Override
 	public boolean visit(TypeDeclaration node) {
+		// See endVisit(TypeDeclaration).
 		return true;
 	}
 
 	@Override
 	public void endVisit(TypeDeclaration node) {
-		final boolean wasCapture = this.isCapture;
-		this.isCapture = true;
-		// Add hot context opportunities.
-		if (this.hotContext.contains(ASTHelper.getFullyQualifiedName(node))) {
-			if (
-				node.getName().resolveBinding() instanceof IBinding binding &&
-				binding.getJavaElement()        instanceof IType    element
-			) {
-				addRenameOpportunity(new RenameTypeContext(node), createRenameTypeDescriptor(element));
-			}
-			for (Object o : node.typeParameters()) {
-				if (o instanceof TypeParameter tp) {
-					tp.accept(this);
+		try {
+			final boolean wasCapture = this.isCapture;
+			this.isCapture = true;
+			// Add hot context opportunities.
+			if (this.hotContext.contains(ASTHelper.getFullyQualifiedName(node))) {
+				if (
+					node.getName().resolveBinding() instanceof IBinding binding &&
+					binding.getJavaElement()        instanceof IType    element
+				) {
+					addRenameOpportunity(new RenameTypeContext(node), createRenameTypeDescriptor(element));
+				}
+				for (Object o : node.typeParameters()) {
+					if (o instanceof TypeParameter tp) {
+						tp.accept(this);
+					}
 				}
 			}
+			this.isCapture = wasCapture;
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		this.isCapture = wasCapture;
 	}
 
 	private final Set<String> hotContext = new HashSet<>();
 
 	@Override
 	public void preVisit(ASTNode node) {
-		if (node instanceof MethodDeclaration md) {
-			final String qNameAndPList = ASTHelper.getMethodSignature(md);
-			this.isCaptureStack.add(this.methods.hasMethod(qNameAndPList)); // Enable capture if hot.
-			this.isCapture = this.isCaptureStack.getLast();
+		try {
+			if (node instanceof MethodDeclaration md) {
+				final String qNameAndPList = ASTHelper.getMethodSignature(md);
+				this.isCaptureStack.add(this.methods.hasMethod(qNameAndPList)); // Enable capture if hot.
+				this.isCapture = this.isCaptureStack.getLast();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
 	@Override
 	public void postVisit(ASTNode node) {
-		if (node instanceof MethodDeclaration) {
-			this.isCaptureStack.removeLast();
-			this.isCapture = this.isCaptureStack.size() > 0 && this.isCaptureStack.getLast();
+		try {
+			if (node instanceof MethodDeclaration) {
+				this.isCaptureStack.removeLast();
+				this.isCapture = this.isCaptureStack.size() > 0 && this.isCaptureStack.getLast();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
 	@Override
 	public boolean visit(MethodDeclaration node) {
-		// Apply renaming to type declarations in context.
-		if (this.isCapture) {
-			final String qNameAndPList = ASTHelper.getMethodSignature(node);
-			System.out.println(String.format("Visit HOT method declaration %s", qNameAndPList));
-			for (ASTNode n : ASTHelper.getNodeHierarchy(node)) {
-				if (n instanceof TypeDeclaration td) {
-					this.hotContext.add(ASTHelper.getFullyQualifiedName(td));
-				} else if (n instanceof MethodDeclaration md) {
-					this.hotContext.add(ASTHelper.getFullyQualifiedName(md));
-				} else if (n instanceof TypeDeclarationStatement tds) {
-					// TODO: getDeclaration() returns AbstractTypeDeclaration of which TypeDeclaration is one possibility.
-					if (tds.getDeclaration() instanceof TypeDeclaration td) {
+		try {
+			// Apply renaming to type declarations in context.
+			if (this.isCapture) {
+				final String qNameAndPList = ASTHelper.getMethodSignature(node);
+				System.out.println(String.format("Visit HOT method declaration %s", qNameAndPList));
+				for (ASTNode n : ASTHelper.getNodeHierarchy(node)) {
+					if (n instanceof TypeDeclaration td) {
 						this.hotContext.add(ASTHelper.getFullyQualifiedName(td));
+					} else if (n instanceof MethodDeclaration md) {
+						this.hotContext.add(ASTHelper.getFullyQualifiedName(md));
+					} else if (n instanceof TypeDeclarationStatement tds) {
+						// TODO: getDeclaration() returns AbstractTypeDeclaration of which TypeDeclaration is one possibility.
+						if (tds.getDeclaration() instanceof TypeDeclaration td) {
+							this.hotContext.add(ASTHelper.getFullyQualifiedName(td));
+						}
 					}
 				}
+				visit_rename(node);
 			}
-			visit_rename(node);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return true;
 	}
 
 	@Override
 	public void endVisit(MethodDeclaration node) {
-		final boolean wasCapture = this.isCapture;
-		this.isCapture = true;
-		// Add hot context opportunities.
-		if (this.hotContext.contains(ASTHelper.getFullyQualifiedName(node))) {
-			visit_rename(node);
-			for (Object o : node.typeParameters()) {
-				if (o instanceof TypeParameter tp) {
-					tp.accept(this);
+		try {
+			final boolean wasCapture = this.isCapture;
+			this.isCapture = true;
+			// Add hot context opportunities.
+			if (this.hotContext.contains(ASTHelper.getFullyQualifiedName(node))) {
+				visit_rename(node);
+				for (Object o : node.typeParameters()) {
+					if (o instanceof TypeParameter tp) {
+						tp.accept(this);
+					}
 				}
 			}
+			this.isCapture = wasCapture;
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		this.isCapture = wasCapture;
 	}
 
 	private void addOpportunity(RefactoringOpportunityContext context, RefactoringDescriptor descriptor) {
@@ -346,37 +367,61 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 	@Override
 	public boolean visit(NullLiteral literal) {
-		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		try {
+			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
 	}
 
 	@Override
 	public boolean visit(BooleanLiteral literal) {
-		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		try {
+			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
 	}
 
 	@Override
 	public boolean visit(CharacterLiteral literal) {
-		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		try {
+			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
 	}
 
 	@Override
 	public boolean visit(NumberLiteral literal) {
-		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		try {
+			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
 	}
 
 	@Override
 	public boolean visit(StringLiteral literal) {
-		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		try {
+			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return false;
 	}
 
 	@Override
 	public boolean visit(ArrayInitializer node) {
-		addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(node), createExtractConstantFieldDescriptor(node.getStartPosition(), node.getLength()));
+		try {
+			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(node), createExtractConstantFieldDescriptor(node.getStartPosition(), node.getLength()));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return true;
 	}
 
@@ -403,28 +448,32 @@ public class HotMethodVisitor  extends ASTVisitor {
 	@Override
 	public boolean visit(SimpleName name) {
 
-		IBinding b = name.resolveBinding();
-
-		if (b != null && !name.isDeclaration()) {
-
-			int     modifiers = b.getModifiers();
-			boolean isFinal   = (modifiers & org.eclipse.jdt.core.dom.Modifier.FINAL)  > 0;
-			boolean isStatic  = (modifiers & org.eclipse.jdt.core.dom.Modifier.STATIC) > 0;
-
-			if (b.getJavaElement() instanceof IField element) {
-				addRenameOpportunity(new RenameFieldAccessContext(name), createRenameFieldDescriptor(element));
+		try {
+			IBinding b = name.resolveBinding();
+	
+			if (b != null && !name.isDeclaration()) {
+	
+				int     modifiers = b.getModifiers();
+				boolean isFinal   = (modifiers & org.eclipse.jdt.core.dom.Modifier.FINAL)  > 0;
+				boolean isStatic  = (modifiers & org.eclipse.jdt.core.dom.Modifier.STATIC) > 0;
+	
+				if (b.getJavaElement() instanceof IField element) {
+					addRenameOpportunity(new RenameFieldAccessContext(name), createRenameFieldDescriptor(element));
+				}
+	
+				if (isFinal && isStatic) {
+					addInlineConstantOpportunity(
+						new InlineConstantFieldContext(name),
+						createInlineConstantFieldDescriptor(
+							name.getStartPosition(),
+							name.getLength()
+						),
+						name.getStartPosition()
+					);
+				}
 			}
-
-			if (isFinal && isStatic) {
-				addInlineConstantOpportunity(
-					new InlineConstantFieldContext(name),
-					createInlineConstantFieldDescriptor(
-						name.getStartPosition(),
-						name.getLength()
-					),
-					name.getStartPosition()
-				);
-			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return true;
 	}
@@ -453,30 +502,34 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 	@Override
 	public boolean visit(MethodInvocation node) {
-		if (node.resolveMethodBinding() instanceof IMethodBinding binding) {
-
-			int modifierFlags = org.eclipse.jdt.core.dom.Modifier.STATIC;
-			int modifiers     = binding.getModifiers(); // Bitwise or of modifier constants.
-
-			boolean isConstructor = binding.isConstructor();
-			boolean isApplicable  = (modifiers & modifierFlags) != 0;
-
-			if (!isConstructor && isApplicable) {
-				addInlineMethodOpportunity(
-					new InlineMethodContext(node),
-					createInlineMethodDescriptor(
-						binding.getJavaElement(),
-						node.getStartPosition(),
-						node.getLength()
-					),
-					node.getStartPosition()
-				);
-			}			
-		} else {
-			// Source is not available...
-			// (This happens for standard library and binary
-			//  dependencies for which source is unavailable.)
-			System.err.println("Unable to resolve method binding for method invocation: " + String.valueOf(node));			
+		try {
+			if (node.resolveMethodBinding() instanceof IMethodBinding binding) {
+	
+				int modifierFlags = org.eclipse.jdt.core.dom.Modifier.STATIC;
+				int modifiers     = binding.getModifiers(); // Bitwise or of modifier constants.
+	
+				boolean isConstructor = binding.isConstructor();
+				boolean isApplicable  = (modifiers & modifierFlags) != 0;
+	
+				if (!isConstructor && isApplicable) {
+					addInlineMethodOpportunity(
+						new InlineMethodContext(node),
+						createInlineMethodDescriptor(
+							binding.getJavaElement(),
+							node.getStartPosition(),
+							node.getLength()
+						),
+						node.getStartPosition()
+					);
+				}			
+			} else {
+				// Source is not available...
+				// (This happens for standard library and binary
+				//  dependencies for which source is unavailable.)
+				System.err.println("Unable to resolve method binding for method invocation: " + String.valueOf(node));			
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return true;
 	}
@@ -513,17 +566,21 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 	@Override
 	public boolean visit(Block block) {
-		// Note: This does not cover (non-block) single statement bodies of
-		//       control flow statements. But let's ignore that for now.
-
-		int nbrStmts = block.statements().size();
-
-		if (nbrStmts > 0) {
-			for (int start = 0; start < nbrStmts; ++start) {
-				for (int end = start; end < nbrStmts; ++end) {
-					addExtractMethodOpportunity(new ExtractMethodContext(block, end - start + 1), createExtractMethodDescriptor(block, start, end));
+		try {
+			// Note: This does not cover (non-block) single statement bodies of
+			//       control flow statements. But let's ignore that for now.
+	
+			int nbrStmts = block.statements().size();
+	
+			if (nbrStmts > 0) {
+				for (int start = 0; start < nbrStmts; ++start) {
+					for (int end = start; end < nbrStmts; ++end) {
+						addExtractMethodOpportunity(new ExtractMethodContext(block, end - start + 1), createExtractMethodDescriptor(block, start, end));
+					}
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		 // Visit nested blocks recursively.
 		return true;
@@ -568,11 +625,15 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 	@Override
 	public boolean visit(FieldAccess node) {
-		if (
-			node.resolveFieldBinding() instanceof IVariableBinding binding &&
-			binding.getJavaElement()   instanceof IJavaElement     element
-		) {
-			addRenameOpportunity(new RenameFieldAccessContext(node), createRenameFieldDescriptor(element));
+		try {
+			if (
+				node.resolveFieldBinding() instanceof IVariableBinding binding &&
+				binding.getJavaElement()   instanceof IJavaElement     element
+			) {
+				addRenameOpportunity(new RenameFieldAccessContext(node), createRenameFieldDescriptor(element));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return true;
 	}
@@ -596,85 +657,105 @@ public class HotMethodVisitor  extends ASTVisitor {
 //	}
 
 	public void visit_rename(MethodDeclaration decl) {
-		if (
-			decl.resolveBinding()     instanceof IMethodBinding binding &&
-			binding.getJavaElement()  instanceof IMethod        method
-		) {
-			boolean skip   = false;
-			boolean isMain = false;
-			boolean isCtor = false;
-			try {
-				isMain = method.isMainMethod();
-				isCtor = method.isConstructor();
-			} catch (Exception e) {
-				e.printStackTrace();
-				skip = true;
+		try {
+			if (
+				decl.resolveBinding()     instanceof IMethodBinding binding &&
+				binding.getJavaElement()  instanceof IMethod        method
+			) {
+				boolean skip   = false;
+				boolean isMain = false;
+				boolean isCtor = false;
+				try {
+					isMain = method.isMainMethod();
+					isCtor = method.isConstructor();
+				} catch (Exception e) {
+					e.printStackTrace();
+					skip = true;
+				}
+				if (skip) {
+					System.out.println("Skip MethodDeclaration: Unable to determine if method is `main' or a constructor.");
+					return;
+				}
+				if (!isMain && ! isCtor) {
+					addRenameOpportunity(new RenameMethodContext(decl), createRenameMethodDescriptor((IJavaElement)method));
+				}
 			}
-			if (skip) {
-				System.out.println("Skip MethodDeclaration: Unable to determine if method is `main' or a constructor.");
-				return;
-			}
-			if (!isMain && ! isCtor) {
-				addRenameOpportunity(new RenameMethodContext(decl), createRenameMethodDescriptor((IJavaElement)method));
-			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
 	public boolean visit(SingleVariableDeclaration svd) {
-		if (
-			svd.resolveBinding()     instanceof IVariableBinding binding  &&
-			binding.getJavaElement() instanceof ILocalVariable   variable
-		) {
-			if (ASTHelper.isMethodParameter(svd)) {
-				// Note: A parameter is still a local variable descriptor, but we change the context to be able to distinguish between parameters and locals.
-				addRenameOpportunity(new RenameMethodParameterContext(svd), createRenameLocalVariableDescriptor(variable));
-			} else {
-				// Is this a real case?
-				new Exception("Unhandled case").printStackTrace();
+		try {
+			if (
+				svd.resolveBinding()     instanceof IVariableBinding binding  &&
+				binding.getJavaElement() instanceof ILocalVariable   variable
+			) {
+				if (ASTHelper.isMethodParameter(svd)) {
+					// Note: A parameter is still a local variable descriptor, but we change the context to be able to distinguish between parameters and locals.
+					// TODO: Better to handle this as a meta attribute on the descriptor?
+					addRenameOpportunity(new RenameMethodParameterContext(svd), createRenameLocalVariableDescriptor(variable));
+				} else {
+					addRenameOpportunity(new RenameLocalVariableContext(svd), createRenameLocalVariableDescriptor(variable));
+				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return true;
 	}
 
 	@SuppressWarnings("unchecked")
 	public boolean visit(VariableDeclarationStatement decl) {
-		RenameLocalVariableContext context = new RenameLocalVariableContext(decl);
-		for (VariableDeclarationFragment frag : (List<VariableDeclarationFragment>)decl.fragments()) {
-			if (
-				frag.getName().resolveBinding() instanceof IBinding       binding &&
-				binding.getJavaElement()        instanceof ILocalVariable element
-			) {
-				addRenameOpportunity(context, createRenameLocalVariableDescriptor(element));
+		try {
+			RenameLocalVariableContext context = new RenameLocalVariableContext(decl);
+			for (VariableDeclarationFragment frag : (List<VariableDeclarationFragment>)decl.fragments()) {
+				if (
+					frag.getName().resolveBinding() instanceof IBinding       binding &&
+					binding.getJavaElement()        instanceof ILocalVariable element
+				) {
+					addRenameOpportunity(context, createRenameLocalVariableDescriptor(element));
+				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return true;
 	}
 
 	@SuppressWarnings("unchecked")
 	public boolean visit(VariableDeclarationExpression decl) {
-		RenameLocalVariableContext context = new RenameLocalVariableContext(decl);
-		for (VariableDeclarationFragment frag : (List<VariableDeclarationFragment>)decl.fragments()) {
-			if (
-				frag.getName().resolveBinding() instanceof IBinding       binding &&
-				binding.getJavaElement()        instanceof ILocalVariable element
-			) {
-				addRenameOpportunity(context, createRenameLocalVariableDescriptor(element));
+		try {
+			RenameLocalVariableContext context = new RenameLocalVariableContext(decl);
+			for (VariableDeclarationFragment frag : (List<VariableDeclarationFragment>)decl.fragments()) {
+				if (
+					frag.getName().resolveBinding() instanceof IBinding       binding &&
+					binding.getJavaElement()        instanceof ILocalVariable element
+				) {
+					addRenameOpportunity(context, createRenameLocalVariableDescriptor(element));
+				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return true;
 	}
 
 	@Override
 	public boolean visit(TypeParameter typeParameter) {
-		if (
-			typeParameter.getName().resolveBinding() instanceof IBinding       binding &&
-			binding.getJavaElement()                 instanceof ITypeParameter element
-		) {
-			if (ASTHelper.isMethodTypeParameter(typeParameter)) {
-				addRenameOpportunity(new RenameMethodTypeParameterContext(typeParameter), createRenameTypeParameterDescriptor(element));
-			} else if (ASTHelper.isTypeTypeParameter(typeParameter)) {
-				addRenameOpportunity(new RenameTypeTypeParameterContext(typeParameter), createRenameTypeParameterDescriptor(element));
+		try {
+			if (
+				typeParameter.getName().resolveBinding() instanceof IBinding       binding &&
+				binding.getJavaElement()                 instanceof ITypeParameter element
+			) {
+				if (ASTHelper.isMethodTypeParameter(typeParameter)) {
+					addRenameOpportunity(new RenameMethodTypeParameterContext(typeParameter), createRenameTypeParameterDescriptor(element));
+				} else if (ASTHelper.isTypeTypeParameter(typeParameter)) {
+					addRenameOpportunity(new RenameTypeTypeParameterContext(typeParameter), createRenameTypeParameterDescriptor(element));
+				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return true;
 	}

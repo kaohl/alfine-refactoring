@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.function.Predicate;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 
@@ -226,21 +227,22 @@ public class WorkspaceConfiguration {
 
 	/** Return names of all source archives that are to be considered variable. */
 	public static Set<String> parseVariables(Path variableConfig) {
-
-		System.out.println("Parsing variable configuration.");
-
 		Set<String> variables = new HashSet<>();
-
-		try (BufferedReader br = Files.newBufferedReader(variableConfig)) {
-
-			br.lines()
-			.map    (line -> line.trim())
-			.filter  (line -> !line.equals(""))
-			.forEach(name -> { System.out.println("variable = " + name); variables.add(name); });
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RuntimeException("Failed to read configuration file: " + variableConfig.toAbsolutePath());
+		if (Files.exists(variableConfig)) {
+			System.out.println("Parsing variable configuration.");
+			try {
+				Files.lines(variableConfig)
+				.map    (String::trim)
+				.filter (Predicate.not(String::isEmpty))
+				.forEach(name -> {
+					System.out.println("variable = " + name);
+					variables.add(name);
+				});
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			System.out.println("No 'variable.config' provided.");
 		}
 
 		return variables;
