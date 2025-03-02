@@ -1,1 +1,0 @@
-{"args":{"element":"=test/test.jar.dir<t{X.java","input":"=test/test.jar.dir<t{X.java","selection":"93 1"},"meta":{"id":"org.eclipse.jdt.ui.inline.constant"}}
