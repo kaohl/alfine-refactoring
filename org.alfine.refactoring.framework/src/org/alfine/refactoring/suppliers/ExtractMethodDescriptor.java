@@ -15,7 +15,11 @@ public class ExtractMethodDescriptor extends RefactoringDescriptor {
 	}
 
 	public ExtractMethodDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public ExtractMethodDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	@Override
@@ -34,11 +38,11 @@ public class ExtractMethodDescriptor extends RefactoringDescriptor {
 
 	@Override
 	protected void configure() {
-		put("name", "extractedMethodByAlfine");
-		put("visibility", "2"); // private
-		put("replace", "true");
-		put("comments", "false");
-		put("exceptions", "false");
+		putArg("name", "extractedMethodByAlfine");
+		putArg("visibility", "2"); // private
+		putArg("replace", "true");
+		putArg("comments", "false");
+		putArg("exceptions", "false");
 	}
 
 	@Override

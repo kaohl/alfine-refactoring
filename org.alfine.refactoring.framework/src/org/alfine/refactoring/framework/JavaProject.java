@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -191,8 +192,15 @@ public class JavaProject {
 			// requirements.
 
 			// https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_int.htm
-			this.javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, getWorkspace().getConfiguration().getArguments().getCompilerComplianceVersion());
+			//this.javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, getWorkspace().getConfiguration().getArguments().getCompilerComplianceVersion());
 
+			Hashtable<String, String> options = JavaCore.getDefaultOptions();
+			options.put(
+				JavaCore.COMPILER_COMPLIANCE,
+				getWorkspace().getConfiguration().getArguments().getCompilerComplianceVersion()
+			);
+			this.javaProject.setOptions(options);
+			
 			setRawClasspath(new IClasspathEntry[] {
 				JavaRuntime.getDefaultJREContainerEntry()
 			});

@@ -18,19 +18,13 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 
 	public static final String ID_NAME = "id";
 
-	/** Sorted Map to get a predictable order of entries which we
-	 *  use to produce a comparable string for refactoring descriptors. */
+	/** Sorted Map to get a predictable order of entries which we use
+	 *  to produce a comparable string for refactoring descriptors. */
 	private Map<String, String> args = new TreeMap<>();
-
-	/** Predefined built-in descriptor argument key which should be defined on
-	 *  descriptors that we want to distribute into bins in a histogram supply
-	 *  (see `HistSupply`). An example is the ExtracMethod abstraction interval.
-	 *  Whether we need it or not depends on how we want to bias our experiment. */
-	public static final String KEY_HIST_BIN =
-		"bin";
+	private Map<String, String> meta = new TreeMap<>();
 
 	public RefactoringDescriptor() {
-		this.args.put(ID_NAME, getRefactoringID());
+		this.meta.put(ID_NAME, getRefactoringID());
 	}
 
 	/** Create a new descriptor with empty argument map. */
@@ -39,17 +33,13 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 		this.args.putAll(args);
 	}
 
+	public RefactoringDescriptor(Map<String, String> args, Map<String, String> meta) {
+		this(args);
+		this.meta.putAll(meta);
+	}
+
 	/** Return refactoring descriptor ID. */
 	public abstract String getRefactoringID();
-
-	/** The bin into which the descriptor is
-	 *  added when a HistSupply is used. */
-	public int histBin() {
-		return
-			this.args.containsKey(KEY_HIST_BIN)
-			? Integer.parseInt(get(KEY_HIST_BIN))
-			: 0;
-	}
 
 	/** Return present set of keys. */
 	public Set<String> keySet() {
@@ -57,12 +47,12 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 	}
 
 	/** Return refactoring argument associated with `key`. */
-	public String get(String key) {
+	public String getArg(String key) {
 		return this.args.get(key);
 	}
 
 	/** Put refactoring argument into argument map. */
-	public void put(String key, String value) {
+	public void putArg(String key, String value) {
 		this.args.put(key, value);
 	}
 
@@ -73,11 +63,18 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 
 	@Override
 	public String toString() {
-		JsonObjectBuilder json = Json.createObjectBuilder();
-		for (Entry<String, String> entry: this.args.entrySet()) {
-			json.add(entry.getKey(), entry.getValue());
+		JsonObjectBuilder meta = Json.createObjectBuilder();
+		for (Entry<String, String> entry: this.meta.entrySet()) {
+			meta.add(entry.getKey(), entry.getValue());
 		}
-		return json.build().toString();
+		JsonObjectBuilder args = Json.createObjectBuilder();
+		for (Entry<String, String> entry: this.args.entrySet()) {
+			args.add(entry.getKey(), entry.getValue());
+		}
+		JsonObjectBuilder obj = Json.createObjectBuilder();
+		obj.add("args", args.build());
+		obj.add("meta", meta.build());
+		return obj.build().toString();
 	}
 
 	/** Return a string representation of this descriptor. */
@@ -111,12 +108,9 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 
 	/** Return a JavaRefactoringDescriptor. */
 	public JavaRefactoringDescriptor getDescriptor() {
-
-		Logger logger = LoggerFactory.getLogger(RefactoringDescriptor.class);
-		logger.debug("Descriptor arguments:");
-
+		System.out.println("Descriptor arguments:");
 		for (Entry<String, String> entry : getArgumentMap().entrySet()) {
-			logger.debug("\t `{}` = `{}`", entry.getKey(), entry.getValue());
+			System.out.println(String.format("  %s = %s", entry.getKey(), entry.getValue()));
 		}
 
 		configure();

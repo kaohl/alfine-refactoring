@@ -15,7 +15,11 @@ public class InlineMethodDescriptor extends RefactoringDescriptor {
 	}
 
 	public InlineMethodDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public InlineMethodDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	@Override

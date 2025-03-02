@@ -22,9 +22,9 @@ public class HistSupply implements org.alfine.refactoring.suppliers.Supply {
 
 	public void add(RefactoringDescriptor opp) {
 		if (!this.matrix.containsKey(opp.histBin())) {
-			this.matrix.put(opp.histBin(), new ArrayList<>());
+			this.matrix.putArg(opp.histBin(), new ArrayList<>());
 		}
-		this.matrix.get(opp.histBin()).add(opp);
+		this.matrix.getArg(opp.histBin()).add(opp);
 	}
 
 	@Override

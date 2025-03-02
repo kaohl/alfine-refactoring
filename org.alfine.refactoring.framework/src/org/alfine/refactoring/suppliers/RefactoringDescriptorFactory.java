@@ -4,18 +4,19 @@ import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
 
 import jakarta.json.Json;
+import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonString;
 
 public class RefactoringDescriptorFactory {
 
-	private static Map<String, Function<Map<String, String>, RefactoringDescriptor>> factories = new HashMap<>();
+	private static Map<String, BiFunction<Map<String, String>, Map<String, String>, RefactoringDescriptor>> factories = new HashMap<>();
 
 	static {
 		factories.put(IJavaRefactorings.INLINE_CONSTANT , InlineConstantFieldDescriptor::new);
@@ -32,13 +33,17 @@ public class RefactoringDescriptorFactory {
 	}
 
 	public static RefactoringDescriptor get(String descriptor) {
-		JsonReader          jsonReader = Json.createReader(new StringReader(descriptor));
-		Map<String, String> map        = jsonReader.readObject().entrySet().stream().collect(
-			Collectors.toMap(
-				Entry::getKey,
-				e -> ((JsonString)e.getValue()).getString()
-			)
+		JsonReader jsonReader = Json.createReader(new StringReader(descriptor));
+		JsonObject object     = jsonReader.readObject();
+		JsonObject args       = object.getJsonObject("args");
+		JsonObject meta       = object.getJsonObject("meta");
+
+		Map<String, String> argsMap = args.entrySet().stream().collect(
+			Collectors.toMap(Entry::getKey, e -> ((JsonString)e.getValue()).getString())
 		);
-		return factories.get(map.get(RefactoringDescriptor.ID_NAME)).apply(map);
+		Map<String, String> metaMap = meta.entrySet().stream().collect(
+			Collectors.toMap(Entry::getKey, e -> ((JsonString)e.getValue()).getString())
+		);
+		return factories.get(metaMap.get(RefactoringDescriptor.ID_NAME)).apply(argsMap, metaMap);
 	}
 }

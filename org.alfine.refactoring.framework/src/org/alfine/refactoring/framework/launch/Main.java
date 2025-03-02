@@ -18,6 +18,7 @@ import org.alfine.refactoring.suppliers.RefactoringDescriptor;
 import org.alfine.refactoring.suppliers.RefactoringDescriptorFactory;
 import org.alfine.refactoring.suppliers.RefactoringSupplier;
 import org.alfine.refactoring.suppliers.SingleRefactoringSupplier;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.jdt.core.JavaCore;
@@ -36,12 +37,14 @@ public class Main implements IApplication {
 		}
 	}
 
-	private void applyRefactoring(CommandLineArguments arguments) throws Exception {
+	public static boolean applyRefactoring(CommandLineArguments arguments) throws Exception {
 
 		final String descriptor = arguments.getRefactoringDescriptor();
 		if (descriptor == null) {
 			throw new Exception("Please specify a refactoring descriptor using the appropriate command line switch.");
 		}
+
+		System.out.println("Using descriptor = " + descriptor);
 
 		RefactoringDescriptor refactoringDescriptor = RefactoringDescriptorFactory.get(descriptor);
 
@@ -50,13 +53,11 @@ public class Main implements IApplication {
 		Workspace           workspace = new Workspace(new WorkspaceConfiguration(arguments), false);
 		RefactoringSupplier supplier  = new SingleRefactoringSupplier(refactoringDescriptor);
 
-		// `reportFolder` is an independent folder into which we write refactoring
-		// output reports and keep track of which refactorings have succeeded and
-		// which have failed.
+//		String refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder();
+//		System.out.println("Using report folder: " + refactoringOutputReportFolder);
 
-		String refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder();
-
-		Path reportFolder       = Paths.get(refactoringOutputReportFolder);
+		Path location           = Paths.get(Platform.getInstanceLocation().getURL().getFile());
+		Path reportFolder       = location.resolve("report");
 		Path successTrackerFile = reportFolder.resolve("successTrackerFile.txt");
 		Path failureTrackerFile = reportFolder.resolve("failureTrackerFile.txt");
 
@@ -65,6 +66,8 @@ public class Main implements IApplication {
 		boolean success = new RefactoringProcessor(supplier, resultTracker, reportFolder).processSupply(0, 1);
 
 		workspace.close(success);
+
+		return success;
 	}
 
 	private void prepareWorkspace(CommandLineArguments arguments) throws Exception {

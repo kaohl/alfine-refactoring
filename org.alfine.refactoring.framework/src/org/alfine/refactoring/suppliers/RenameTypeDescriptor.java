@@ -14,7 +14,11 @@ public class RenameTypeDescriptor extends RenameRefactoringDescriptor {
 	}
 
 	public RenameTypeDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public RenameTypeDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	@Override
@@ -25,9 +29,9 @@ public class RenameTypeDescriptor extends RenameRefactoringDescriptor {
 	@Override
 	public void configure() {
 		super.configure(); // Generate name.
-		put("qualified",            "true");
-		put("references",          "true");
-		put("similarDeclarations", "false");
-		put("textual",             "false");
+		putArg("qualified",            "true");
+		putArg("references",          "true");
+		putArg("similarDeclarations", "false");
+		putArg("textual",             "false");
 	}
 }

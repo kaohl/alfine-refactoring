@@ -14,7 +14,11 @@ public class RenameFieldDescriptor extends RenameRefactoringDescriptor {
 	}
 
 	public RenameFieldDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public RenameFieldDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	@Override

@@ -367,11 +367,12 @@ public class HotMethodVisitor  extends ASTVisitor {
 
 	@Override
 	public boolean visit(NullLiteral literal) {
-		try {
-			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+// ATTENTION: This is not a valid refactoring. (Leave comment to prevent future mistakes.)
+//		try {
+//			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 		return false;
 	}
 
@@ -555,13 +556,16 @@ public class HotMethodVisitor  extends ASTVisitor {
 		int blockLength = last.getStartPosition() - blockStart + last.getLength();
 
 		Map<String, String> args = new TreeMap<>();
-
 		args.put("input", this.unit.getHandleIdentifier());
 		args.put("element", this.unit.getHandleIdentifier());
 		args.put("selection", "" + blockStart + " " + blockLength);
-		args.put("__block_size", String.valueOf(end - start + 1));
 
-		return new ExtractMethodDescriptor(args);
+		Map<String, String> meta = new TreeMap<>();
+		meta.put("block_id"  , String.valueOf(block.getStartPosition()));
+		meta.put("block_idx" , String.valueOf(start));
+		meta.put("block_size", String.valueOf(end - start + 1));
+
+		return new ExtractMethodDescriptor(args, meta);
 	}
 
 	@Override

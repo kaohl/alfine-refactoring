@@ -14,7 +14,11 @@ public class RenameMethodDescriptor extends RenameRefactoringDescriptor {
 	}
 
 	public RenameMethodDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public RenameMethodDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	@Override

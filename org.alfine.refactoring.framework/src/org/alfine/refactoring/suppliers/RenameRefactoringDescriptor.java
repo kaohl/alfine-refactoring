@@ -1,18 +1,21 @@
 package org.alfine.refactoring.suppliers;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
 import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 import org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public abstract class RenameRefactoringDescriptor extends RefactoringDescriptor {
 
 	public RenameRefactoringDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public RenameRefactoringDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	/** Generate a random name argument for a rename descriptor. */
@@ -43,17 +46,15 @@ public abstract class RenameRefactoringDescriptor extends RefactoringDescriptor 
 			break;
 
 		default:
-			Logger logger = LoggerFactory.getLogger(RefactoringDescriptor.class);
-			logger.error("Expected rename descriptor but found id = {}", getRefactoringID());
 			throw new RuntimeException("Expected rename descriptor but found id = " + getRefactoringID());
 		}
 
-		put("name", name);
+		putArg("name", name);
 	}
 
 	@Override
 	public void configure() {
-		generateName();
+		// generateName();
 	}
 
 	@Override

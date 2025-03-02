@@ -14,7 +14,11 @@ public class RenameLocalVariableDescriptor extends RenameRefactoringDescriptor {
 	}
 
 	public RenameLocalVariableDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public RenameLocalVariableDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	@Override

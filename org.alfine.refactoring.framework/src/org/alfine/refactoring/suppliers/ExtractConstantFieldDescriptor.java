@@ -18,7 +18,11 @@ public class ExtractConstantFieldDescriptor extends RefactoringDescriptor {
 	}
 
 	public ExtractConstantFieldDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public ExtractConstantFieldDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	@Override
@@ -28,9 +32,9 @@ public class ExtractConstantFieldDescriptor extends RefactoringDescriptor {
 
 	@Override
 	protected void configure() {
-		put("name", NAME);
-		put("replace", "false"); // Not sure what this argument does.
-		put("qualify", "false"); // If "true" the constant is replace with a fully qualified name as opposed to its `SimpleName`.
+		putArg("name", NAME);
+		putArg("replace", "false"); // Not sure what this argument does.
+		putArg("qualify", "false"); // If "true" the constant is replace with a fully qualified name as opposed to its `SimpleName`.
 	}
 
 	@Override

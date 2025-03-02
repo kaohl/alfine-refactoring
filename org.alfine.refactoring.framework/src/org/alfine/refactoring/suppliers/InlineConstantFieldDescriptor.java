@@ -15,7 +15,11 @@ public class InlineConstantFieldDescriptor extends RefactoringDescriptor {
 	}
 
 	public InlineConstantFieldDescriptor(Map<String, String> args) {
-		super(args);
+		this(args, Collections.emptyMap());
+	}
+
+	public InlineConstantFieldDescriptor(Map<String, String> args, Map<String, String> meta) {
+		super(args, meta);
 	}
 
 	@Override
@@ -25,10 +29,10 @@ public class InlineConstantFieldDescriptor extends RefactoringDescriptor {
 
 	@Override
 	protected void configure() {
-		put("replace",    "false"); // Only inline the selected occurrence.
-		put("remove",     "false");
-		put("comments",   "false");
-		put("exceptions", "false");
+		putArg("replace",    "false"); // Only inline the selected occurrence.
+		putArg("remove",     "false");
+		putArg("comments",   "false");
+		putArg("exceptions", "false");
 	}
 
 	@Override

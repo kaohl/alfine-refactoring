@@ -1,7 +1,9 @@
 package org.alfine.refactoring;
 
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -15,6 +17,7 @@ import java.util.stream.Stream;
 import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments;
+import org.alfine.refactoring.framework.launch.Main;
 import org.alfine.refactoring.suppliers.HotMethodRefactoringSupplier;
 import org.alfine.refactoring.suppliers.RefactoringOpportunityContext;
 import org.apache.commons.io.FileUtils;
@@ -164,6 +167,14 @@ public class VisitorTest2 {
 		}
 	}
 
+	private Workspace getWorkspace(String[] args) {
+		Workspace workspace = new Workspace(
+			getDefaultWorkspaceConfiguration(args),
+			true /* Create projects and cache opportunities. */
+		);
+		return workspace;
+	}
+
 	private Workspace getWorkspace(String bm, String compliance) {
 		String[] args = new String[] {
 			"--cache"     , "oppcache",
@@ -173,12 +184,27 @@ public class VisitorTest2 {
 			"--out"       , "output",
 			"--report"    , "report"
 		};
+		return getWorkspace(args);
+	}
 
-		Workspace workspace = new Workspace(
-			getDefaultWorkspaceConfiguration(args),
-			true /* Create projects and cache opportunities. */
-		);
-		return workspace;
+	private Workspace getWorkspace(String bm, String compliance, String descriptor) {
+		String[] args = new String[] {
+			"--cache"     , "oppcache",
+			"--compliance", compliance,
+			"--src"       , "assets/" + bm + "/src",
+			"--lib"       , "assets/" + bm + "/lib",
+			"--out"       , "output",
+			"--report"    , "report",
+			"--descriptor", descriptor
+		};
+		try {
+			Files.createDirectories(getLocation().resolve("report"));
+			Files.createFile(getLocation().resolve("report/successTrackerFile.txt"));
+			Files.createFile(getLocation().resolve("report/failureTrackerFile.txt"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return getWorkspace(args);
 	}
 
 	@Test
@@ -451,6 +477,83 @@ public class VisitorTest2 {
 
 		TestBench.assertNRenameTypeTypeParam(1, "t.X");
 		TestBench.assertNRenameMethodTypeParam(1, "t.X.f()");
+	}
+
+	@Test
+	public void test_11() throws Exception {
+		TestBench.init();
+		TestBench.methods(
+			"t.X.f()"
+		);
+		TestBench.src(
+			new Archive("test.jar")
+			.add("t/X.java", """
+				package t;
+				public class X {
+					public int f() {
+						return 0;
+					}
+				}
+			""")
+		);
+		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"selection\":\"59 1\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.extract.constant\"}}";
+		Workspace workspace = createTestWorkspace(descriptor);
+
+		assertTrue(Main.applyRefactoring(workspace.getConfiguration().getArguments()));
+	}
+
+	@Test
+	public void test_12() throws Exception {
+		TestBench.init();
+		TestBench.methods(
+			"t.X.f()"
+		);
+		TestBench.src(
+			new Archive("test.jar")
+			.add("t/X.java", """
+				package t;
+				public class X {
+					public int f() {
+						return 0;
+					}
+				}
+			""")
+		);
+		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"selection\":\"52 9\"},\"meta\":{\"block_id\":\"47\",\"block_idx\":\"0\",\"block_size\":\"1\",\"id\":\"org.eclipse.jdt.ui.extract.method\"}}";
+		Workspace workspace = createTestWorkspace(descriptor);
+
+		assertTrue(Main.applyRefactoring(workspace.getConfiguration().getArguments()));
+	}
+
+	@Test
+	public void test_13() throws Exception {
+		TestBench.init();
+		TestBench.methods(
+			"t.X.f()"
+		);
+		TestBench.src(
+			new Archive("test.jar")
+			.add("t/X.java", """
+				package t;
+				public class X {
+					private static final int x = 0;
+					public int f() {
+						return x;
+					}
+				}
+			""")
+		);
+		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"selection\":\"93 1\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.inline.constant\"}}";
+		Workspace workspace = createTestWorkspace(descriptor);
+
+		assertTrue(Main.applyRefactoring(workspace.getConfiguration().getArguments()));
+	}
+
+	private Workspace createTestWorkspace(String descriptor) {
+		Workspace workspace = getWorkspace("test", "1.8", descriptor);
+		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
+		supplier.cacheOpportunities();
+		return workspace;
 	}
 
 	private Workspace createTestWorkspace() {
