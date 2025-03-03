@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
+import org.alfine.refactoring.processors.SimpleDescriptor;
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
 
 import jakarta.json.Json;
@@ -45,5 +46,20 @@ public class RefactoringDescriptorFactory {
 			Collectors.toMap(Entry::getKey, e -> ((JsonString)e.getValue()).getString())
 		);
 		return factories.get(metaMap.get(RefactoringDescriptor.ID_NAME)).apply(argsMap, metaMap);
+	}
+
+	public static SimpleDescriptor getSimple(String descriptor) {
+		JsonReader jsonReader = Json.createReader(new StringReader(descriptor));
+		JsonObject object     = jsonReader.readObject();
+		JsonObject args       = object.getJsonObject("args");
+		JsonObject meta       = object.getJsonObject("meta");
+
+		Map<String, String> argsMap = args.entrySet().stream().collect(
+			Collectors.toMap(Entry::getKey, e -> ((JsonString)e.getValue()).getString())
+		);
+		Map<String, String> metaMap = meta.entrySet().stream().collect(
+			Collectors.toMap(Entry::getKey, e -> ((JsonString)e.getValue()).getString())
+		);
+		return new SimpleDescriptor(metaMap.get(RefactoringDescriptor.ID_NAME), argsMap);
 	}
 }

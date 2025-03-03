@@ -472,7 +472,7 @@ public class VisitorTest2 {
 		createTestWorkspace();
 		TestBench.assertNRenameTypes(1);
 		TestBench.assertNRenameMethods(1, "t.X");
-		TestBench.assertNExtractConstant(1, "t.X.f()");
+		TestBench.assertNExtractConstant(0, "t.X.f()"); // NullLiteral cannot be extracted as a constant.
 		TestBench.assertNExtractMethodBlocksOfSize(1, 1, "t.X.f()");
 
 		TestBench.assertNRenameTypeTypeParam(1, "t.X");
@@ -496,10 +496,18 @@ public class VisitorTest2 {
 				}
 			""")
 		);
-		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"selection\":\"59 1\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.extract.constant\"}}";
+		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"name\":\"_x_\",\"replace\":\"false\",\"qualify\":\"false\",\"visibility\":\"2\",\"selection\":\"59 1\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.extract.constant\"}}";
 		Workspace workspace = createTestWorkspace(descriptor);
 
-		assertTrue(Main.applyRefactoring(workspace.getConfiguration().getArguments()));
+		boolean success = Main.applyRefactoring(workspace.getConfiguration().getArguments());		
+		if (!success) {
+			printRefactoringOutput();
+		}
+		assertTrue(success);
+	}
+
+	private void printRefactoringOutput() throws Exception {
+		System.err.println(String.join(System.getProperty("line.separator"), Files.lines(getLocation().resolve("report").resolve("refactoring-output.txt")).toList()));
 	}
 
 	@Test
@@ -519,10 +527,14 @@ public class VisitorTest2 {
 				}
 			""")
 		);
-		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"selection\":\"52 9\"},\"meta\":{\"block_id\":\"47\",\"block_idx\":\"0\",\"block_size\":\"1\",\"id\":\"org.eclipse.jdt.ui.extract.method\"}}";
+		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"visibility\":\"2\",\"comments\":\"false\",\"replace\":\"true\",\"exceptions\":\"false\",\"name\":\"_x_\",\"selection\":\"52 9\"},\"meta\":{\"block_id\":\"47\",\"block_idx\":\"0\",\"block_size\":\"1\",\"id\":\"org.eclipse.jdt.ui.extract.method\"}}";
 		Workspace workspace = createTestWorkspace(descriptor);
 
-		assertTrue(Main.applyRefactoring(workspace.getConfiguration().getArguments()));
+		boolean success = Main.applyRefactoring(workspace.getConfiguration().getArguments());		
+		if (!success) {
+			printRefactoringOutput();
+		}
+		assertTrue(success);
 	}
 
 	@Test
@@ -543,7 +555,7 @@ public class VisitorTest2 {
 				}
 			""")
 		);
-		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"selection\":\"93 1\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.inline.constant\"}}";
+		String descriptor = "{\"args\":{\"element\":\"=test/test.jar.dir<t{X.java\",\"input\":\"=test/test.jar.dir<t{X.java\",\"selection\":\"93 1\",\"replace\":\"false\",\"remove\":\"false\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.inline.constant\"}}";
 		Workspace workspace = createTestWorkspace(descriptor);
 
 		assertTrue(Main.applyRefactoring(workspace.getConfiguration().getArguments()));

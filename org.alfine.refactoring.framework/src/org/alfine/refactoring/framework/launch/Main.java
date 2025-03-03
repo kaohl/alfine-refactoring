@@ -6,18 +6,13 @@ import java.util.Hashtable;
 
 import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
-import org.alfine.refactoring.processors.RefactoringProcessor;
-import org.alfine.refactoring.processors.ResultTracker;
+import org.alfine.refactoring.processors.Processor;
 import org.alfine.refactoring.suppliers.HotMethodRefactoringSupplier;
 import org.alfine.refactoring.suppliers.RandomExtractConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomRenameSupplier;
-import org.alfine.refactoring.suppliers.RefactoringDescriptor;
-import org.alfine.refactoring.suppliers.RefactoringDescriptorFactory;
-import org.alfine.refactoring.suppliers.RefactoringSupplier;
-import org.alfine.refactoring.suppliers.SingleRefactoringSupplier;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
@@ -46,24 +41,26 @@ public class Main implements IApplication {
 
 		System.out.println("Using descriptor = " + descriptor);
 
-		RefactoringDescriptor refactoringDescriptor = RefactoringDescriptorFactory.get(descriptor);
+		// RefactoringDescriptor refactoringDescriptor = RefactoringDescriptorFactory.get(descriptor);
 
 		// Assume that the workspace is already setup by a previous invocation to "prepare" the workspace.
 
 		Workspace           workspace = new Workspace(new WorkspaceConfiguration(arguments), false);
-		RefactoringSupplier supplier  = new SingleRefactoringSupplier(refactoringDescriptor);
+//		RefactoringSupplier supplier  = new SingleRefactoringSupplier(refactoringDescriptor);
 
 //		String refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder();
 //		System.out.println("Using report folder: " + refactoringOutputReportFolder);
 
 		Path location           = Paths.get(Platform.getInstanceLocation().getURL().getFile());
 		Path reportFolder       = location.resolve("report");
-		Path successTrackerFile = reportFolder.resolve("successTrackerFile.txt");
-		Path failureTrackerFile = reportFolder.resolve("failureTrackerFile.txt");
+//		Path successTrackerFile = reportFolder.resolve("successTrackerFile.txt");
+//		Path failureTrackerFile = reportFolder.resolve("failureTrackerFile.txt");
 
-		ResultTracker resultTracker = new ResultTracker(successTrackerFile, failureTrackerFile);
+//		ResultTracker resultTracker = new ResultTracker(successTrackerFile, failureTrackerFile);
 
-		boolean success = new RefactoringProcessor(supplier, resultTracker, reportFolder).processSupply(0, 1);
+//		boolean success = new RefactoringProcessor(supplier, resultTracker, reportFolder).processSupply(0, 1);
+
+		boolean success = Processor.refactor(descriptor, reportFolder);
 
 		workspace.close(success);
 

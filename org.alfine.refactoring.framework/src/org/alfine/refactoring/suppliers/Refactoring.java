@@ -17,8 +17,6 @@ import org.slf4j.LoggerFactory;
 
 public class Refactoring {
 	private RefactoringDescriptor descriptor;
-	private RefactoringStatus     validationStatus;
-	private RefactoringStatus     contextStatus;
 
 	public Refactoring(RefactoringDescriptor descriptor) {
 		this.descriptor = descriptor;
@@ -28,29 +26,11 @@ public class Refactoring {
 		return this.descriptor;
 	}
 	
-	public RefactoringStatus getValidationStatus() {
-		return this.validationStatus;
-	}
-	
-	public RefactoringStatus getContextStatus() {
-		return this.contextStatus;
-	}
-
-	private void setValidationStatus(RefactoringStatus status) {
-		this.validationStatus = status;
-	}
-		
-	private void setContextStatus(RefactoringStatus status) {
-		this.contextStatus = status;
-	}
-	
 	private org.eclipse.ltk.core.refactoring.Refactoring createRefactoring(OutputStream stdout) {
 		
 		JavaRefactoringDescriptor descriptor = getRefactoringDescriptor().getDescriptor();
 
 		RefactoringStatus status = descriptor.validateDescriptor();
-
-		setValidationStatus(status);
 		
 		writeStatusToOutputStream("[Descriptor validation status]", status, stdout);
 
@@ -67,8 +47,6 @@ public class Refactoring {
 			status = new RefactoringStatus();
 
 			ctx = descriptor.createRefactoringContext(status);
-
-			setContextStatus(status);
 			
 			writeStatusToOutputStream("[Context validation status]", status, stdout);
 
@@ -85,7 +63,7 @@ public class Refactoring {
 
 		return refactoring;
 	}
-	
+
 	private void writeStatusToOutputStream(String header, RefactoringStatus status, OutputStream out) {
 		try {
 			out.write(header.getBytes());
@@ -108,7 +86,7 @@ public class Refactoring {
 		default:                        return "UNKNOWN_ERROR_CODE";
 		}
 	}
-	
+
 	public boolean apply(OutputStream stdout) {
 		
 		Logger logger = LoggerFactory.getLogger(RefactoringProcessor.class);
