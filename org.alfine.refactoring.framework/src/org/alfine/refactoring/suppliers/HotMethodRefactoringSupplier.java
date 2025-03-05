@@ -192,7 +192,7 @@ public class HotMethodRefactoringSupplier implements Iterable<RefactoringDescrip
 	public void cacheOpportunities() {
 		visitCompilationUnits(icu -> {
 			CompilationUnit cu = HotMethodRefactoringSupplier.getCompilationUnit(icu);
-			cu.accept(new HotMethodVisitor(getCache(), icu, this.methods));
+			cu.accept(new HotMethodVisitor(getCache(), icu, cu, this.methods));
 		});
 	}
 

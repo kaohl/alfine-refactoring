@@ -9,10 +9,10 @@ import java.util.TreeMap;
 
 import org.alfine.refactoring.utils.ASTHelper;
 import org.eclipse.jdt.core.ICompilationUnit;
-import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.ILocalVariable;
 import org.eclipse.jdt.core.IMethod;
+import org.eclipse.jdt.core.ISourceReference;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.ITypeParameter;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -21,10 +21,12 @@ import org.eclipse.jdt.core.dom.ArrayInitializer;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.CharacterLiteral;
+import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.NullLiteral;
@@ -37,9 +39,12 @@ import org.eclipse.jdt.core.dom.StringLiteral;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.TypeParameter;
+import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.jdt.internal.core.SourceField;
+import org.eclipse.jdt.internal.corext.refactoring.util.JavaElementUtil;
 
 /*
 	Renamings
@@ -196,6 +201,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	/** Cache for refactoring descriptors.*/
 	private Cache               cache;
 	private ICompilationUnit    unit;
+	private CompilationUnit     cu;
 	private MethodSet           methods;
 	private boolean             isCapture;
 	private final List<Boolean> isCaptureStack;
@@ -214,11 +220,15 @@ public class HotMethodVisitor  extends ASTVisitor {
 	private static final boolean isCaptureExtractConstantField = true;
 	private static final boolean isCaptureInlineMethod         = true;
 	private static final boolean isCaptureExtractMethod        = true;
+	private static final boolean isCaptureInlineTemp           = true;
+	private static final boolean isCaptureExtractTemp          = true;
+	private static final boolean isCaptureMethodIndirection    = true;
 	private static final boolean isCaptureRename               = true;
 
-	public HotMethodVisitor(Cache cache, ICompilationUnit unit, MethodSet methods) {
+	public HotMethodVisitor(Cache cache, ICompilationUnit unit, CompilationUnit cu, MethodSet methods) {
 		this.cache          = cache;
 		this.unit           = unit;
+		this.cu             = cu;
 		this.methods        = methods;
 		this.expansion      = new LinkedList<>();
 		this.isCapture      = false;
@@ -315,6 +325,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 					}
 				}
 				visit_rename(node);
+				visit_add_indirection(node);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -337,6 +348,18 @@ public class HotMethodVisitor  extends ASTVisitor {
 				}
 			}
 			this.isCapture = wasCapture;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void visit_add_indirection(MethodDeclaration decl) {
+		try {
+			if (
+				decl.resolveBinding() instanceof IMethodBinding binding
+			) {
+				addMethodIndirectionOpportunity(new MethodIndirectionContext(decl), createMethodIndirectionDescriptor(binding));
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -380,6 +403,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	public boolean visit(BooleanLiteral literal) {
 		try {
 			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+			addExtractTempOpportunity(new ExtractTempContext(literal), createExtractTempDescriptor(literal.getStartPosition(), literal.getLength()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -390,6 +414,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	public boolean visit(CharacterLiteral literal) {
 		try {
 			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+			addExtractTempOpportunity(new ExtractTempContext(literal), createExtractTempDescriptor(literal.getStartPosition(), literal.getLength()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -400,6 +425,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	public boolean visit(NumberLiteral literal) {
 		try {
 			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+			addExtractTempOpportunity(new ExtractTempContext(literal), createExtractTempDescriptor(literal.getStartPosition(), literal.getLength()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -410,6 +436,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	public boolean visit(StringLiteral literal) {
 		try {
 			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+			addExtractTempOpportunity(new ExtractTempContext(literal), createExtractTempDescriptor(literal.getStartPosition(), literal.getLength()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -417,9 +444,10 @@ public class HotMethodVisitor  extends ASTVisitor {
 	}
 
 	@Override
-	public boolean visit(ArrayInitializer node) {
+	public boolean visit(ArrayInitializer literal) {
 		try {
-			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(node), createExtractConstantFieldDescriptor(node.getStartPosition(), node.getLength()));
+			addExtractConstantFieldOpportunity(new ExtractConstantFieldContext(literal), createExtractConstantFieldDescriptor(literal.getStartPosition(), literal.getLength()));
+			addExtractTempOpportunity(new ExtractTempContext(literal), createExtractTempDescriptor(literal.getStartPosition(), literal.getLength()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -436,6 +464,13 @@ public class HotMethodVisitor  extends ASTVisitor {
 		}
 	}
 
+	private void addInlineTempOpportunity(InlineTempContext context, InlineTempDescriptor descriptor) {
+		if (!isCaptureInlineTemp) {
+			return;
+		}
+		addOpportunity(context, descriptor);
+	}
+
 	/** Inline constant at specified location. */
 	private InlineConstantFieldDescriptor createInlineConstantFieldDescriptor(int start, int length) {
 		String selection = "" + start + " " + length;
@@ -446,6 +481,13 @@ public class HotMethodVisitor  extends ASTVisitor {
 		return new InlineConstantFieldDescriptor(args);
 	}
 
+	private InlineTempDescriptor createInlineTempDescriptor(int start, int length) {
+		Map<String, String> args = new TreeMap<>();
+		args.put("input", this.unit.getHandleIdentifier());
+		args.put("selection", "" + start + " " + length);
+		return new InlineTempDescriptor(args);
+	}
+
 	@Override
 	public boolean visit(SimpleName name) {
 
@@ -453,24 +495,36 @@ public class HotMethodVisitor  extends ASTVisitor {
 			IBinding b = name.resolveBinding();
 	
 			if (b != null && !name.isDeclaration()) {
-	
+
+				// Wrap in try-catch to also check the orthogonal case below.
+				try {
+					if (this.cu instanceof CompilationUnit cu) {
+						ASTNode declNode = cu.findDeclaringNode(b);
+						if (declNode instanceof VariableDeclaration || declNode instanceof VariableDeclarationStatement) {
+							addInlineTempOpportunity(new InlineTempContext(name), createInlineTempDescriptor(name.getStartPosition(), name.getLength()));
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
 				int     modifiers = b.getModifiers();
 				boolean isFinal   = (modifiers & org.eclipse.jdt.core.dom.Modifier.FINAL)  > 0;
 				boolean isStatic  = (modifiers & org.eclipse.jdt.core.dom.Modifier.STATIC) > 0;
-	
-				if (b.getJavaElement() instanceof IField element) {
+
+				if (b.getJavaElement() instanceof SourceField element && isSourceAvailable(element)) {
 					addRenameOpportunity(new RenameFieldAccessContext(name), createRenameFieldDescriptor(element));
-				}
-	
-				if (isFinal && isStatic) {
-					addInlineConstantOpportunity(
-						new InlineConstantFieldContext(name),
-						createInlineConstantFieldDescriptor(
-							name.getStartPosition(),
-							name.getLength()
-						),
-						name.getStartPosition()
-					);
+
+					if (isFinal && isStatic) {
+						addInlineConstantOpportunity(
+							new InlineConstantFieldContext(name),
+							createInlineConstantFieldDescriptor(
+								name.getStartPosition(),
+								name.getLength()
+							),
+							name.getStartPosition()
+						);
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -501,28 +555,67 @@ public class HotMethodVisitor  extends ASTVisitor {
 		}
 	}
 
+	private MethodIndirectionDescriptor createMethodIndirectionDescriptor(IMethodBinding binding) {
+		if (
+			binding.getJavaElement()  instanceof IMethod method &&
+			method.getDeclaringType() instanceof IType   type
+		) {
+			Map<String, String> args = new TreeMap<>();
+			args.put("input", method.getHandleIdentifier());
+			args.put("element1", type.getHandleIdentifier());
+			return new MethodIndirectionDescriptor(args);
+		}
+		return null;
+	}
+
+	private void addMethodIndirectionOpportunity(MethodIndirectionContext context, MethodIndirectionDescriptor descriptor) {
+		if (!isCaptureMethodIndirection) {
+			return;
+		}
+		addOpportunity(context, descriptor);
+	}
+
 	@Override
 	public boolean visit(MethodInvocation node) {
 		try {
-			if (node.resolveMethodBinding() instanceof IMethodBinding binding) {
-	
-				int modifierFlags = org.eclipse.jdt.core.dom.Modifier.STATIC;
-				int modifiers     = binding.getModifiers(); // Bitwise or of modifier constants.
-	
-				boolean isConstructor = binding.isConstructor();
-				boolean isApplicable  = (modifiers & modifierFlags) != 0;
-	
-				if (!isConstructor && isApplicable) {
-					addInlineMethodOpportunity(
-						new InlineMethodContext(node),
-						createInlineMethodDescriptor(
-							binding.getJavaElement(),
-							node.getStartPosition(),
-							node.getLength()
-						),
-						node.getStartPosition()
-					);
-				}			
+			if (
+				node.resolveMethodBinding() instanceof IMethodBinding binding &&
+				binding.getJavaElement()    instanceof IJavaElement   element
+			) {
+				// Both extract temp and method indirection should work for references to both source and binary elements.
+				try {
+					addExtractTempOpportunity(new ExtractTempContext(node), createExtractTempDescriptor(node.getStartPosition(), node.getLength()));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					addMethodIndirectionOpportunity(new MethodIndirectionContext(node), createMethodIndirectionDescriptor(binding));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				try {
+					int modifierFlags = org.eclipse.jdt.core.dom.Modifier.STATIC;
+					int modifiers     = binding.getModifiers(); // Bitwise or of modifier constants.
+		
+					boolean isConstructor = binding.isConstructor();
+					boolean isApplicable  = (modifiers & modifierFlags) != 0;
+		
+					if (isSourceAvailable(element)) {
+						if (!isConstructor && isApplicable) {
+							addInlineMethodOpportunity(
+								new InlineMethodContext(node),
+								createInlineMethodDescriptor(
+									binding.getJavaElement(),
+									node.getStartPosition(),
+									node.getLength()
+								),
+								node.getStartPosition()
+							);
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			} else {
 				// Source is not available...
 				// (This happens for standard library and binary
@@ -533,6 +626,10 @@ public class HotMethodVisitor  extends ASTVisitor {
 			e.printStackTrace();
 		}
 		return true;
+	}
+
+	private boolean isSourceAvailable(IJavaElement element) {
+		return JavaElementUtil.isSourceAvailable((ISourceReference) element);
 	}
 
 	private void addExtractMethodOpportunity(ExtractMethodContext context, ExtractMethodDescriptor descriptor) {
@@ -689,6 +786,21 @@ public class HotMethodVisitor  extends ASTVisitor {
 		}
 	}
 
+	@Override
+	public boolean visit(VariableDeclarationFragment node) {
+		try {
+			if (
+				node.resolveBinding()    instanceof IVariableBinding binding  &&
+				binding.getJavaElement() instanceof ILocalVariable   variable
+			) {
+				addRenameOpportunity(new RenameLocalVariableContext(node), createRenameLocalVariableDescriptor(variable));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return true;
+	}
+
 	public boolean visit(SingleVariableDeclaration svd) {
 		try {
 			if (
@@ -758,6 +870,30 @@ public class HotMethodVisitor  extends ASTVisitor {
 					addRenameOpportunity(new RenameTypeTypeParameterContext(typeParameter), createRenameTypeParameterDescriptor(element));
 				}
 			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return true;
+	}
+
+	private void addExtractTempOpportunity(ExtractTempContext context, ExtractTempDescriptor descriptor) {
+		if (!isCaptureExtractTemp) {
+			return;
+		}
+		addOpportunity(context, descriptor);
+	}
+
+	private ExtractTempDescriptor createExtractTempDescriptor(int start, int length) {
+		Map<String, String> args = new TreeMap<>();
+		args.put("input", this.unit.getHandleIdentifier());
+		args.put("selection", start + " " + length);
+		return new ExtractTempDescriptor(args);
+	}
+
+	@Override
+	public boolean visit(InfixExpression node) {
+		try {
+			addExtractTempOpportunity(new ExtractTempContext(node), createExtractTempDescriptor(node.getStartPosition(), node.getLength()));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

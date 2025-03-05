@@ -20,6 +20,7 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeParameter;
 
 public class ASTHelper {
+
 	/*
 	 * https://www.eclipse.org/articles/Article-JavaCodeManipulation_AST/
 	 * https://stackoverflow.com/questions/12755640/variabledeclarationfragment-node-resolvebindind-returns-null-in-eclipse-jdt-as

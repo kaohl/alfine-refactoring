@@ -561,6 +561,113 @@ public class VisitorTest2 {
 		assertTrue(Main.applyRefactoring(workspace.getConfiguration().getArguments()));
 	}
 
+	@Test
+	public void test_14() throws Exception {
+		TestBench.init();
+		TestBench.methods(
+			"t.X.f()"
+		);
+		TestBench.src(
+			new Archive("test.jar")
+			.add("t/X.java", """
+				package t;
+				public class X {
+					public int f() {
+						int x = 0;  // Inline temp works also when x is final.
+						return  x;
+					}
+				}
+			""")
+		);
+		String descriptor = "{\"args\":{\"input\":\"=test/test.jar.dir<t{X.java\",\"selection\":\"118 1\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.inline.temp\"}}";
+		Workspace workspace = createTestWorkspace(descriptor);
+
+		boolean success = Main.applyRefactoring(workspace.getConfiguration().getArguments());
+		if (!success) {
+			printRefactoringOutput();
+		}
+		assertTrue(success);
+	}
+
+	@Test
+	public void test_15() throws Exception {
+		TestBench.init();
+		TestBench.methods(
+			"t.X.f()"
+		);
+		TestBench.src(
+			new Archive("test.jar")
+			.add("t/X.java", """
+				package t;
+				public class X {
+					public int f() {
+						return  1 + 2;
+					}
+				}
+			""")
+		);
+		String descriptor = "{\"args\":{\"input\":\"=test/test.jar.dir<t{X.java\",\"name\":\"_x_\",\"replace\":\"true\",\"replaceAllInThisFile\":\"false\",\"final\":\"false\",\"varType\":\"false\",\"selection\":\"60 5\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.extract.temp\"}}";
+		Workspace workspace = createTestWorkspace(descriptor);
+
+		boolean success = Main.applyRefactoring(workspace.getConfiguration().getArguments());
+		if (!success) {
+			printRefactoringOutput();
+		}
+		assertTrue(success);
+	}
+
+	@Test
+	public void test_16() throws Exception {
+		TestBench.init();
+		TestBench.methods(
+			"t.X.f()"
+		);
+		TestBench.src(
+			new Archive("test.jar")
+			.add("t/X.java", """
+				package t;
+				public class X {
+					public int g() {
+						return f();   // Should introduce indirection to f().
+					}
+					public int f() {
+						return 7;
+					}
+				}
+			""")
+		);
+		String descriptor = "{\"args\":{\"element1\":\"=test/test.jar.dir<t{X.java[X\",\"input\":\"=test/test.jar.dir<t{X.java[X~f\",\"name\":\"_x_\",\"references\":\"true\"},\"meta\":{\"id\":\"org.eclipse.jdt.ui.introduce.indirection\"}}";
+		Workspace workspace = createTestWorkspace(descriptor);
+
+		boolean success = Main.applyRefactoring(workspace.getConfiguration().getArguments());
+		if (!success) {
+			printRefactoringOutput();
+		}
+		assertTrue(success);
+	}
+
+	@Test
+	public void test_17() throws Exception {
+		TestBench.init();
+		TestBench.methods(
+			"t.X.f()"
+		);
+		TestBench.src(
+			new Archive("test.jar")
+			.add("t/X.java", """
+				package t;
+				public class X {
+					public int f() {
+						return Integer.MAX_VALUE;
+					}
+				}
+			""")
+		);
+		createTestWorkspace();
+		TestBench.assertNExtractConstant(0, "t.X.f()"); // Integer.MAX_VALUE is a binary reference and should be skipped.
+		TestBench.assertNInlineFields(0, "t.X.f()");
+	}
+
 	private Workspace createTestWorkspace(String descriptor) {
 		Workspace workspace = getWorkspace("test", "1.8", descriptor);
 		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
