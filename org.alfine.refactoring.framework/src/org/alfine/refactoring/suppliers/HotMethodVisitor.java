@@ -366,7 +366,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 	}
 
 	private void addOpportunity(RefactoringOpportunityContext context, RefactoringDescriptor descriptor) {
-		if (!this.isCapture) {
+		if (!this.isCapture || descriptor == null) {
 			return;
 		}
 		this.cache.write(context, descriptor);
@@ -558,7 +558,8 @@ public class HotMethodVisitor  extends ASTVisitor {
 	private MethodIndirectionDescriptor createMethodIndirectionDescriptor(IMethodBinding binding) {
 		if (
 			binding.getJavaElement()  instanceof IMethod method &&
-			method.getDeclaringType() instanceof IType   type
+			method.getDeclaringType() instanceof IType   type   &&
+			!type.isReadOnly()
 		) {
 			Map<String, String> args = new TreeMap<>();
 			args.put("input", method.getHandleIdentifier());
@@ -600,7 +601,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 					boolean isConstructor = binding.isConstructor();
 					boolean isApplicable  = (modifiers & modifierFlags) != 0;
 		
-					if (isSourceAvailable(element)) {
+					if (isSourceAvailable(element) && !element.isReadOnly()) {
 						if (!isConstructor && isApplicable) {
 							addInlineMethodOpportunity(
 								new InlineMethodContext(node),

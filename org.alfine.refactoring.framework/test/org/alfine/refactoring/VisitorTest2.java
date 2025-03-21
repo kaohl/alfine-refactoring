@@ -668,6 +668,29 @@ public class VisitorTest2 {
 		TestBench.assertNInlineFields(0, "t.X.f()");
 	}
 
+	@Test
+	public void test_18() throws Exception {
+		TestBench.init();
+		TestBench.methods(
+			"t.X.f()"
+		);
+		TestBench.src(
+			new Archive("test.jar")
+			.add("t/X.java", """
+				package t;
+				import java.lang.Math;
+				public class X {
+					public int f() {
+						return Math.abs(7); // Should not attempt to inline binary methods.
+					}
+				}
+			""")
+		);
+		createTestWorkspace();
+		TestBench.assertNInlineMethods(0, "t.X.f()");
+		TestBench.assertNMethodIndirections(1, "t.X.f()"); // The occurrence is for f().
+	}
+
 	private Workspace createTestWorkspace(String descriptor) {
 		Workspace workspace = getWorkspace("test", "1.8", descriptor);
 		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
@@ -771,6 +794,10 @@ test {
 
 		public static void assertNInlineMethods(int n, String qMethodWithSignature) throws Exception {
 			assertNLines(n, getCacheLocation().resolve("i-method").resolve(methodPath(qMethodWithSignature)).resolve("descriptors.txt"));
+		}
+
+		public static void assertNMethodIndirections(int n, String qMethodWithSignature) throws Exception {
+			assertNLines(n, getCacheLocation().resolve("method-indirection").resolve(methodPath(qMethodWithSignature)).resolve("descriptors.txt"));
 		}
 	}
 }
