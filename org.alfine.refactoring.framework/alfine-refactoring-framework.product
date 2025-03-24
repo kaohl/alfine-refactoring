@@ -3,15 +3,22 @@
 
 <product name="Alfine Refactoring Framework" uid="alfine-refactoring-framework" id="org.alfine.refactoring.framework.Alfine Refactoring Framework Product Extension" application="org.alfine.refactoring.framework.application" version="1.0.0" type="bundles" includeLaunchers="true" autoIncludeRequirements="true">
 
+
    <configIni use="default">
    </configIni>
 
    <launcherArgs>
+      <programArgs>-nosplash
+--launcher.suppressErrors
+      </programArgs>
+      <vmArgs>-Declipse.exitdata=&quot;&quot;
+      </vmArgs>
       <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts
       </vmArgsMac>
    </launcherArgs>
 
    <windowImages/>
+
 
    <launcher>
       <win useIco="false">
@@ -19,9 +26,11 @@
       </win>
    </launcher>
 
+
    <vm>
       <linux include="true">org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21</linux>
    </vm>
+
 
    <plugins>
       <plugin id="bcpg"/>
