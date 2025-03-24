@@ -722,7 +722,17 @@ public class HotMethodVisitor  extends ASTVisitor {
 	}
 
 	private RenameLocalVariableDescriptor createRenameLocalVariableDescriptor(IJavaElement element) {
-		return new RenameLocalVariableDescriptor(defaultArguments(element));
+		Map<String, String> args = defaultArguments(element);
+		Map<String, String> meta = new TreeMap<>();
+		meta.put("is_param", "false");
+		return new RenameLocalVariableDescriptor(args, meta);
+	}
+
+	private RenameLocalVariableDescriptor createRenameMethodParamDescriptor(IJavaElement element) {
+		Map<String, String> args = defaultArguments(element);
+		Map<String, String> meta = new TreeMap<>();
+		meta.put("is_param", "true");
+		return new RenameLocalVariableDescriptor(args, meta);
 	}
 
 	@Override
@@ -809,9 +819,7 @@ public class HotMethodVisitor  extends ASTVisitor {
 				binding.getJavaElement() instanceof ILocalVariable   variable
 			) {
 				if (ASTHelper.isMethodParameter(svd)) {
-					// Note: A parameter is still a local variable descriptor, but we change the context to be able to distinguish between parameters and locals.
-					// TODO: Better to handle this as a meta attribute on the descriptor?
-					addRenameOpportunity(new RenameMethodParameterContext(svd), createRenameLocalVariableDescriptor(variable));
+					addRenameOpportunity(new RenameMethodParameterContext(svd), createRenameMethodParamDescriptor(variable));
 				} else {
 					addRenameOpportunity(new RenameLocalVariableContext(svd), createRenameLocalVariableDescriptor(variable));
 				}
