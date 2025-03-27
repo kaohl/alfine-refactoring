@@ -25,6 +25,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceDescription;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -383,6 +384,26 @@ public class Workspace {
 			for (String name : projects.keySet()) {
 				JavaProject p = projects.get(name);
 				p.printReferencingProjects();
+			}
+			
+			// I got an assertion failure when running on the benchmark machine
+			// from what appears to be related to cancellation of startup clean
+			// and build actions caused by the refactoring being performed and
+			// finishing before the startup clean+build is completed.
+			//
+			// The following hopefully disable auto building at startup.
+			//
+			// https://github.com/eclipse-platform/eclipse.platform.ui/issues/2340
+			// https://github.com/eclipse-platform/eclipse.platform.ui/pull/2441
+			// https://www.eclipse.org/forums/index.php/t/94801/
+			try {
+				IWorkspace ws = ResourcesPlugin.getWorkspace();
+				IWorkspaceDescription desc = ws.getDescription();
+				desc.setAutoBuilding(false);
+				desc.setMaxConcurrentBuilds(1);
+				ws.setDescription(desc);
+			} catch (CoreException e) {
+				e.printStackTrace();
 			}
 		}
 

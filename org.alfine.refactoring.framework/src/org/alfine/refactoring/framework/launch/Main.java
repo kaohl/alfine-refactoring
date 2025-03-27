@@ -13,6 +13,10 @@ import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
 import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
 import org.alfine.refactoring.suppliers.RandomRenameSupplier;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceDescription;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
@@ -21,6 +25,17 @@ import org.eclipse.jdt.core.JavaCore;
 public class Main implements IApplication {
 	@Override
 	public Object start(IApplicationContext context) throws Exception {
+		
+		try {
+			IWorkspace ws = ResourcesPlugin.getWorkspace();
+			IWorkspaceDescription desc = ws.getDescription();
+			desc.setAutoBuilding(false);
+			desc.setMaxConcurrentBuilds(1);
+			ws.setDescription(desc);
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		
 		String[]             args      = (String [])context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
 		CommandLineArguments arguments = new CommandLineArguments(args);
 		if (arguments.getPrepare()) {
