@@ -4,7 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.jar.JarFile;
 
-import org.alfine.util.PUP;
+import org.alfine.utils.PUP;
 
 // The framework loads Source and Library objects.
 // A project have a set of Source(s) and Libraries.

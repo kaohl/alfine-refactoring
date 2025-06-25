@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.alfine.util.PUP; // Utility program for dealing with jar files in a symmetric way (unpack/re-pack).
+import org.alfine.utils.PUP;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IResource;
