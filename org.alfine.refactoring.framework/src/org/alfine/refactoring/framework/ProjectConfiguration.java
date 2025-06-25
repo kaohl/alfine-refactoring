@@ -1,8 +1,8 @@
 package org.alfine.refactoring.framework;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.WorkspaceConfiguration.LibEntry;
@@ -17,22 +17,22 @@ public class ProjectConfiguration {
 
 	/* Unique ID identifying the project. */
 	private final long id = idCounter++;
-	
+
 	private final String           name; /* The project name (Unique). */
-	private final Vector<String>   deps; /* Project dependencies. */
-	private final Vector<SrcEntry> srcs; /* Source entries. */
-	private final Vector<LibEntry> libs; /* Library entries. */
+	private final List<String>     deps; /* Project dependencies. */
+	private final List<SrcEntry>   srcs; /* Source entries. */
+	private final List<LibEntry>   libs; /* Library entries. */
 	private final Set<String>      includedPackagesNames; /* Qualified package names of variable packages. */
 	private final boolean          isValidConfig;
 
 	public ProjectConfiguration(
 		String           name,
-		Vector<String>   deps,
-		Vector<SrcEntry> srcs,
-		Vector<LibEntry> libs,
+		List<String>     deps,
+		List<SrcEntry>   srcs,
+		List<LibEntry>   libs,
 		List<String>     includedPackagesNames,
-		boolean isValidConfig) {
-
+		boolean isValidConfig
+	) {
 		this.name = name;
 		this.deps = deps;
 		this.srcs = srcs;
@@ -45,15 +45,15 @@ public class ProjectConfiguration {
 		return this.name;
 	}
 
-	public Vector<String> getDeps() {
+	public Collection<String> getDeps() {
 		return this.deps;
 	}
 
-	public Vector<SrcEntry> getSrcs() {
+	public Collection<SrcEntry> getSrcs() {
 		return this.srcs;
 	}
 
-	public Vector<LibEntry> getLibs() {
+	public Collection<LibEntry> getLibs() {
 		return this.libs;
 	}
 

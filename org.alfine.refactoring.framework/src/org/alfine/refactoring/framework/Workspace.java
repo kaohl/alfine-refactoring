@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Vector;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -47,7 +46,7 @@ public class Workspace {
 
 	/* Project configuration from configuration file. */
 	private Map<String, ProjectConfiguration> projectMap;
-	private Vector<ProjectConfiguration>      projectVec;
+	private List<ProjectConfiguration>        projectVec;
 	private Map<String, JavaProject>          projects;
 
 	private class VariablePackageFragments {
@@ -334,8 +333,8 @@ public class Workspace {
 		return this.cache;
 	}
 
-	/** Return vector with projects in top-down configuration file order (declare before use!). */
-	public Vector<ProjectConfiguration> getProjectVec() {
+	/** Return list with projects in top-down configuration file order (declare before use!). */
+	public List<ProjectConfiguration> getProjects() {
 		return this.projectVec;
 	}
 
@@ -353,7 +352,7 @@ public class Workspace {
 
 			boolean validConfig = true;
 
-			for (ProjectConfiguration p : getProjectVec()) {
+			for (ProjectConfiguration p : getProjects()) {
 				if (!p.validate(this)) {
 					validConfig = false;
 				}
@@ -365,7 +364,7 @@ public class Workspace {
 			}
 		}
 
-		for (ProjectConfiguration p : getProjectVec()) {
+		for (ProjectConfiguration p : getProjects()) {
 			if (p == null) {
 				throw new RuntimeException("Workspace::initialize(): ProjectConfiguration is null!");
 			}

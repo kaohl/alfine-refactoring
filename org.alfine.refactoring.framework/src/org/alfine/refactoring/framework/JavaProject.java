@@ -3,11 +3,13 @@ package org.alfine.refactoring.framework;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 import org.alfine.refactoring.framework.WorkspaceConfiguration.LibEntry;
@@ -99,22 +101,22 @@ public class JavaProject {
 //		return JavaCore.newLibraryEntry(jdkIPath, null, null, false);
 //	}
 
-	private Workspace           workspace;
+	private Workspace            workspace;
 	private ProjectConfiguration config;
-	private Vector<Source>      sources;
-	private Vector<Library>     libraries;
-	private Vector<String>      dependencies;
-	private Set<String>         includedPackagesNames;
+	private List<Source>         sources;
+	private List<Library>        libraries;
+	private List<String>         dependencies;
+	private Set<String>          includedPackagesNames;
 	
-	private IProject            project;
-	private IJavaProject        javaProject;
+	private IProject             project;
+	private IJavaProject         javaProject;
 
 	public JavaProject(Workspace workspace, ProjectConfiguration config, boolean fresh) {
-		this.workspace    = workspace;
-		this.config        = config;
-		this.sources      = new Vector<>();
-		this.libraries    = new Vector<>();
-		this.dependencies = new Vector<>();
+		this.workspace             = workspace;
+		this.config                = config;
+		this.sources               = new LinkedList<>();
+		this.libraries             = new LinkedList<>();
+		this.dependencies          = new LinkedList<>();
 		this.includedPackagesNames = config.getIncludedPackagesNames();
 
 		this.javaProject  = null;
@@ -133,7 +135,7 @@ public class JavaProject {
 	}
 
 	/** Return project source archives. */
-	public Vector<Source> getSources() {
+	public Collection<Source> getSources() {
 		return this.sources;
 	}
 

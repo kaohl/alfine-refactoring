@@ -11,11 +11,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Vector;
 import java.util.function.Predicate;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
@@ -86,7 +86,7 @@ public class WorkspaceConfiguration {
 	private Path config;   /* Project configuration file. */
 
 	private Map<String, ProjectConfiguration> projectMap; /* Projects loaded from configuration file. */
-	private Vector<ProjectConfiguration>      projects;   /* Project order as they appear in configuration file. */
+	private List<ProjectConfiguration>        projects;   /* Project order as they appear in configuration file. */
 
 	private static Properties   includedPackagesNames;
 	private static Properties   includedCompilationUnitsNames;
@@ -119,7 +119,7 @@ public class WorkspaceConfiguration {
 		includedCompilationUnitsNames = parseIncludedCompilationUnitsNames(includeCompilationUnitsConfig);
 		includedMethodNames           = parseIncludedMethodNames(includeMethodConfig);
 
-		Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> p;
+		Pair<List<ProjectConfiguration>, Map<String, ProjectConfiguration>> p;
 
 		p = parseConfig(config, srcPath, libPath, parseVariables(variableConfig));
 
@@ -249,7 +249,7 @@ public class WorkspaceConfiguration {
 	}
 
 	/** Return projects loaded from configuration (load order preserved). */
-	public Vector<ProjectConfiguration> getProjects() {
+	public List<ProjectConfiguration> getProjects() {
 		return this.projects;
 	}
 
@@ -310,9 +310,9 @@ public class WorkspaceConfiguration {
 
 		dependencies.add(label);
 
-		Vector<String>   deps = new Vector<>(); /* Project dependencies. */
-		Vector<SrcEntry> srcs = new Vector<>(); /* Source entries. */
-		Vector<LibEntry> libs = new Vector<>(); /* Library entries. */
+		List<String>   deps = new LinkedList<>(); /* Project dependencies. */
+		List<SrcEntry> srcs = new LinkedList<>(); /* Source entries. */
+		List<LibEntry> libs = new LinkedList<>(); /* Library entries. */
 
 		// TODO: `libs' and `exps' should be added in order they appear on classpath.
 		//       We must therefore preserve their order.
@@ -518,12 +518,12 @@ public class WorkspaceConfiguration {
 	/** Parse project configuration file and construct a `ProjectConfiguration' per project configuration.
 	 *  Since it may be time-consuming to load project resources into corresponding project folders
 	 *  we don't do this until the full configuration file has been parsed and checked. */
-	public static Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> parseConfig(Path config, Path srcDir, Path libDir, Set<String> variables) {
+	public static Pair<List<ProjectConfiguration>, Map<String, ProjectConfiguration>> parseConfig(Path config, Path srcDir, Path libDir, Set<String> variables) {
 
 		// The set projects for which configuration has already been loaded.
 		Set<String> dependencies = new HashSet<String>();
 
-		Vector<ProjectConfiguration>      vec = new Vector<>();
+		List<ProjectConfiguration>        vec = new LinkedList<>();
 		Map<String, ProjectConfiguration> map = new HashMap<>();
 
 		StringBuilder cnf = new StringBuilder();
@@ -556,6 +556,6 @@ public class WorkspaceConfiguration {
 			e.printStackTrace();
 		}
 
-		return new Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>>(vec, map);
+		return new Pair<List<ProjectConfiguration>, Map<String, ProjectConfiguration>>(vec, map);
 	}
 }
