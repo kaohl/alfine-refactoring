@@ -2,121 +2,104 @@ package org.alfine.refactoring.framework.launch;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Hashtable;
 
 import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
-import org.alfine.refactoring.framework.launch.CommandLineArguments.RefactoringType;
-import org.alfine.refactoring.processors.RefactoringProcessor;
-import org.alfine.refactoring.suppliers.RandomExtractConstantSupplier;
-import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
-import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
-import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
-import org.alfine.refactoring.suppliers.RandomRenameSupplier;
-import org.alfine.refactoring.suppliers.RefactoringSupplier;
-import org.alfine.refactoring.utils.Generator;
+import org.alfine.refactoring.processors.Processor;
+import org.alfine.refactoring.suppliers.HotMethodRefactoringFinder;
+import org.eclipse.core.resources.IWorkspace;
+import org.eclipse.core.resources.IWorkspaceDescription;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
+import org.eclipse.jdt.core.JavaCore;
 
-/**
- * This class controls all aspects of the application's execution
- */
 public class Main implements IApplication {
-
-	public static final String LOGFILE_KEY = "alfine.refactoring.stdlog";
-
 	@Override
 	public Object start(IApplicationContext context) throws Exception {
+		
+		try {
+			IWorkspace ws = ResourcesPlugin.getWorkspace();
+			IWorkspaceDescription desc = ws.getDescription();
+			desc.setAutoBuilding(false);
+			desc.setMaxConcurrentBuilds(1);
+			ws.setDescription(desc);
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		
+		String[]             args      = (String [])context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
+		CommandLineArguments arguments = new CommandLineArguments(args);
+		if (arguments.getPrepare()) {
+			prepareWorkspace(arguments);
+			return IApplication.EXIT_OK;
+		} else {
+			applyRefactoring(arguments);
+			return IApplication.EXIT_OK;
+		}
+	}
 
-		String[]             args      = null;
-		CommandLineArguments arguments = null;
+	public static boolean applyRefactoring(CommandLineArguments arguments) throws Exception {
 
-		args      = (String [])context.getArguments().get(IApplicationContext.APPLICATION_ARGS);
-		arguments = new CommandLineArguments(args);
-
-		// String  projectName     = "JavaProject";               // Default project name in workspace.
-		String  srcFolder       = arguments.getSrcFolder();    // Location of source archives to be imported.
-		String  libFolder       = arguments.getLibFolder();    // Location of binary archives to be imported.
-		String  outputFolder    = arguments.getOutputFolder(); // Output folder for source archives on success.
-		boolean verbose         = arguments.getVerbose();      // Execute with extra console output (mostly for debugging).
-		int     drop            = arguments.getDrop();         // Drop the first n refactorings in the supplier stream. 
-		int     limit           = arguments.getLimit();        // Number of refactoring attempts before we give up.
-		long    shuffleSeed       = arguments.getShuffleSeed();    // Seed passed to Random instance used for shuffling opportunities.
-		long    selectSeed      = arguments.getSelectSeed(); // Seed passed to supply iterator used for selecting next opportunity.
-
-		RefactoringType type    = arguments.getRefactoring(); // Refactoring type.
-		long            seed    = arguments.getSeed();        // Number generator seed.
-		int             offset   = arguments.getOffset();       // Number generator initial offset.
-		int             length  = arguments.getLength();      // Rename symbol max length. (In case of a rename refactoring.)
-		boolean         fixed    = arguments.getFixed();     // Whether length of generated symbols is fixed or random.
-
-		Path logFilePath = Paths.get("refactoring-output.log");
-		System.setProperty(Main.LOGFILE_KEY, logFilePath.toString());
-
-		String location = Platform.getInstanceLocation().getURL().getFile();
-
-		System.out.println("Location = " + location);
-
-		Path locationPath = Paths.get(location);
-		Path srcFolderPath = locationPath.resolve(srcFolder);
-		Path libFolderPath = locationPath.resolve(libFolder);
-		Path outFolderPath = locationPath.resolve(outputFolder);
-		Workspace workspace = new Workspace(
-			new WorkspaceConfiguration(
-				locationPath,
-				srcFolderPath,
-				libFolderPath,
-				srcFolderPath.resolve("workspace.config"),
-				srcFolderPath.resolve("variable.config")
-			),
-			srcFolderPath,
-			libFolderPath,
-			outFolderPath
-		);
-
-		// TODO: Consider representing refactoring opportunities as (ID, ARGMAP)-tuples.
-
-		Generator           generator = new Generator(seed, offset);
-		RefactoringSupplier supplier  = null;
-
-		switch (type) {
-		case NONE:
-			break;
-		case INLINE_CONSTANT:
-			supplier = new RandomInlineConstantFieldSupplier(workspace, generator);
-			break;
-		case EXTRACT_CONSTANT:
-			supplier = new RandomExtractConstantSupplier(workspace, generator);
-			break;
-		case EXTRACT_METHOD:
-			supplier = new RandomExtractMethodSupplier(workspace, generator);
-			break;
-		case INLINE_METHOD:
-			supplier = new RandomInlineMethodSupplier(workspace, generator);
-			break;
-		case RENAME:
-
-			if (!arguments.hasOption("length")) {
-				System.out.println("Missing command-line option 'length' (-l) for rename refactorings.");
-			}
-			
-			generator.setMaxLength(length);
-			generator.setLengthFixed(fixed);    // TODO: Add as a command line option.
-
-			supplier = new RandomRenameSupplier(workspace, generator);
-			break;
-		default:
-			System.out.println("Unknown refactoring type.");
+		final String descriptor = arguments.getRefactoringDescriptor();
+		if (descriptor == null) {
+			throw new Exception("Please specify a refactoring descriptor using the appropriate command line switch.");
 		}
 
-		supplier.setShuffleSeed(shuffleSeed);
-		supplier.setSelectSeed(selectSeed);
+		System.out.println("Using descriptor = " + descriptor);
 
-		boolean success = new RefactoringProcessor(supplier).processSupply(drop, limit);
+		// Assume that the workspace is already setup by a previous invocation to "prepare" the workspace.
+
+		Workspace workspace    = new Workspace(new WorkspaceConfiguration(arguments), false);
+		Path      location     = Paths.get(Platform.getInstanceLocation().getURL().getFile());
+		Path      reportFolder = location.resolve("report");
+
+		boolean success = Processor.refactor(descriptor, reportFolder);
 
 		workspace.close(success);
 
-		return IApplication.EXIT_OK;
+		return success;
+	}
+
+	private void prepareWorkspace(CommandLineArguments arguments) throws Exception {
+		final String compliance = arguments.getCompilerComplianceVersion();
+		if (compliance == null) {
+			throw new Exception("Please specify compiler compliance using the appropriate command line switch.");
+		}
+		Hashtable<String, String> options = JavaCore.getDefaultOptions();
+		JavaCore.setComplianceOptions(arguments.getCompilerComplianceVersion(), options);
+		JavaCore.setOptions(options);
+
+		Workspace workspace = new Workspace(new WorkspaceConfiguration(arguments), true);
+
+		// The `packages.config' file is a Java properties file mapping project
+		// names to package names. The user should can configure this file
+		// to specify to the framework which packages are open for
+		// transformation.
+		//
+		// The `units.config' file is a Java properties file mapping
+		// project names to compilation unit names. The user should configure
+		// this file to specify to the framework which units are open for
+		// transformation.
+		//
+		// The `packages.config.helper` file written here is for showing
+		// the user what package fragment options are available.
+		//
+		// This is only relevant for collecting opportunities.
+		//
+		Path packagesConfigHelperPath = workspace.getConfiguration().getSrcPath().resolve("packages.config.helper");
+		workspace.writePackagesConfigHelper(packagesConfigHelperPath);
+
+		if (WorkspaceConfiguration.hasMethodsConfig()) {
+			// Cache opportunities based on a list of method signatures.
+			// Originally intended for hot methods, but can be applied to any available function.
+			new HotMethodRefactoringFinder(workspace).cacheOpportunities();
+		} else {
+			throw new Exception("No opportunities cached. Please specify methods configuration.");
+		}
 	}
 
 	@Override

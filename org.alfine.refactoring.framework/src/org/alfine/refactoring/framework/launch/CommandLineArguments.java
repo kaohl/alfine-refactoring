@@ -9,33 +9,15 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 public class CommandLineArguments {
-	
-	public enum RefactoringType {
-		NONE,
-		RENAME,
-		INLINE_METHOD,
-		INLINE_CONSTANT,
-		EXTRACT_METHOD,
-		EXTRACT_CONSTANT,
-		UNKNOWN
-	}
-
-	public RefactoringType typeStringToType(String typeString) {		
-		switch (typeString) {
-		case "none":             return RefactoringType.NONE;
-		case "rename":           return RefactoringType.RENAME;
-		case "inline-method":    return RefactoringType.INLINE_METHOD;
-		case "inline-constant":  return RefactoringType.INLINE_CONSTANT;
-		case "extract-method":   return RefactoringType.EXTRACT_METHOD;
-		case "extract-constant": return RefactoringType.EXTRACT_CONSTANT;
-		default:                 return RefactoringType.UNKNOWN;
-		}
-	}
 
 	private CommandLine cmd;
 
 	public boolean getVerbose() {
 		return cmd.hasOption("verbose");
+	}
+
+	public String getCacheFolder() {
+		return cmd.getOptionValue("cache");
 	}
 
 	public String getSrcFolder() {
@@ -50,40 +32,20 @@ public class CommandLineArguments {
 	    return cmd.getOptionValue("out");
 	}
 
-	public RefactoringType getRefactoring() {
-		return typeStringToType(cmd.hasOption("type") ? cmd.getOptionValue("type") : "none");
+	public String getRefactoringOutputReportFolder() {
+		return cmd.getOptionValue("report");
 	}
 
-	public long getSeed() {
-		return cmd.hasOption("seed") ? Long.parseLong(cmd.getOptionValue("seed")) : 0;
+	public boolean getPrepare() {
+		return cmd.hasOption("prepare");
 	}
 
-	public int getOffset() {
-		return cmd.hasOption("offset") ? Integer.parseInt(cmd.getOptionValue("offset")) : 0;
+	public String getCompilerComplianceVersion() {
+		return cmd.hasOption("compliance") ? cmd.getOptionValue("compliance") : null;
 	}
 
-	public int getDrop() {
-		return cmd.hasOption("drop") ? Integer.parseInt(cmd.getOptionValue("drop")) : 0;
-	}
-
-	public int getLimit() {
-		return cmd.hasOption("limit") ? Integer.parseInt(cmd.getOptionValue("limit")) : 0;
-	}
-
-	public int getLength() {
-		return cmd.hasOption("length") ? Integer.parseInt(cmd.getOptionValue("length")) : 0;
-	}
-
-	public boolean getFixed() {
-		return hasOption("fixed");
-	}
-
-	public long getShuffleSeed() {
-		return cmd.hasOption("shuffle") ? Long.parseLong(cmd.getOptionValue("shuffle")) : 0;
-	}
-
-	public long getSelectSeed() {
-		return cmd.hasOption("select") ? Long.parseLong(cmd.getOptionValue("select")) : 0;
+	public String getRefactoringDescriptor() {
+		return cmd.hasOption("descriptor") ? cmd.getOptionValue("descriptor") : null;
 	}
 
 	public boolean hasOption(String opt) {
@@ -92,71 +54,63 @@ public class CommandLineArguments {
 
 	public CommandLineArguments(String[] args) {
 
-		for (int i = 0; i < args.length; ++i) {
-			System.out.println("arg[" + i + "] = " + args[i]);
-		}
-
 		Options options = new Options();
 
 		Option verbose = new Option("v", "verbose", false, "verbose execution");
         verbose.setRequired(false);
         options.addOption(verbose);
 
-        Option srcFolder = new Option("j", "src", true, "source (jar) archives folder");
+		Option prepare = new Option("p", "prepare", false, "prepare workspace and cache refactoring opportunities");
+        prepare.setRequired(false);
+        options.addOption(prepare);
+
+        Option compliance = new Option("k", "compliance", true, "Compiler compliance of created java projects (see JavaCore.VERSION_<version>).");
+        compliance.setRequired(false);
+        options.addOption(compliance);
+
+        Option line = new Option("d", "descriptor", true, "Refactoring opportunity cache line");
+        line.setRequired(false);
+        options.addOption(line);
+
+        Option cacheFolder = new Option("c", "cache", true, "cache folder where project specific refactoring opportunity cache files are stored");
+        cacheFolder.setRequired(true);
+        options.addOption(cacheFolder);
+
+        Option srcFolder = new Option("s", "src", true, "source (jar) archives folder");
         srcFolder.setRequired(true);
         options.addOption(srcFolder);
 
-        Option libFolder = new Option("b", "lib", true, "binary (jar) archives folder");
+        Option libFolder = new Option("l", "lib", true, "binary (jar) archives folder");
         libFolder.setRequired(true);
         options.addOption(libFolder);
 
-        Option outputFolder = new Option("u", "out", true, "output (jar) source archives folder");
+        Option outputFolder = new Option("o", "out", true, "output (jar) source archives folder");
         outputFolder.setRequired(true);
         options.addOption(outputFolder);
 
-        Option refactoring = new Option("t", "type", true, "refactoring type");
-        refactoring.setRequired(true);
-        options.addOption(refactoring);
-
-        Option seed = new Option("s", "seed", true, "seed for pseudo random number generator");
-        seed.setRequired(false);  // Default to zero.
-        options.addOption(seed);
-
-        Option offset = new Option("o", "offset", true, "initial offset for pseudo random number generator");
-        offset.setRequired(false); // Default to zero.
-        options.addOption(offset);
-
-        Option drop = new Option("d", "drop", true, "drop the n first refactorings in supplier stream");
-        drop.setRequired(false); // Default to zero.
-        options.addOption(drop);
-
-        Option limit = new Option("m", "limit", true, "abort after n failed refactorings (not compatible with 'limit' option)");
-        limit.setRequired(false); // Default to zero.
-        options.addOption(limit);
-
-        Option length = new Option("l", "length", true, "rename refactoring max symbol length");
-        length.setRequired(false); // Default to zero (which makes the program crash).
-        options.addOption(length);
-
-        Option fixed = new Option("f", "fixed", false, "always generate symbols of set max length.");
-        fixed.setRequired(false); // Default to false.
-        options.addOption(fixed);
-
-        Option shuffle = new Option("x", "shuffle", true, "seed passed to random number generator used for shuffling opportunities.");
-        shuffle.setRequired(false); // Default to zero.
-        options.addOption(shuffle);
-
-        Option select = new Option("y", "select", true, "seed passed to random number generator used for selecting refactoring opportunities.");
-        select.setRequired(false); // Default to zero.
-        options.addOption(select);
+        Option reportFolder = new Option("r", "report", true, "refactoring report output folder");
+        reportFolder.setRequired(false);
+        options.addOption(reportFolder);
 
         try {
             CommandLineParser parser = new BasicParser();
             this.cmd = parser.parse(options, args);
+            if (getVerbose()) {
+            	printArgs(args);
+            }
         } catch (ParseException e) {
+        	printArgs(args);
             System.out.println(e.getMessage());
             new HelpFormatter().printHelp("refactoring framework", options);
-            // TODO: exit?
+            System.exit(0);
         }
+	}
+
+	private static void printArgs(String[] args) {
+    	System.out.println("*** Command-line arguments");
+		for (int i = 0; i < args.length; ++i) {
+			System.out.println("arg[" + i + "] = " + args[i]);
+		}
+		System.out.println("***");
 	}
 }

@@ -1,0 +1,58 @@
+Some notes on what refactorings we consider, or planned to but never got to it.
+
+Renamings
+  Methods
+  1. The hot method
+  2. Methods called directly from hot method
+
+  Parameters
+  1. Parameters of hot method
+  2. Parameters of methods called directly from hot method
+
+  Type parameters
+  1. Type parameters of hot method
+  2. Type parameters of methods called directly from hot method
+
+  Locals
+  1. Locals of hot method
+  2. Locals of methods called directly from hot method
+
+  Fields
+  1. Fields referenced directly by hot method
+  2. Fields referenced directly by methods called directly from hot method
+
+  Constants
+  1. Constant fields referenced directly by hot method
+  2. Constant fields referenced directly by methods called directly from hot method
+
+  Classes
+  1. The enclosing classes of hot method
+  2. Classes referenced from hot method (static calls or fields)
+  3. Enclosing classes of methods called directly from hot method
+  4. Classes referenced from methods called directly from hot method
+
+Extract constant
+1. Constant expressions within hot method
+2. Constant expressions within methods called directly from hot method
+
+Inline constant
+1. Constants referenced by hot method
+2. Constants referenced by methods called directly from hot method
+
+Extract method
+1. Statements from body of hot method
+2. Statements from body of methods called directly from hot method
+
+Inline method
+1. Inline hot method (required to be private and static)
+2. Inline methods called from hot method
+3. Inline methods called from methods called directly from hot method
+
+Expansions:
+- Callers of hot methods
+  - include methods calling into hot methods
+    - note that there could be many paths into a hot method and in worst case,
+      only one is used by the benchmark. The same is true going out of a hot method.
+- Called from hot methods
+- Superclass of hot method class (rename)
+- Interfaces of hot method class (rename)

@@ -4,7 +4,9 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -22,14 +24,21 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jdt.core.IAccessRule;
+import org.eclipse.jdt.core.IClasspathAttribute;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.launching.JavaRuntime;
 
 public class JavaProject {
 
+	// Environment variable used to point out a valid `rt.jar`
+	// which will be used as the workspace default JRE.
+	public static final String ALFINE_RT = "ALFINE_RT";
+	
 	/* Source archives shared between projects (containing multiple source roots). */
 
 	private static Map<Path, Source> parents = new HashMap<>();
@@ -38,12 +47,65 @@ public class JavaProject {
 		return JavaProject.parents;
 	}
 
+//	private static boolean defaultJDKInitialized = false;
+//	
+//	public static void initializeDefaultWorkspaceJRE() {
+//		if (defaultJDKInitialized)
+//			return;
+//		
+//		defaultJDKInitialized = true;
+//		
+//		String                        jdkPathString = System.getProperties().getProperty("JAVA_HOME");
+//		org.eclipse.core.runtime.Path jdkIPath        = new org.eclipse.core.runtime.Path(jdkPathString);
+//		
+//		org.eclipse.jdt.ui.PreferenceConstants.encodeJRELibrary(
+//			"Alfine Default JDK (JAVA_HOME)", new IClasspathEntry[] { JavaCore.newLibraryEntry(jdkIPath, null, null, false) });
+//	}
+//
+//	// We should not need this but keep it to know where to fetch it from.
+//	private static IClasspathEntry[] getDefaultWorkspaceJRE() {
+//		return org.eclipse.jdt.ui.PreferenceConstants.getDefaultJRELibrary();
+//	}
+//	
+
+//	public static IClasspathEntry getCustomDefaultWorkspaceJRE() {
+//		// https://help.eclipse.org/2019-09/index.jsp
+//		// JDT Plug-in Developers Guide
+//		//  - Programmer's Guide
+//		//   - JDT Core
+//		//    - Setting the Java build path
+//		
+//		// ALFINE_RT must point to a `rt.jar` file.
+//		
+//		
+//		// https://stackoverflow.com/questions/1773060/programmatically-configure-eclipse-installed-jres
+//
+//		String jdkPathString = Workspace.RT;// System.getProperties().getProperty(ALFINE_RT);
+//		
+//		System.out.println(ALFINE_RT + "= " + jdkPathString);
+//		
+//		if (jdkPathString == null || !Files.exists(Paths.get(jdkPathString))) {
+//			StringBuilder err = new StringBuilder();
+//			err.append("Invalid path to rt.jar: ");
+//			err.append(jdkPathString == null ? "" : jdkPathString);
+//			err.append(System.getProperty("line.separator"));
+//			err.append("Please verify that ALFINE_RT points to a valid `rt.jar`.");
+//			throw new RuntimeException(err.toString());
+//		}
+//
+//		org.eclipse.core.runtime.Path jdkIPath =
+//			new org.eclipse.core.runtime.Path(jdkPathString);
+//
+//		return JavaCore.newLibraryEntry(jdkIPath, null, null, false);
+//	}
+
 	private Workspace           workspace;
 	private ProjectConfiguration config;
 	private Vector<Source>      sources;
 	private Vector<Library>     libraries;
 	private Vector<String>      dependencies;
-
+	private Set<String>         includedPackagesNames;
+	
 	private IProject            project;
 	private IJavaProject        javaProject;
 
@@ -53,6 +115,7 @@ public class JavaProject {
 		this.sources      = new Vector<>();
 		this.libraries    = new Vector<>();
 		this.dependencies = new Vector<>();
+		this.includedPackagesNames = config.getIncludedPackagesNames();
 
 		this.javaProject  = null;
 
@@ -79,6 +142,11 @@ public class JavaProject {
 		return getWorkspace().getLocation().resolve(getConfig().getName());
 	}
 
+	/** Return IProject handle of this java project. */
+	private IProject getIProject() {
+		return this.project;
+	}
+
 	/** Return the associated IJavaProjct instance. */
 	public IJavaProject getIJavaProject() {
 		return this.javaProject;
@@ -95,53 +163,81 @@ public class JavaProject {
 		}
 	}
 
+	private void setRawClasspath(IClasspathEntry[] classpath) {
+		try {
+			javaProject.setRawClasspath(classpath, null);
+		} catch (JavaModelException e1) {
+			e1.printStackTrace();
+		}
+	}
+
 	private void initialize(boolean fresh) {
 
 		// Create a corresponding java project in workspace.
 
 		String projectName = getConfig().getName();
 
-		this.project     = getWorkspace().newProject(projectName);
+		System.out.println("JavaProject::initialize(boolean): projectName = " + projectName);
+
+		this.project     = getWorkspace().getProject(projectName);
 		this.javaProject = getWorkspace().newJavaProject(projectName, fresh);
 
 		// Load sources and libraries and populate classpath.
 
-		try {
-			javaProject.setRawClasspath(new IClasspathEntry[] {}, null);
-		} catch (JavaModelException e1) {
-			e1.printStackTrace();
+		if (fresh) {
+			// Set project compiler compliance and add default JRE classpath entry.
+			//
+			// Use the user specified compliance level to make sure that the code
+			// generated by the refactoring framework is compliant with user
+			// requirements.
+
+			// https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_int.htm
+			//this.javaProject.setOption(JavaCore.COMPILER_COMPLIANCE, getWorkspace().getConfiguration().getArguments().getCompilerComplianceVersion());
+
+			Hashtable<String, String> options = JavaCore.getDefaultOptions();
+			options.put(
+				JavaCore.COMPILER_COMPLIANCE,
+				getWorkspace().getConfiguration().getArguments().getCompilerComplianceVersion()
+			);
+			this.javaProject.setOptions(options);
+			
+			setRawClasspath(new IClasspathEntry[] {
+				JavaRuntime.getDefaultJREContainerEntry()
+			});
 		}
 
 		for (String d : getConfig().getDeps()) {
-			addDependency(d);
+			if (!addDependency(d, fresh)) {
+				System.err.println("Dependency not on classpath: project = `" + projectName + "`, dep = `" + d + "`");
+			}
 		}
 
 		for (SrcEntry p : getConfig().getSrcs()) {
-			importSource(p.getJar(), p.getDir(), p.isVariable());
+			importSource(p.getJar(), p.getDir(), p.isVariable(), fresh);
 		}
 
 		for (LibEntry p : getConfig().getLibs()) {
-			importLibrary(p.getLib(), p.getSrc(), p.isExported());
+			importLibrary(p.getLib(), p.getSrc(), p.isExported(), fresh);
 		}
 
 		// Refresh project to make resources visible.
 
-		try {
-			project.refreshLocal(IProject.DEPTH_INFINITE, new NullProgressMonitor());
-		} catch (CoreException e) {
-			e.printStackTrace();
-		}
+		refresh();
 
 		showClasspath();
 
-		// Set project dependencies.
-		try {
-			IProjectDescription desc = project.getDescription();
-			desc.setReferencedProjects(getProjectReferences());
-			project.setDescription(desc, new NullProgressMonitor());
-			project.clearCachedDynamicReferences();
-		} catch (CoreException e) {
-			e.printStackTrace();
+		if (fresh) {
+
+			// Set project dependencies.
+
+			try {
+				IProjectDescription desc = project.getDescription();
+				desc.setReferencedProjects(getProjectReferences());
+				project.setDescription(desc, new NullProgressMonitor());
+				project.clearCachedDynamicReferences();
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -186,40 +282,30 @@ public class JavaProject {
 		}
 	}
 
-	/** */
-	private void addDependency(String dep) {
+	private boolean addDependency(String dep, boolean fresh) {
 		this.dependencies.add(dep);
 
-		IWorkspace     workspace     = ResourcesPlugin.getWorkspace();
-		IWorkspaceRoot workspaceRoot = workspace.getRoot();
-		IProject p = workspaceRoot.getProject(dep);
+		IProject p = getWorkspace().getProject(dep);
 
-		
-		// Path      path   = getWorkspace().getLocation().resolve(Paths.get(dep));
-		// IResource folder = project.getFolder(path.toString());
-
-
-		
-		//JavaCore.getJavaCore().
-		//javaProject.isOnClasspath(element);
-		//javaProject.isOnClasspath(resource);
-		/*
-		try {
-			return javaProject.getClasspathEntryFor(folder.getFullPath());
-		} catch (JavaModelException e) {
-			e.printStackTrace();
-		}
-		return null;
-		*/
-		
-		// for (IProject p : project.getReferencingProjects()) {}
-		
-		//System.out.println("dependency path:" + folder.getFullPath());
-		//addClasspathEntry(JavaCore.newProjectEntry(folder.getFullPath(), true));
-		//System.out.println("dependency path (location):" + p.getLocation());
-		//addClasspathEntry(JavaCore.newProjectEntry(p.getLocation(), true));
 		System.out.println("dependency path (fullpath):" + p.getFullPath());
-		addClasspathEntry(JavaCore.newProjectEntry(p.getFullPath(), true));
+
+		if (fresh) {
+			final String compliance = getWorkspace().getConfiguration().getArguments().getCompilerComplianceVersion();
+			if (compliance.startsWith("1.")) {
+				 addClasspathEntry(JavaCore.newProjectEntry(p.getFullPath(), true));
+			} else {
+				// Add module dependency.
+				addClasspathEntry(JavaCore.newProjectEntry(
+					p.getFullPath(),
+					new IAccessRule[0],
+					true,
+					new IClasspathAttribute[] { JavaCore.newClasspathAttribute(IClasspathAttribute.MODULE, "true") },
+					true
+				));
+			}
+		}
+
+		return getIJavaProject().isOnClasspath(p);
 	}
 
 	private IClasspathEntry asSourceEntry(IResource resource) {
@@ -228,13 +314,22 @@ public class JavaProject {
 			IClasspathEntry      entry = JavaCore.newSourceEntry(root.getPath());
 			return entry;
 		} else {
-			System.err.println("Error: asSourceClasspathEntry(): Resource `" + resource.getFullPath() + "'does not exist.");
+			System.err.println("Error: asSourceEntry(): Resource `" + resource.getFullPath() + "'does not exist.");
 		}
 		return null;
 	}
 
+	/** Refresh project resource hierarchy to make new resources visible. */
+	private void refresh() {
+		try {
+			getIProject().refreshLocal(IProject.DEPTH_INFINITE, new NullProgressMonitor());
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	}
+
 	/** Add source entry to project classpath. */
-	private void addSource(Source source, boolean isVariable) {
+	private void addSource(Source source, boolean isVariable, boolean fresh) {
 		this.sources.add(source);
 
 		Path target = Paths.get(source.getTarget().getFileName().toString());
@@ -243,19 +338,16 @@ public class JavaProject {
 
 		// System.out.println("target  = " + target);
 
-		source.importResource();
-
-		// Refresh project to make resources visible.
-
-		try {
-			project.refreshLocal(IProject.DEPTH_INFINITE, new NullProgressMonitor());
-		} catch (CoreException e) {
-			e.printStackTrace();
+		if (fresh) {
+			source.importResource();
+			refresh();
 		}
 
 		IFolder targetFolder = project.getFolder(target.toString());
 
-		addClasspathEntry(asSourceEntry(targetFolder));
+		if (fresh) {
+			addClasspathEntry(asSourceEntry(targetFolder));
+		}
 
 		if (isVariable) {
 
@@ -267,29 +359,60 @@ public class JavaProject {
 			);
 
 			IPackageFragmentRoot packageFragmentRoot = 
-				javaProject.getPackageFragmentRoot(targetFolder);
+				getIJavaProject().getPackageFragmentRoot(targetFolder);
 
-			getWorkspace().addVariableSourceRoot(packageFragmentRoot);
+			getWorkspace().addVariableSourceRoot(project.getName(), packageFragmentRoot, this.includedPackagesNames);
 		}
 	}
 
+	/*
+	public List<IPackageFragmentRoot> getPackageFragmentRoots() {
+		List<IPackageFragmentRoot> roots = new LinkedList<>();
+		Path location = Paths.get(Platform.getInstanceLocation().getURL().getFile());
+		for (Source src : this.sources) {
+//			System.out.println("LOC = " + location.toString());
+//			System.out.println("PATH = " + src.getTarget().toString());
+//			System.out.println("PATH = " + location.relativize(src.getTarget()).toString());
+			
+			TODO
+			//https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_api_classpath.htm
+			
+			String p = "/" + location.relativize(src.getTarget()).toString();
+			String p2 = src.getTarget().toString();
+			IFolder              targetFolder        = project.getFolder(p2);
+			IPackageFragmentRoot packageFragmentRoot = getIJavaProject().getPackageFragmentRoot(targetFolder);
+
+			roots.add(packageFragmentRoot);
+		}
+		return roots;
+	}
+	*/
+
 	/** Return an IClasspath entry representing the specified library with optional source attachment. */
 	private IClasspathEntry asLibEntry(IPath lib, IPath src, boolean doExport) {
-
-		// TODO: Get source paths:
-		// IPackageFragmentRoot root  = javaProject.getPackageFragmentRoot(...);
-		// if (src != null) ...
-
-		return JavaCore.newLibraryEntry(
-			lib,
-			src,
-			null, // sourceAttachmentRootPath (root within archive
-			doExport
-		);
+		final String compliance = getWorkspace().getConfiguration().getArguments().getCompilerComplianceVersion();
+		if (compliance.startsWith("1.")) {
+			return JavaCore.newLibraryEntry(
+				lib,
+				src,
+				null, // sourceAttachmentRootPath (root within archive)
+				doExport
+			);
+		} else {
+			// Add all libraries to module path.
+			return JavaCore.newLibraryEntry(
+				lib,
+				src,
+				null,
+				new IAccessRule[0],
+				new IClasspathAttribute[] { JavaCore.newClasspathAttribute(IClasspathAttribute.MODULE, "true")},
+				doExport
+			);
+		}
 	}
 
 	/** Add library to project classpath. */
-	private void addLibrary(Library library) {
+	private void addLibrary(Library library, boolean fresh) {
 
 		this.libraries.add(library);
 
@@ -303,19 +426,21 @@ public class JavaProject {
 			? new org.eclipse.core.runtime.Path(srcPath.toString())
 			: null;
 
-		addClasspathEntry(asLibEntry(lib, src, library.isExported()));
+		if (fresh) {
+			addClasspathEntry(asLibEntry(lib, src, library.isExported()));
+		}
 	}
 
 	/** Add the specified library to the project. */
-	private void importLibrary(Path lib, Path src, boolean export) {
-		addLibrary(new Library(lib, src, export));
+	private void importLibrary(Path lib, Path src, boolean export, boolean fresh) {
+		addLibrary(new Library(lib, src, export), fresh);
 	}
 
 	/** Import source archive from `source' using `folder' as its source root, and return
 	 * 	a `Source' instance representing the archive in the specified `project'. 
 	 * @param b 
 	 * @param isVariable */
-	private void importSource(Path source, String folder, boolean isVariable) {
+	private void importSource(Path source, String folder, boolean isVariable, boolean fresh) {
 
 		String[] ss      = source.toString().split(File.separator);
 		String   filename = ss[ss.length - 1];
@@ -352,7 +477,7 @@ public class JavaProject {
 			result = new Source(parent, folder, target);
 		}
 
-		addSource(result, isVariable);
+		addSource(result, isVariable, fresh);
 	}
 
 	public void exportSource(Path output) {

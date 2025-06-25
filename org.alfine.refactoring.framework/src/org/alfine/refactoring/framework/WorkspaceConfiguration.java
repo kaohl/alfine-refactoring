@@ -2,8 +2,10 @@ package org.alfine.refactoring.framework;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,11 +13,18 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Vector;
+import java.util.function.Predicate;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 
+import org.alfine.refactoring.framework.launch.CommandLineArguments;
 import org.alfine.utils.Pair;
+import org.eclipse.core.runtime.Platform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WorkspaceConfiguration {
 
@@ -69,19 +78,46 @@ public class WorkspaceConfiguration {
 		}
 	}
 
+	private CommandLineArguments args;
+
 	private Path location; /* Workspace folder. */
 	private Path srcPath;  /* Folder containing source archives. */
 	private Path libPath;  /* Folder containing binary archives. */
-	private Path config;    /* Project configuration file. */
+	private Path config;   /* Project configuration file. */
 
 	private Map<String, ProjectConfiguration> projectMap; /* Projects loaded from configuration file. */
 	private Vector<ProjectConfiguration>      projects;   /* Project order as they appear in configuration file. */
 
-	public WorkspaceConfiguration(Path location, Path srcPath, Path libPath, Path config, Path variableConfig) {
-		this.location  = location;
-		this.srcPath   = srcPath;
-		this.libPath   = libPath;
-		this.config     = config;
+	private static Properties   includedPackagesNames;
+	private static Properties   includedCompilationUnitsNames;
+	private static List<String> includedMethodNames;
+
+	public static boolean hasMethodsConfig() {
+		return includedMethodNames.size() > 0;
+	}
+
+	public static boolean hasPackagesConfig() {
+		return includedPackagesNames.size() > 0 && includedCompilationUnitsNames.size() > 0;
+	}
+
+	public WorkspaceConfiguration(CommandLineArguments arguments) {
+		this.args     = arguments;
+		this.location = Paths.get(Platform.getInstanceLocation().getURL().getFile());
+		this.srcPath  = this.location.resolve(arguments.getSrcFolder());
+		this.libPath  = this.location.resolve(arguments.getLibFolder());
+		this.config   = srcPath.resolve("workspace.config");
+
+		Logger logger = LoggerFactory.getLogger(WorkspaceConfiguration.class);
+		logger.info("Location: {}", location);
+
+		Path variableConfig                = srcPath.resolve("variable.config");
+		Path includePackageConfig          = srcPath.resolve("packages.config");
+		Path includeCompilationUnitsConfig = srcPath.resolve("units.config");
+		Path includeMethodConfig           = srcPath.resolve("methods.config");
+
+		includedPackagesNames         = parseIncludedPackagesNames(includePackageConfig);
+		includedCompilationUnitsNames = parseIncludedCompilationUnitsNames(includeCompilationUnitsConfig);
+		includedMethodNames           = parseIncludedMethodNames(includeMethodConfig);
 
 		Pair<Vector<ProjectConfiguration>, Map<String, ProjectConfiguration>> p;
 
@@ -89,6 +125,10 @@ public class WorkspaceConfiguration {
 
 		this.projects   = p.getFirst();
 		this.projectMap = p.getSecond();
+	}
+
+	public CommandLineArguments getArguments() {
+		return this.args;
 	}
 
 	/** Return `Path' to workspace folder. */
@@ -106,28 +146,103 @@ public class WorkspaceConfiguration {
 		return this.libPath;
 	}
 
+	/** Return `Path' to folder for source archives on success. */
+	public Path getOutPath() {
+		return this.location.resolve(getArguments().getOutputFolder());
+	}
+
+	/** Return `Path' to refactoring opportunity cache folder. */
+	public Path getCachePath() {
+		return this.location.resolve(getArguments().getCacheFolder());
+	}
+
 	/** Return `Path' to workspace configuration file. */
 	public Path getConfigPath() {
 		return this.config;
 	}
+	
+	public List<String> getIncludedCompilationUnitsNames() {
+		List<String> result = new ArrayList<String>();
+		Properties ps = includedCompilationUnitsNames;
+		for (String name : ps.keySet().stream().map(Object::toString).collect(Collectors.toList())) {
+			result.addAll(
+				Arrays.asList(includedCompilationUnitsNames.getProperty(name, "").split(" "))
+				.parallelStream()
+				.map(String::trim)
+				.collect(Collectors.toList())
+			);
+		}
+		return result;
+	}
+	
+	public static List<String> getIncludedCompilationUnitsNamesForProject(String name) {
+		return Arrays.asList(includedCompilationUnitsNames.getProperty(name, "").split(" "))
+				.parallelStream()
+				.map(String::trim)
+				.collect(Collectors.toList());
+	}
+
+	private static Properties parseIncludedCompilationUnitsNames(Path path) {
+		Properties ps = new Properties();
+		try (InputStream in = Files.newInputStream(path)){
+			ps.load(in);
+		} catch (Exception e) {
+			System.err.println("Failed to load: " + e.getMessage());
+		}
+		return ps;
+	}
+
+	public static List<String> getIncludedPackagesNamesForProject(String name) {
+		// TODO: Should we split on newline?
+		return Arrays.asList(includedPackagesNames.getProperty(name, "").split(" "))
+				.parallelStream()
+				.map(String::trim)
+				.collect(Collectors.toList());
+	}
+
+	/* Note: If no `packages.config` file exists (or is effectively empty of package fragments),
+	 *       the scope of the refactoring framework is empty and no opportunities will be found. */
+	private static Properties parseIncludedPackagesNames(Path path) {
+		Properties ps = new Properties();
+		try (InputStream in = Files.newInputStream(path)){
+			ps.load(in);
+		} catch (Exception e) {
+			System.err.println("Failed to load: " + e.getMessage());
+		}
+		return ps;
+	}
+
+	public static List<String> getIncludedMethodNames() {
+		return includedMethodNames;
+	}
+
+	private List<String> parseIncludedMethodNames(Path includeMethodConfig) {
+		try {
+			return new ArrayList<String>(Files.lines(includeMethodConfig).collect(Collectors.toList()));
+		} catch (IOException e) {
+			System.err.println("Failed to load: " + e.getMessage());
+		}
+		return new ArrayList<>(0);
+	}
 
 	/** Return names of all source archives that are to be considered variable. */
 	public static Set<String> parseVariables(Path variableConfig) {
-
-		System.out.println("Parsing variable configuration.");
-
 		Set<String> variables = new HashSet<>();
-
-		try (BufferedReader br = Files.newBufferedReader(variableConfig)) {
-
-			br.lines()
-			.map    (line -> line.trim())
-			.filter  (line -> !line.equals(""))
-			.forEach(name -> { System.out.println("variable = " + name); variables.add(name); });
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RuntimeException("Failed to read configuration file: " + variableConfig.toAbsolutePath());
+		if (Files.exists(variableConfig)) {
+			System.out.println("Parsing variable configuration.");
+			try {
+				Files.lines(variableConfig)
+				.map    (String::trim)
+				.filter (Predicate.not(String::isEmpty))
+				.forEach(name -> {
+					System.out.println("variable = " + name);
+					variables.add(name);
+				});
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			System.out.println("No 'variable.config' provided.");
 		}
 
 		return variables;
@@ -169,12 +284,6 @@ public class WorkspaceConfiguration {
 
 	public static boolean isValidLibEntry(Path lib, Path src) {
 		/* Note: Source archive is optional. */
-		/*
-		System.err.println("isValidLibEntry(): src.toString = " + src.toString());
-		System.err.println("Files.exists(lib) = " + Files.exists(lib));
-		System.err.println("Files.exists(src) = " + Files.exists(src));
-		System.err.println("src.toString().equals(\"?\") = " + src.endsWith("?"));
-		 */
 		return Files.exists(lib) && (src.endsWith("?") || Files.exists(src));
 	}
 
@@ -213,7 +322,7 @@ public class WorkspaceConfiguration {
 		// ((lib, src),    export?)
 		
 		
-		// We do not configure variable sources here. They specified as part of the refactoring configuration.
+		// We do not configure variable sources here, they are specified as part of the refactoring configuration.
 
 		// # single line comment
 		// exp bin src
@@ -243,6 +352,10 @@ public class WorkspaceConfiguration {
 
 		String format = "Parse error while parsing configuration for project `%s':\n\t%s";
 
+		// Once `hasErrors` has been set it will not be unset.
+		// We always go through the whole configuration file
+		// and propagate the flag into the corresponding
+		// project configuration.
 		boolean hasErrors = false;
 
 		for (Iterator<String> it = tokens.iterator(); it.hasNext();) {
@@ -398,7 +511,8 @@ public class WorkspaceConfiguration {
 			System.err.printf("Bad configuration for project `%s'.\n", label);
 		}
 
-		return new ProjectConfiguration(label, deps, srcs, libs, !hasErrors);
+		List<String> includedPackagesNamesList = getIncludedPackagesNamesForProject(label);
+		return new ProjectConfiguration(label, deps, srcs, libs, includedPackagesNamesList, !hasErrors);
 	}
 
 	/** Parse project configuration file and construct a `ProjectConfiguration' per project configuration.

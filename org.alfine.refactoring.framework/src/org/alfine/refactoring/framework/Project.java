@@ -31,39 +31,9 @@ import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
-
+import org.eclipse.jdt.launching.JavaRuntime;
 
 // https://help.eclipse.org/kepler/index.jsp?topic=%2Forg.eclipse.platform.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fcore%2Fresources%2FIProjectDescription.html
-
-// 0. enter source generation phase of selected benchmark,
-// 1. create assets folder with 'src' and 'lib' directories,
-// 2. generate source archives into  ${assets}/src,
-// 3. generate binary archives into  ${assets}/lib,
-// 4. run eclipse product (see class CommandLineArguments for available options)
-//     0. create eclipse project in workspace
-//     1. import resources (assets)
-//     2. run transformation
-//     3. export resources (assets)
-// 5. Reenter build:
-//     0. import transformed source
-//     1. compile benchmark and dependencies
-//     2. run test (Consider introducing run configurations to enable different levels of testing)
-//     3. produce tested artifacts and a benchmark bundle (executable jarfile (dacapoharness))
-// 6. execute benchmark.
-//
-// IMPORTANT: Binary dependencies may not depend on source dependencies since that may break binaries after refactoring!
-//
-
-
-
-/* TODO: We should add classpath entries in a correct way: 
- * 
- * https://help.eclipse.org/kepler/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Fguide%2Fjdt_api_classpath.htm
- *
- * Note: The java source files under a classpath source entry must have package declarations which correspond to
- *       the directory structure from the source root.
- * 
- * */
 
 public class Project {
 	private static final Project instance = new Project();
@@ -153,8 +123,6 @@ public class Project {
 			// Unjar resource archive in project folder.
 		
 			try {
-				// TODO: Refactor PUP usage into two methods: one for jar and one for unjar.
-				
 				PUP.main(new String[] {source.getAbsolutePath(), target.getAbsolutePath()});
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -163,13 +131,11 @@ public class Project {
 		
 		@Override
 		public void exportResource() {
-			
+
 			if (verbose) {
 				log("Exporting resource: " + "target=" + target.getAbsolutePath() + ",output=" + output.getAbsolutePath());
 			}
 
-			// TODO: Refactor PUP usage into two methods: one for jar and one for unjar.
-			
 			try {
 				PUP.main(new String[] {target.getAbsolutePath(), output.getAbsolutePath()});
 			} catch (Exception e) {
@@ -410,7 +376,9 @@ public class Project {
 
 		// Reset classpath.
 
-		javaProject.setRawClasspath(new IClasspathEntry[] {}, null);
+		javaProject.setRawClasspath(new IClasspathEntry[] {
+				JavaRuntime.getDefaultJREContainerEntry()
+		}, null);
 
 		resources.forEach((Resource resource) -> {
 			resource.importResource();
@@ -434,130 +402,4 @@ public class Project {
 			System.out.println("ClasspathEntry=" + e.getPath());
 		}
 	}
-
-	/*
-	public static IPackageFragment[] getPackageFragments() throws JavaModelException {
-		return javaProject.getPackageFragments();
-	}
-	*/
-	/*
-	public static boolean applyRefactoring(Refactoring refactoring) {
-		//
-		// Is this useful?
-		// RefactoringASTParser p; p.parse(typeRoot, owner, resolveBindings, statementsRecovery, bindingsRecovery, pm);
-	
-		// We can get undo here... (But we do not want to execute in a new thread...)
-		// final int style = org.eclipse.ltk.core.refactoring.CheckConditionsOperation.ALL_CONDITIONS;
-		// PerformRefactoringOperation prop = new PerformRefactoringOperation(refactoring, style);
-	
-		System.out.println("Project.Refactor.applyRefactoring()");
-				
-		boolean result = false;
-	
-		try {
-			RefactoringStatus status = refactoring.checkAllConditions(new NullProgressMonitor());
-
-			if (status.hasError()) {
-				log("Refactoring status has errors: " + status);
-				throw new Exception("Refactoring status has errors.");
-			}
-
-			Change change = refactoring.createChange(new NullProgressMonitor());
-
-			try {
-
-				change.initializeValidationData(new NullProgressMonitor());
-
-				if (!change.isEnabled()) {
-					// log("Change is not enabled: " + change);
-					throw new Exception("Change is not enabled: "  + change);
-				}
-
-				RefactoringStatus valid = change.isValid(new NullProgressMonitor());
-
-				if (valid.hasError()) {
-					// log("Change validity has errors: " + valid);
-					throw new Exception("Change validity has errors: " + valid);
-				}
-
-				Object o = change.perform(new NullProgressMonitor());
-
-				if (o == null) {
-					// log("Failed to apply change!");
-					throw new Exception("Failed to apply change.");
-				}
-
-				result = true;
-
-			} finally {
-				change.dispose();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return result;
-	}
-	*/
-		
-
-	    /*
-	    WorkingCopyOwner owner = new WorkingCopyOwner() {};
-	    
-	    // Create a new working copy for the compilation unit.
-	    ICompilationUnit wc = unit.getWorkingCopy(owner, new NullProgressMonitor());
-	    
-	    System.out.println("owner=" + wc.getOwner());
-	    System.out.println("is_owner=" + (owner == wc.getOwner()));
-	    
-	    */
-	    // System.out.println("decl...=" + decl.toString());
-	    
-	    //ASTRewrite rewrite;
-	   
-	    /*
-	    RenameJavaElementDescriptor descriptor = new RenameJavaElementDescriptor("");
-	    descriptor.setJavaElement((IJavaElement)decl);
-	    descriptor.setNewName("B");
-	    descriptor.setUpdateReferences(true);
-	    descriptor.setRenameGetters(true);
-	    descriptor.setRenameSetters(true);
-
-
-	    org.eclipse.jdt.core.refactoring.descriptors.RenameJavaElementDescriptor.;
-		RenameSupport support = RenameSupport.create(descriptor);
-		
-		
-			    // RenameTypeProcessor processor = new RenameTypeProcessor((IType) decl);
-	     */
-
-	    // RenameSupport support = RenameSupport.create(unit, "B", RenameSupport.UPDATE_REFERENCES | RenameSupport.UPDATE_TEXTUAL_MATCHES);
-	    		
-	    		
-	    		//  org.eclipse.jdt.ui.actions.RenameAction 
-
-	    /*
-	    RenameRefactoring rr = new RenameRefactoring();
-	    RenameProcessor rp = new RenameProcessor();
-	    
-	    org.eclipse.ltk.ui.refactoring.R
-	    org.eclipse.ltk.core.refactoring
-	    */
-	    /*
-	    final String name = this.newMethodName;
-
-	    cunit.accept(new ASTVisitor() {
-	        public boolean visit(MethodInvocation methodInvocation)
-	        {
-	            String methodName = methodInvocation.getName().toString();
-	            System.out.println(methodName);
-	            if (methodName.equals(name))
-	            {
-	                int startPosition = methodInvocation.getStartPosition();
-	                length = methodInvocation.getLength();
-	                System.out.printf("startPosition %d - Length %d", startPosition, length);       
-	            }
-	            return false;
-	        }
-	    });
-	    */
 }

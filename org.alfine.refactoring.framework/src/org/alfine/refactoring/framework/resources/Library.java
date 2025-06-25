@@ -2,8 +2,6 @@ package org.alfine.refactoring.framework.resources;
 
 import java.nio.file.Path;
 
-import org.eclipse.jdt.core.IClasspathEntry;
-
 public class Library {
 
 	private Path     binaryArchive; /* Required */

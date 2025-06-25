@@ -1,7 +1,5 @@
 package org.alfine.refactoring.framework.resources;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.jar.JarFile;
@@ -13,7 +11,6 @@ import org.alfine.util.PUP;
 // A Source that contains many source roots must be extracted in a temporary target folder first
 // and then imported piecewise by each project that uses it.
 // A Source with a `parent' is an archive with many roots within.
-// We let projects reference Source object without parents and Source objects with parents.
 // A Source with a parent exports into unzip folder of corresponding parent source target directory.
 // Corresponding parent Source (with children) uses PUP to export target to output folder.
 
