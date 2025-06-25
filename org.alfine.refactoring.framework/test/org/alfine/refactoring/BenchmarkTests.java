@@ -31,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /*	
+	NOTE: See RegressionTests for regression tests.
+
 	Create a "JUnit Plug-in Test" launch configuration and open
 	the "Main" tab, then uncheck the "clear" option for the
 	workspace. The "Main" tab also shows where the workspace is
@@ -53,9 +55,9 @@ import org.slf4j.LoggerFactory;
  	same test.
  */
 
-class VisitorTest {
+class BenchmarkTests {
 
-	private Logger logger = LoggerFactory.getLogger(VisitorTest.class);
+	private Logger logger = LoggerFactory.getLogger(BenchmarkTests.class);
 
 	private static Path getLocation() {
 		return Paths.get(Platform.getInstanceLocation().getURL().getFile());
