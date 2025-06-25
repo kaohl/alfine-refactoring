@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
-import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 
 public class InlineMethodDescriptor extends RefactoringDescriptor {
 
@@ -26,13 +25,4 @@ public class InlineMethodDescriptor extends RefactoringDescriptor {
 	public String getRefactoringID() {
 		return ID;
 	}
-
-	@Override
-	protected void configure() {
-	}
-
-	@Override
-	protected void configureJavaRefactoringDescriptor(JavaRefactoringDescriptor descriptor) {
-	}
-
 }

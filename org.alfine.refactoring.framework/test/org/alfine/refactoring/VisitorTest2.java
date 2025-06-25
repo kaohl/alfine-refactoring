@@ -18,7 +18,7 @@ import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments;
 import org.alfine.refactoring.framework.launch.Main;
-import org.alfine.refactoring.suppliers.HotMethodRefactoringSupplier;
+import org.alfine.refactoring.suppliers.HotMethodRefactoringFinder;
 import org.alfine.refactoring.suppliers.RefactoringOpportunityContext;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.core.resources.IProject;
@@ -693,14 +693,14 @@ public class VisitorTest2 {
 
 	private Workspace createTestWorkspace(String descriptor) {
 		Workspace workspace = getWorkspace("test", "1.8", descriptor);
-		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
+		HotMethodRefactoringFinder supplier = new HotMethodRefactoringFinder(workspace);
 		supplier.cacheOpportunities();
 		return workspace;
 	}
 
 	private Workspace createTestWorkspace() {
 		Workspace workspace = getWorkspace("test", "1.8");
-		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
+		HotMethodRefactoringFinder supplier = new HotMethodRefactoringFinder(workspace);
 		supplier.cacheOpportunities();
 		return workspace;
 	}

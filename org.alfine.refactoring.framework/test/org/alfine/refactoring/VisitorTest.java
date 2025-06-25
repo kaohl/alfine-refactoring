@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.framework.launch.CommandLineArguments;
-import org.alfine.refactoring.suppliers.HotMethodRefactoringSupplier;
+import org.alfine.refactoring.suppliers.HotMethodRefactoringFinder;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspace;
@@ -225,7 +225,7 @@ class VisitorTest {
 		));
 		Workspace workspace = getWorkspace("lusearch", "11");
 
-		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
+		HotMethodRefactoringFinder supplier = new HotMethodRefactoringFinder(workspace);
 		supplier.cacheOpportunities();
 	}
 
@@ -237,7 +237,7 @@ class VisitorTest {
 
 		Workspace workspace = getWorkspace("luindex", "11");
 
-		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
+		HotMethodRefactoringFinder supplier = new HotMethodRefactoringFinder(workspace);
 		supplier.cacheOpportunities();
 	}
 
@@ -359,7 +359,7 @@ class VisitorTest {
 
 		Workspace workspace = getWorkspace("batik", "1.8");
 
-		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
+		HotMethodRefactoringFinder supplier = new HotMethodRefactoringFinder(workspace);
 		supplier.cacheOpportunities();
 	}
 
@@ -785,7 +785,7 @@ class VisitorTest {
 
 		Workspace workspace = getWorkspace("jacop", "1.8");
 
-		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
+		HotMethodRefactoringFinder supplier = new HotMethodRefactoringFinder(workspace);
 		supplier.cacheOpportunities();
 	}
 
@@ -825,7 +825,7 @@ class VisitorTest {
 
 		Workspace workspace = getWorkspace("xalan", "1.8");
 
-		HotMethodRefactoringSupplier supplier = new HotMethodRefactoringSupplier(workspace);
+		HotMethodRefactoringFinder supplier = new HotMethodRefactoringFinder(workspace);
 		supplier.cacheOpportunities();
 	}
 }

@@ -38,9 +38,6 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 
 public class Workspace {
-
-	public static String RT = null;
-
 	private Path location;  /* Workspace folder. */
 	private Path srcPath;   /* Folder containing source archives. */
 	private Path libPath;   /* Folder containing binary archives. */
@@ -154,11 +151,6 @@ public class Workspace {
 			} catch (JavaModelException e) {
 				e.printStackTrace();
 			}
-			/*
-			for (IPackageFragmentRoot root : jp.getPackageFragmentRoots()) {
-				fragments.addAll(new Helpers.Fragments(root).getFilteredFragments(filter));
-			}
-			*/
 		}
 		System.out.println("Found fragments " + fragments.size());
 		return fragments;

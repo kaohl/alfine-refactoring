@@ -25,13 +25,4 @@ public class RenameTypeDescriptor extends RenameRefactoringDescriptor {
 	public String getRefactoringID() {
 		return ID;
 	}
-
-	@Override
-	public void configure() {
-		super.configure(); // Generate name.
-		putArg("qualified",            "true");
-		putArg("references",          "true");
-		putArg("similarDeclarations", "false");
-		putArg("textual",             "false");
-	}
 }

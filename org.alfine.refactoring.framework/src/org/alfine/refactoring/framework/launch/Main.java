@@ -7,12 +7,7 @@ import java.util.Hashtable;
 import org.alfine.refactoring.framework.Workspace;
 import org.alfine.refactoring.framework.WorkspaceConfiguration;
 import org.alfine.refactoring.processors.Processor;
-import org.alfine.refactoring.suppliers.HotMethodRefactoringSupplier;
-import org.alfine.refactoring.suppliers.RandomExtractConstantFieldSupplier;
-import org.alfine.refactoring.suppliers.RandomExtractMethodSupplier;
-import org.alfine.refactoring.suppliers.RandomInlineConstantFieldSupplier;
-import org.alfine.refactoring.suppliers.RandomInlineMethodSupplier;
-import org.alfine.refactoring.suppliers.RandomRenameSupplier;
+import org.alfine.refactoring.suppliers.HotMethodRefactoringFinder;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceDescription;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -56,24 +51,11 @@ public class Main implements IApplication {
 
 		System.out.println("Using descriptor = " + descriptor);
 
-		// RefactoringDescriptor refactoringDescriptor = RefactoringDescriptorFactory.get(descriptor);
-
 		// Assume that the workspace is already setup by a previous invocation to "prepare" the workspace.
 
-		Workspace           workspace = new Workspace(new WorkspaceConfiguration(arguments), false);
-//		RefactoringSupplier supplier  = new SingleRefactoringSupplier(refactoringDescriptor);
-
-//		String refactoringOutputReportFolder = arguments.getRefactoringOutputReportFolder();
-//		System.out.println("Using report folder: " + refactoringOutputReportFolder);
-
-		Path location           = Paths.get(Platform.getInstanceLocation().getURL().getFile());
-		Path reportFolder       = location.resolve("report");
-//		Path successTrackerFile = reportFolder.resolve("successTrackerFile.txt");
-//		Path failureTrackerFile = reportFolder.resolve("failureTrackerFile.txt");
-
-//		ResultTracker resultTracker = new ResultTracker(successTrackerFile, failureTrackerFile);
-
-//		boolean success = new RefactoringProcessor(supplier, resultTracker, reportFolder).processSupply(0, 1);
+		Workspace workspace    = new Workspace(new WorkspaceConfiguration(arguments), false);
+		Path      location     = Paths.get(Platform.getInstanceLocation().getURL().getFile());
+		Path      reportFolder = location.resolve("report");
 
 		boolean success = Processor.refactor(descriptor, reportFolder);
 
@@ -109,26 +91,14 @@ public class Main implements IApplication {
 		// This is only relevant for collecting opportunities.
 		//
 		Path packagesConfigHelperPath = workspace.getConfiguration().getSrcPath().resolve("packages.config.helper");
-
 		workspace.writePackagesConfigHelper(packagesConfigHelperPath);
-
-		if (WorkspaceConfiguration.hasPackagesConfig()) {
-			// Cache opportunities by scanning packages open for transformation based on `package.config'.
-			new RandomRenameSupplier(workspace).cacheOpportunities();
-			new RandomInlineMethodSupplier(workspace).cacheOpportunities();
-		    new RandomExtractMethodSupplier(workspace).cacheOpportunities();
-		    new RandomInlineConstantFieldSupplier(workspace).cacheOpportunities();
-			new RandomExtractConstantFieldSupplier(workspace).cacheOpportunities();
-		}
 
 		if (WorkspaceConfiguration.hasMethodsConfig()) {
 			// Cache opportunities based on a list of method signatures.
 			// Originally intended for hot methods, but can be applied to any available function.
-			new HotMethodRefactoringSupplier(workspace).cacheOpportunities();
-		}
-
-		if (!(WorkspaceConfiguration.hasPackagesConfig() || WorkspaceConfiguration.hasMethodsConfig())) {
-			throw new Exception("No opportunities cached. Please specify packages and compilation units configuration, or methods configuration, or both.");
+			new HotMethodRefactoringFinder(workspace).cacheOpportunities();
+		} else {
+			throw new Exception("No opportunities cached. Please specify methods configuration.");
 		}
 	}
 

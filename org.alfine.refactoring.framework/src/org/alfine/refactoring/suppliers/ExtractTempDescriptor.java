@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
-import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 
 public class ExtractTempDescriptor extends RefactoringDescriptor {
 
@@ -25,13 +24,5 @@ public class ExtractTempDescriptor extends RefactoringDescriptor {
 	@Override
 	public String getRefactoringID() {
 		return ID;
-	}
-
-	@Override
-	protected void configure() {
-	}
-
-	@Override
-	protected void configureJavaRefactoringDescriptor(JavaRefactoringDescriptor descriptor) {
 	}
 }

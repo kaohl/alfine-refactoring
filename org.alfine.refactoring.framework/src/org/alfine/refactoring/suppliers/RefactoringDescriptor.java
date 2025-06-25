@@ -5,7 +5,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 import org.eclipse.ltk.core.refactoring.RefactoringContribution;
 import org.eclipse.ltk.core.refactoring.RefactoringCore;
 import org.slf4j.Logger;
@@ -96,94 +95,6 @@ public abstract class RefactoringDescriptor implements Comparable<RefactoringDes
 		} else {
 			return contribution;
 		}
-	}
-
-	/** Configure this descriptor just before creating a
-	 *  corresponding `JavaRefactoringDescriptor`. */
-	protected abstract void configure();
-	
-	/** Configure corresponding `JavaRefactoringDescriptor`. */
-	protected abstract void
-	configureJavaRefactoringDescriptor(JavaRefactoringDescriptor descriptor);
-
-	/** Return a JavaRefactoringDescriptor. */
-	public JavaRefactoringDescriptor getDescriptor() {
-		System.out.println("Descriptor arguments:");
-		for (Entry<String, String> entry : getArgumentMap().entrySet()) {
-			System.out.println(String.format("  %s = %s", entry.getKey(), entry.getValue()));
-		}
-
-		configure();
-
-		RefactoringContribution   contribution = getRefactoringContribution();
-		JavaRefactoringDescriptor defaultInit  = (JavaRefactoringDescriptor)contribution.createDescriptor();
-		JavaRefactoringDescriptor descriptor   = (JavaRefactoringDescriptor)contribution.createDescriptor(
-			getRefactoringID(),
-			defaultInit.getProject(),
-			defaultInit.getDescription(),
-			defaultInit.getComment(),
-			getArgumentMap(),
-			defaultInit.getFlags()
-		);
-
-		configureJavaRefactoringDescriptor(descriptor);
-
-		return descriptor;
-	}
-	
-//	private Refactoring createRefactoring() {
-//		
-//		JavaRefactoringDescriptor descriptor = getDescriptor();
-//
-//		RefactoringStatus status = descriptor.validateDescriptor();
-//
-//		setValidationStatus(status);
-//		
-//// TODO: Move print into refactoring class to be processed before the refactoring is applied.
-////
-////		for (RefactoringStatusEntry entry : status.getEntries()) {
-////			System.out.println("RefactoringStatusEntry from `validateDescriptor()':\n" + entry.toString());
-////		}
-//
-//		if (status.hasError()) {
-//			System.err.println("Invalid refactoring descriptor.");
-//			return wrapper;
-//		}
-//
-//		Refactoring refactoring = null;
-//
-//		try {
-//			RefactoringContext ctx    = null;
-//
-//			status = new RefactoringStatus();
-//
-//			ctx = descriptor.createRefactoringContext(status);
-//
-//			setContextStatus(status);
-//
-////    TODO: Move to be processed before the refactoring is applied.
-////			for (RefactoringStatusEntry entry : status.getEntries()) {
-////				System.out.println("RefactoringStatusEntry:\n" + entry.toString());
-////			}
-//
-//			if (status.hasError()) {
-//				System.out.println("Invalid refactoring context.");
-//				return wrapper;
-//			}
-//
-//			refactoring = ctx.getRefactoring();
-//
-//		} catch (CoreException e) {
-//			e.printStackTrace();
-//		}
-//
-//		wrapper.setRefactoring(refactoring);
-//
-//		return wrapper;
-//	}
-
-	public org.alfine.refactoring.suppliers.Refactoring getRefactoring() {
-		return new org.alfine.refactoring.suppliers.Refactoring(this);
 	}
 
 	@Override

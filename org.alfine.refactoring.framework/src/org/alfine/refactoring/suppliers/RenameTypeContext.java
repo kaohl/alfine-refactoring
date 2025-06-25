@@ -6,10 +6,8 @@ import java.nio.file.Paths;
 import org.eclipse.jdt.core.dom.ASTNode;
 
 public class RenameTypeContext extends RefactoringOpportunityContext {
-//	private final List<String> declContext;
 
 	public RenameTypeContext(ASTNode node) {
-//		this.declContext = ASTHelper.getDeclarationContext(node);
 	}
 
 	@Override

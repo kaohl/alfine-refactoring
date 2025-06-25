@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.jdt.core.refactoring.IJavaRefactorings;
-import org.eclipse.jdt.core.refactoring.descriptors.JavaRefactoringDescriptor;
 
 public class InlineConstantFieldDescriptor extends RefactoringDescriptor {
 
@@ -25,17 +24,5 @@ public class InlineConstantFieldDescriptor extends RefactoringDescriptor {
 	@Override
 	public String getRefactoringID() {
 		return ID;
-	}
-
-	@Override
-	protected void configure() {
-		putArg("replace",    "false"); // Only inline the selected occurrence.
-		putArg("remove",     "false");
-		putArg("comments",   "false");
-		putArg("exceptions", "false");
-	}
-
-	@Override
-	protected void configureJavaRefactoringDescriptor(JavaRefactoringDescriptor descriptor) {
 	}
 }
