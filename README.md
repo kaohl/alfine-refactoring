@@ -3,6 +3,12 @@ This is one of three repositories developed for my [master's thesis](https://lup
 
 See also the [evaluation framework](https://github.com/kaohl/masters-thesis-software-evaluation) and the [build framework](https://github.com/kaohl/daivy).
 
+> [!NOTE]
+> Regarding citation: Please reference the thesis, which provides context for this work, and links to all repositories.
+
+> [!NOTE]
+> Please fork the repository for future work.
+
 # Refactoring Framework
 This is a Java refactoring framework for automated refactoring that I built as part of my master's in software engineering, where we explored the impact of Java refactoring on execution performance.
 
